@@ -57,8 +57,8 @@ export function StoreActionPanel({
   region?: string
   onClose: () => void
   onPick: (store: StoreSelection) => void
-  /** The action plan for `store` was launched. */
-  onLaunched?: () => void
+  /** The action plan for `store` was launched, with its (simulated) ticket. */
+  onLaunched?: (ticket: string) => void
 }) {
   const { user } = useAuth()
   const [profile, setProfile] = useState<StoreProfile | null>(null)
@@ -105,13 +105,14 @@ export function StoreActionPanel({
     const q = QUADRANTS[profile.quadrant]
     setPriority(q.tone === 'risk' ? 'High' : 'Medium')
     setNotes(
+      (store?.reason ? `${store.reason}.\n` : '') +
       `${shortStoreName(profile.name)} (${profile.region}) · ${q.label}. ` +
         `${money2(profile.salesPerSqFt)} sales per sq ft vs ${money2(profile.regionMedianSalesPerSqFt)} region median ` +
         `on ${int(profile.sqFt)} sq ft (rank ${profile.rankInRegion}/${profile.regionStores}). ` +
         `Gross margin ${percent1(profile.grossMargin)} vs ${percent1(profile.regionMedianGrossMargin)} region median.` +
         (profile.opportunity > 0 ? ` Annual opportunity to median: ${money0(profile.opportunity)}.` : ''),
     )
-  }, [profile, recs])
+  }, [profile, recs, store?.reason])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -152,7 +153,7 @@ export function StoreActionPanel({
     setRun(steps)
     setRunDone(0)
     setPhase('running')
-    onLaunched?.()
+    onLaunched?.(ticket)
   }
 
   // Reveal the simulated workflow one step at a time.
@@ -203,6 +204,13 @@ export function StoreActionPanel({
               <button type="button" onClick={() => setAttempt((a) => a + 1)}>
                 Retry
               </button>
+            </div>
+          )}
+
+          {store.reason && (
+            <div className="sa-reason">
+              <span className="mono-label">Why this store</span>
+              <p>{store.reason}</p>
             </div>
           )}
 

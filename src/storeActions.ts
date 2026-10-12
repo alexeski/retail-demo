@@ -8,7 +8,15 @@ export const STORE_ACTION_ID = 'store-action-plan'
 export const STORE_PICK_ACTION_ID = 'store-action-pick'
 
 /** A store picked on the scatter chart. */
-export type StoreSelection = { name: string; region?: string; sales?: number; sqFt?: number; grossMargin?: number }
+export type StoreSelection = {
+  name: string
+  region?: string
+  sales?: number
+  sqFt?: number
+  grossMargin?: number
+  /** Why the store was surfaced (e.g. by a Shuttle answer), shown on the plan. */
+  reason?: string
+}
 
 type PointColumn = { column?: { name?: string }; value?: unknown }
 type ClickedPoint = { selectedAttributes?: PointColumn[]; selectedMeasures?: PointColumn[] }

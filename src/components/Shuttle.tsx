@@ -1,18 +1,29 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { applyEvent, createConversation, finishTurn, newTurn, stopResponse, streamMessage, type Turn } from '../spotter'
 import { rebrand } from '../brand'
+import type { StoreSelection } from '../storeActions'
+import { findStoreLeads, leadLabel, leadSelection, storeFromReply, type StoreLead, type StoreLeads } from '../storeLeads'
 import { SpotterTurn } from './SpotterTurn'
+import { StoreActionPanel } from './StoreActionPanel'
+import { StoreLeadsCard } from './StoreLeadsCard'
 import './Shuttle.css'
 
 /** Questions the retail sales data can answer. */
 export const SHUTTLE_SUGGESTIONS = [
+  'Which regions and stores had the worst profit margins in the last 12 months?',
   'Which region had the highest sales last month?',
   'Compare sales and gross profit by region this year',
   'Top 10 stores by sales per square foot',
   'How has foot traffic trended over the last 6 months?',
 ]
 
-type ChatItem = { id: number; kind: 'user'; text: string } | { id: number; kind: 'assistant'; turn: Turn }
+type LeadsState = { status: 'loading' } | ({ status: 'ready' } & StoreLeads)
+
+type ChatItem =
+  | { id: number; kind: 'user'; text: string }
+  | { id: number; kind: 'assistant'; turn: Turn; leads?: LeadsState }
+  /** Shuttle's own reply, written locally (no data question involved). */
+  | { id: number; kind: 'note'; text: string; tone?: 'done' }
 
 type ShuttleApi = {
   /** Opens the drawer and asks a question. */
@@ -48,6 +59,13 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
   const drawerInputRef = useRef<HTMLInputElement>(null)
   const isOpenRef = useRef(isOpen)
   isOpenRef.current = isOpen
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+
+  // The Act on a store flow, started from an answer's leads or a chat reply.
+  const [action, setAction] = useState<{ store: StoreSelection } | null>(null)
+  /** Store name → ticket of the plan launched from Shuttle. */
+  const [actioned, setActioned] = useState<Record<string, string>>({})
 
   useEffect(() => {
     // An expanded answer handles Escape itself; only close the drawer otherwise.
@@ -74,6 +92,19 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
 
   const updateTurn = (id: number, fn: (t: Turn) => Turn) =>
     setItems((list) => list.map((it) => (it.id === id && it.kind === 'assistant' ? { ...it, turn: fn(it.turn) } : it)))
+  const setLeads = (id: number, leads: LeadsState | undefined) =>
+    setItems((list) => list.map((it) => (it.id === id && it.kind === 'assistant' ? { ...it, leads } : it)))
+  const addNote = (text: string, tone?: 'done') => setItems((list) => [...list, { id: nextId.current++, kind: 'note', text, tone }])
+
+  /** Leads offered by the most recent answer that had any. */
+  const latestLeads = (): StoreLead[] => {
+    for (const it of [...itemsRef.current].reverse()) {
+      if (it.kind === 'assistant' && it.leads?.status === 'ready') return it.leads.leads
+    }
+    return []
+  }
+
+  const actOn = (store: StoreSelection) => setAction({ store })
 
   const ask = useCallback(
     async (raw: string) => {
@@ -82,16 +113,43 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
       setIsOpen(true)
       setDrawerText('')
       stickToBottom.current = true
+
+      // "the 2nd one", "act on Portland": answer it here with the action plan.
+      const picked = await storeFromReply(q, latestLeads()).catch(() => null)
+      if (picked) {
+        setItems((list) => [...list, { id: nextId.current++, kind: 'user', text: q }])
+        addNote(`Building an action plan for ${leadLabel(picked)} with its latest figures…`)
+        actOn(picked)
+        return
+      }
+
       const userId = nextId.current++
       const id = nextId.current++
-      setItems((list) => [...list, { id: userId, kind: 'user', text: q }, { id, kind: 'assistant', turn: newTurn(q) }])
+      let turn = newTurn(q)
+      setItems((list) => [...list, { id: userId, kind: 'user', text: q }, { id, kind: 'assistant', turn }])
       setStreaming(true)
       const controller = new AbortController()
       abort.current = controller
       try {
         conversation.current ??= await createConversation()
-        await streamMessage(conversation.current, q, (e) => updateTurn(id, (t) => applyEvent(t, e)), controller.signal)
-        updateTurn(id, (t) => finishTurn(t))
+        await streamMessage(
+          conversation.current,
+          q,
+          (e) => {
+            turn = applyEvent(turn, e)
+            updateTurn(id, () => turn)
+          },
+          controller.signal,
+        )
+        turn = finishTurn(turn)
+        updateTurn(id, () => turn)
+        if (turn.phase === 'done') {
+          // Look for stores worth acting on (in the background; the answer is already shown).
+          setLeads(id, { status: 'loading' })
+          findStoreLeads(turn).then((found) =>
+            setLeads(id, found.leads.length ? { status: 'ready', ...found } : undefined),
+          )
+        }
       } catch (err) {
         if (controller.signal.aborted) updateTurn(id, (t) => finishTurn(t, 'stopped'))
         else {
@@ -189,8 +247,22 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
               <div key={it.id} className="msg-user">
                 {it.text}
               </div>
+            ) : it.kind === 'note' ? (
+              <div key={it.id} className={it.tone === 'done' ? 'msg-note is-done' : 'msg-note'}>
+                <span className="shuttle-pill" aria-hidden />
+                <p>{it.text}</p>
+              </div>
             ) : (
-              <SpotterTurn key={it.id} turn={it.turn} onRetry={streaming ? undefined : () => ask(it.turn.question)} />
+              <div key={it.id} className="msg-turn">
+                <SpotterTurn turn={it.turn} onRetry={streaming ? undefined : () => ask(it.turn.question)} />
+                {it.leads && (
+                  <StoreLeadsCard
+                    state={it.leads}
+                    actioned={actioned}
+                    onAct={(l) => actOn(leadSelection(l))}
+                  />
+                )}
+              </div>
             ),
           )}
         </div>
@@ -212,6 +284,26 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
           )}
         </form>
       </aside>
+
+      {action && (
+        <StoreActionPanel
+          key={action.store.name}
+          store={action.store}
+          region={action.store.region}
+          onClose={() => setAction(null)}
+          onPick={actOn}
+          onLaunched={(ticket) => {
+            const store = action.store
+            setActioned((all) => ({ ...all, [store.name]: ticket }))
+            const others = latestLeads().filter((l) => l.name !== store.name && !actioned[l.name])
+            addNote(
+              `Action plan ${ticket} launched for ${leadLabel(store)}.` +
+                (others.length ? ` Want to act on another store from the list? Reply with its name or position.` : ''),
+              'done',
+            )
+          }}
+        />
+      )}
     </ShuttleContext.Provider>
   )
 }

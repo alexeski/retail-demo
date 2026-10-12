@@ -684,3 +684,25 @@ li > .sa-picker-row:hover {
     animation: none;
   }
 }
+
+/* Why the store came up (e.g. a Shuttle answer), above the snapshot. */
+.sa-reason {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-left: 5px solid var(--accent);
+  background: #fff4ef;
+}
+
+.sa-reason .mono-label {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.sa-reason p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}

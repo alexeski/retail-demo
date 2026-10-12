@@ -321,3 +321,196 @@
     animation: none;
   }
 }
+
+/* ---------- Answer + its store leads ---------- */
+.msg-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Shuttle's own short replies (the action flow, not a data answer). */
+.msg-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 85%;
+  animation: leads-in 0.3s ease-out both;
+}
+
+.msg-note .shuttle-pill {
+  margin-top: 6px;
+}
+
+.msg-note p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.msg-note.is-done p {
+  padding: 8px 12px;
+  background: var(--good-soft);
+  border-left: 3px solid var(--good);
+}
+
+@keyframes leads-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.leads {
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  box-shadow: 4px 4px 0 var(--ink);
+  animation: leads-in 0.35s ease-out both;
+}
+
+.leads.is-attention {
+  background: #fff4ef;
+}
+
+.leads.is-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-style: dashed;
+  box-shadow: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.leads-head {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px 10px;
+}
+
+.leads-bolt {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  background: var(--accent);
+  border: 1.5px solid var(--ink);
+  font-size: 15px;
+}
+
+.leads-head strong {
+  font-size: 16px;
+}
+
+.leads-head p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.leads-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1.5px solid var(--ink);
+}
+
+.leads-list li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--card);
+}
+
+.leads-list li + li {
+  border-top: 1px solid var(--sand);
+}
+
+.leads-pos {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.leads-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.leads-name strong {
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leads-name .mono-label,
+.leads-metrics .mono-label {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.leads-metrics {
+  display: flex;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.leads-act {
+  min-width: 84px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1.5px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.leads-act:hover {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.leads-act.is-done {
+  background: var(--good-soft);
+  color: var(--good);
+  border-color: var(--good);
+}
+
+.leads-more {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-top: 1px solid var(--sand);
+  background: var(--card);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.leads-more:hover {
+  background: var(--periwinkle);
+}
+
+@media (max-width: 640px) {
+  .leads-list li { grid-template-columns: 20px minmax(0, 1fr) auto; }
+  .leads-metrics { grid-column: 2 / -1; grid-row: 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg-note,
+  .leads { animation: none; }
+}

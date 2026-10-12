@@ -53,7 +53,7 @@ const DATA_SOURCE_ID = '11e40743-9285-42bd-856d-3f81a755c4f6'
 const DEFAULT_PERIOD = "[Transaction Date].'last 12 months'"
 const LAST_30_DAYS = "[Transaction Date].'last 30 days'"
 
-type Row = (string | number | null)[]
+export type Row = (string | number | null)[]
 
 /**
  * Runs a search query (ThoughtSpot Search Data API). Authenticates with the viewer's session cookie
@@ -61,6 +61,11 @@ type Row = (string | number | null)[]
  * this app's origin.
  */
 export async function searchData(queryString: string, recordSize = 5000): Promise<Row[]> {
+  return (await searchTable(queryString, recordSize)).rows
+}
+
+/** Like searchData, with the column names (e.g. "Store Name", "Gross Profit (%)"). */
+export async function searchTable(queryString: string, recordSize = 5000): Promise<{ columns: string[]; rows: Row[] }> {
   const res = await fetch(`${THOUGHTSPOT_HOST}/api/rest/2.0/searchdata`, {
     method: 'POST',
     credentials: 'include',
@@ -73,8 +78,8 @@ export async function searchData(queryString: string, recordSize = 5000): Promis
     }),
   })
   if (!res.ok) throw new Error(`Data request failed (${res.status}): ${(await res.text()).slice(0, 300)}`)
-  const body = (await res.json()) as { contents: { data_rows: Row[] }[] }
-  return body.contents[0]?.data_rows ?? []
+  const body = (await res.json()) as { contents: { column_names: string[]; data_rows: Row[] }[] }
+  return { columns: body.contents[0]?.column_names ?? [], rows: body.contents[0]?.data_rows ?? [] }
 }
 
 const quote = (v: string | number) => `'${String(v).replace(/'/g, "\\'")}'`
