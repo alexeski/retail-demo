@@ -67,6 +67,11 @@ export function initThoughtSpot() {
             '--ts-var-liveboard-layout-background': 'transparent',
             '--ts-var-liveboard-header-background': 'transparent',
             '--ts-var-liveboard-cross-filter-layout-background': 'transparent',
+            // Chart-tile buttons (custom actions, Shuttle, ⋯) use these as their
+            // hover / pressed *background*; the theme's near-black values hid the
+            // dark button text. Light sand tones from the same theme instead.
+            '--ts-var-liveboard-header-action-button-hover-color': '#E7E1D8',
+            '--ts-var-liveboard-header-action-button-active-color': '#D7D1C8',
           },
           // The Liveboard header has to stay mounted for HostEvent.OpenFilter to work
           // (it drives the filter chips), but the host app renders its own title,
