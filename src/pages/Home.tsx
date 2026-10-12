@@ -1,0 +1,272 @@
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
+import { firstName, useAuth } from '../auth'
+import { CountUp } from '../components/CountUp'
+import { SHUTTLE_SUGGESTIONS, useShuttle } from '../components/Shuttle'
+import { getTodayKpis, type TodayKpis } from '../homeKpis'
+import './Home.css'
+
+const ALERTS = [
+  { store: '#031', kind: 'Stock', hot: true, title: 'Fleece vest M below 2 days of cover', detail: 'Denver and five other stores. Phoenix DC has 140 units.', q: 'Which Denver stores had the lowest sales last month, and in which categories?' },
+  { store: '#079', kind: 'Device', hot: true, title: '3 registers offline since 8:40 AM', detail: 'Atlanta. Sales are queuing locally and will sync.', q: 'How do transactions at Atlanta stores this week compare with last week?' },
+  { store: '#102', kind: 'Staff', hot: false, title: 'Short 2 associates, 3–6 PM', detail: 'Brooklyn traffic forecast is up 18% for the afternoon.', q: 'Which stores have the highest foot traffic per store this month?' },
+  { store: 'DC-2', kind: 'Transfer', hot: false, title: '12 transfers waiting for approval', detail: 'Mostly outerwear moving to Mountain region stores.', q: 'Which outerwear brands sold best in the Mountain states last quarter?' },
+]
+
+const FEED = [
+  { t: '09:11', text: 'Transfer #4471 received at Boston #139' },
+  { t: '09:06', text: 'Price change pushed to 214 stores · Fall outerwear' },
+  { t: '08:52', text: 'Online order picked up at Portland #002' },
+  { t: '08:40', text: 'Atlanta #079 · 3 registers switched to offline mode' },
+]
+
+const formatNow = (d: Date) => {
+  const day = d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }).replace(',', '')
+  return `${day} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+}
+
+const greeting = (d: Date) => (d.getHours() < 12 ? 'Good morning' : d.getHours() < 18 ? 'Good afternoon' : 'Good evening')
+
+const money0 = (n: number) => '$' + Math.round(n).toLocaleString('en-US')
+const money2 = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const int = (n: number) => Math.round(n).toLocaleString('en-US')
+
+const pctChange = (now: number, before: number) => (before ? ((now - before) / before) * 100 : 0)
+const arrow = (d: number) => (d >= 0 ? '▲' : '▼')
+
+/** Day buckets are UTC midnight, so read the weekday in UTC. */
+const weekday = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
+
+type KpiCard = { label: string; value?: number; format: (n: number) => string; suffix?: string; delta?: string; down?: boolean; alert?: boolean }
+
+function kpiCards(k: TodayKpis | null): KpiCard[] {
+  if (!k) {
+    return [
+      { label: 'Net sales · today', format: money0 },
+      { label: 'Transactions', format: int },
+      { label: 'Avg basket', format: money2 },
+      { label: 'Stores trading', format: int },
+    ]
+  }
+  const { today, lastWeek } = k
+  const salesD = pctChange(today.sales, lastWeek.sales)
+  const txD = pctChange(today.transactions, lastWeek.transactions)
+  const basket = today.transactions ? today.sales / today.transactions : 0
+  const basketPrev = lastWeek.transactions ? lastWeek.sales / lastWeek.transactions : 0
+  const basketD = basket - basketPrev
+  const quiet = k.storesTotal - k.storesTrading
+  return [
+    { label: 'Net sales · today', value: today.sales, format: money0, delta: `${arrow(salesD)} ${Math.abs(salesD).toFixed(1)}% vs last ${weekday(lastWeek.date)}`, down: salesD < 0 },
+    { label: 'Transactions', value: today.transactions, format: int, delta: `${arrow(txD)} ${Math.abs(txD).toFixed(1)}%`, down: txD < 0 },
+    { label: 'Avg basket', value: basket, format: money2, delta: `${arrow(basketD)} ${money2(Math.abs(basketD))}`, down: basketD < 0 },
+    {
+      label: 'Stores trading',
+      value: k.storesTrading,
+      format: int,
+      suffix: ` / ${int(k.storesTotal)}`,
+      delta: quiet > 0 ? `${quiet} with no sales yet today` : 'All stores trading',
+      alert: quiet > 0,
+    },
+  ]
+}
+
+export function Home() {
+  const { user } = useAuth()
+  const { ask } = useShuttle()
+  const [now] = useState(() => new Date())
+  const [heroText, setHeroText] = useState('')
+
+  const [kpis, setKpis] = useState<TodayKpis | null>(null)
+  const [status, setStatus] = useState<{ loading: boolean; error?: boolean; at?: Date }>({ loading: true })
+  const [attempt, setAttempt] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    setStatus((s) => ({ ...s, loading: true, error: false }))
+    getTodayKpis()
+      .then((k) => {
+        if (cancelled) return
+        setKpis(k)
+        setStatus({ loading: false, at: new Date() })
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.error("Could not load today's figures", err)
+        setStatus({ loading: false, error: true })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [attempt])
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    if (!heroText.trim()) return
+    ask(heroText)
+    setHeroText('')
+  }
+
+  const cards = kpiCards(kpis)
+  const topMax = kpis?.topStores[0]?.sales || 1
+
+  return (
+    <div className="home">
+      {/* HERO / SHUTTLE */}
+      <section className="hero">
+        <div className="eyebrow">
+          <span>{formatNow(now)}</span>
+          <span className="eyebrow-rule" />
+          <span>{greeting(now)}, {user ? firstName(user) : 'there'}</span>
+        </div>
+        <h1 className="display hero-h1">
+          What should we <span className="highlight">pull together</span> today?
+        </h1>
+
+        <form onSubmit={submit} className="ask-card">
+          <div className="ask-card-head mono-label">
+            <span className="shuttle-badge">
+              <span className="shuttle-pill" />
+              <strong>Shuttle</strong>
+            </span>
+            <span>Your stores' assistant</span>
+          </div>
+          <div className="ask-card-row">
+            <input
+              value={heroText}
+              onChange={(e) => setHeroText(e.target.value)}
+              placeholder="Ask Shuttle about any store, product or shift…"
+              className="ask-input"
+            />
+            <button type="submit" className="ask-btn">
+              Ask <span>→</span>
+            </button>
+          </div>
+        </form>
+
+        <div className="suggestions">
+          {SHUTTLE_SUGGESTIONS.map((q) => (
+            <button key={q} type="button" className="btn-chip" onClick={() => ask(q)}>
+              {q}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* TODAY STRIP */}
+      <div className={`today-status is-${status.error ? 'error' : status.loading ? 'loading' : 'ready'}`} aria-live="polite">
+        {status.loading ? (
+          <>
+            <span className="today-spinner" aria-hidden />
+            Syncing today's figures…
+          </>
+        ) : status.error ? (
+          <>
+            Couldn’t load today’s figures.
+            <button type="button" onClick={() => setAttempt((a) => a + 1)}>
+              Retry
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="today-live" aria-hidden />
+            Live · updated {status.at?.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </>
+        )}
+      </div>
+      <section className={kpis ? 'kpi-strip is-ready' : 'kpi-strip'} aria-busy={status.loading}>
+        {cards.map((k, i) => (
+          <div key={k.label} className="kpi" style={{ '--i': i } as CSSProperties}>
+            <span className="mono-label">{k.label}</span>
+            {k.value === undefined ? (
+              <>
+                <span className="kpi-value">
+                  <span className="home-skeleton is-tall" />
+                </span>
+                <span className="kpi-delta">
+                  <span className="home-skeleton" />
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="kpi-value">
+                  <CountUp value={k.value} format={k.format} delay={i * 90} />
+                  {k.suffix && <span className="kpi-suffix">{k.suffix}</span>}
+                </span>
+                <span className={['kpi-delta', k.down && 'is-down', k.alert && 'is-alert'].filter(Boolean).join(' ')}>{k.delta}</span>
+              </>
+            )}
+          </div>
+        ))}
+      </section>
+
+      {/* WORK AREA */}
+      <section className="work">
+        <div className="work-col">
+          <div className="work-head">
+            <h2>Needs attention</h2>
+            <span className="mono-label">{ALERTS.length} open</span>
+          </div>
+          <div className="alerts">
+            {ALERTS.map((a) => (
+              <div key={a.store} className="alert">
+                <div className={a.hot ? 'alert-tag is-hot' : 'alert-tag'}>
+                  <span className="alert-store">{a.store}</span>
+                  <span className="alert-kind">{a.kind}</span>
+                </div>
+                <div className="alert-body">
+                  <span className="alert-title">{a.title}</span>
+                  <span className="alert-detail">{a.detail}</span>
+                </div>
+                <button type="button" className="alert-ask" onClick={() => ask(a.q)}>
+                  Ask ↗
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="work-col">
+          <div className="work-head">
+            <h2>Top stores today</h2>
+            <span className="mono-label">Net sales</span>
+          </div>
+          <div className={kpis ? 'leaders is-ready' : 'leaders'}>
+            {kpis
+              ? kpis.topStores.map((l, i) => (
+                  <div key={l.name} className="leader" style={{ '--i': i } as CSSProperties}>
+                    <span className="leader-rank">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="leader-city" title={l.name}>
+                      {l.name}
+                    </span>
+                    <span className="bar">
+                      <span
+                        style={{ width: `${Math.round((l.sales / topMax) * 100)}%`, background: i === 0 ? 'var(--accent)' : 'var(--ink)' }}
+                      />
+                    </span>
+                    <CountUp className="leader-sales" value={l.sales} format={money0} delay={i * 70} />
+                  </div>
+                ))
+              : Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="leader">
+                    <span className="leader-rank">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="home-skeleton" />
+                    <span className="bar" />
+                    <span className="home-skeleton" />
+                  </div>
+                ))}
+          </div>
+
+          <div className="feed">
+            <span className="feed-title">Network feed</span>
+            {FEED.map((f) => (
+              <div key={f.t} className="feed-row">
+                <span className="feed-time">{f.t}</span>
+                <span>{f.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+    </div>
+  )
+}

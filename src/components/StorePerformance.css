@@ -1,0 +1,287 @@
+.regions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: clamp(8px, 1vw, 12px);
+}
+
+.regions-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+
+.regions-title {
+  font-weight: 700;
+  font-stretch: 112%;
+  font-size: 16px;
+}
+
+.regions-hint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.regions-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.regions-status.is-error {
+  color: var(--accent-dark);
+}
+
+.regions-status button {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.regions-status button:hover {
+  background: var(--periwinkle);
+}
+
+/* Two shuttles passing on a loom: the Storeloom "working" mark. */
+@keyframes sl-shuttle {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(10px); }
+}
+
+.regions-spinner {
+  position: relative;
+  width: 20px;
+  height: 10px;
+}
+
+.regions-spinner::before,
+.regions-spinner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 10px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--accent);
+  animation: sl-shuttle 0.9s ease-in-out infinite;
+}
+
+.regions-spinner::after {
+  top: 6px;
+  left: 10px;
+  background: var(--ink);
+  animation-direction: reverse;
+}
+
+@keyframes sl-live {
+  0% { box-shadow: 0 0 0 0 rgba(229, 80, 42, 0.55); }
+  70% { box-shadow: 0 0 0 7px rgba(229, 80, 42, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 80, 42, 0); }
+}
+
+.regions-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: sl-live 1.8s ease-out 3;
+}
+
+/* ---------- Progress bar ---------- */
+@keyframes sl-progress-weave {
+  from { background-position: 0 0; }
+  to { background-position: 28px 0; }
+}
+
+.regions-progress {
+  height: 6px;
+  margin-top: -10px;
+  background: var(--sand);
+  overflow: hidden;
+  transition: opacity 0.5s ease 0.6s, height 0.4s ease 0.9s, margin 0.4s ease 0.9s;
+}
+
+.regions-progress > span {
+  display: block;
+  height: 100%;
+  background:
+    repeating-linear-gradient(135deg, rgba(23, 21, 15, 0.22) 0 6px, transparent 6px 14px),
+    var(--accent);
+  animation: sl-progress-weave 0.8s linear infinite;
+  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.regions-progress.is-ready,
+.regions-progress.is-error {
+  opacity: 0;
+  height: 0;
+  margin-top: -16px;
+}
+
+.regions-progress.is-error > span {
+  background: var(--accent-dark);
+}
+
+.regions-table {
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  overflow-x: auto;
+}
+
+.regions-table .region-kpi {
+  transition: opacity 0.25s, background-color 1.2s ease-out;
+}
+
+.regions-table.is-stale .region-kpi {
+  opacity: 0.4;
+}
+
+/* ---------- Placeholders while loading ---------- */
+@keyframes sl-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -20% 0; }
+}
+
+.kpi-skeleton {
+  display: inline-block;
+  width: 64%;
+  max-width: 72px;
+  height: 12px;
+  vertical-align: middle;
+  background: linear-gradient(90deg, var(--sand) 0%, var(--sand) 35%, #f7f1e4 50%, var(--sand) 65%, var(--sand) 100%);
+  background-size: 250% 100%;
+  animation: sl-shimmer 1.3s ease-in-out infinite;
+}
+
+/* ---------- Reveal when the figures land ---------- */
+@keyframes sl-row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.region.is-ready .region-kpi {
+  animation: sl-row-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i) * 70ms);
+}
+
+/* Values that changed on a refresh light up, then fade back. */
+.regions-table .region-kpi.is-changed {
+  background-color: var(--periwinkle);
+  transition: opacity 0.25s, background-color 0.15s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regions-spinner::before,
+  .regions-spinner::after,
+  .regions-live-dot,
+  .regions-progress > span,
+  .kpi-skeleton,
+  .region.is-ready .region-kpi {
+    animation: none;
+  }
+}
+
+/* Region | 6 KPIs | toggle */
+.regions-head,
+.region-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.3fr) repeat(6, minmax(96px, 1fr)) 40px;
+  align-items: center;
+  gap: 12px;
+  min-width: 860px;
+  padding: 0 18px;
+}
+
+.regions-head {
+  min-height: 44px;
+  background: var(--paper);
+  border-bottom: 1.5px solid var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.regions-head > span:not(:first-child) {
+  text-align: right;
+}
+
+.region + .region {
+  border-top: 1px solid var(--sand);
+}
+
+.region-row {
+  width: 100%;
+  min-height: 60px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+}
+
+.region-row:hover {
+  background: var(--paper);
+}
+
+.region.is-open .region-row {
+  background: var(--paper);
+  border-bottom: 1.5px solid var(--ink);
+}
+
+.region.is-total {
+  border-bottom: 1.5px solid var(--ink);
+}
+
+.region.is-total .region-row:not(:hover) {
+  background: var(--sand);
+}
+
+.region.is-total.is-open .region-row {
+  background: var(--paper);
+}
+
+.region-name {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.region-kpi {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.region-toggle {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  text-align: center;
+}
+
+.region-detail {
+  padding: 12px;
+  background: var(--card);
+}
+
+.region-detail .insights-embed {
+  min-height: 480px;
+}

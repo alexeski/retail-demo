@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+html{background:#f4efe4}
+body{margin:0;padding:0;color:#17150f;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#17150f;text-decoration:none}
+a:hover{color:#e5502a}
+@keyframes sl-warp{from{background-position:0 0}to{background-position:-480px 0}}
+@keyframes sl-weft{from{background-position:0 0}to{background-position:0 -640px}}
+</style>
+</helmet>
+
+<div data-screen-label="Storeloom insights" style="font-family:'Archivo',sans-serif;color:#17150f;min-height:100vh;isolation:isolate">
+  {{ backdrop }}
+
+  <!-- APP BAR -->
+  <header style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px clamp(20px,3vw,40px);border-bottom:2px solid #17150f;background:#f4efe4;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:36px;flex-wrap:wrap">
+      <a href="Storeloom Home.dc.html" style="display:flex;align-items:center;gap:10px">
+        <span style="display:grid;grid-template-columns:repeat(2,10px);gap:3px">
+          <span style="width:10px;height:10px;background:#17150f"></span>
+          <span style="width:10px;height:10px;background:#e5502a"></span>
+          <span style="width:10px;height:10px;background:#e5502a"></span>
+          <span style="width:10px;height:10px;background:#17150f"></span>
+        </span>
+        <span style="font-weight:800;font-stretch:125%;font-size:21px;letter-spacing:-0.02em">storeloom</span>
+      </a>
+      <nav style="display:flex;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;flex-wrap:wrap">
+        <a href="Storeloom Home.dc.html" style="padding:9px 12px" style-hover="background:#b8c6ff;color:#17150f">Home</a>
+        <a href="#" style="padding:9px 12px" style-hover="background:#b8c6ff;color:#17150f">Stores</a>
+        <a href="#" style="padding:9px 12px" style-hover="background:#b8c6ff;color:#17150f">Inventory</a>
+        <a href="#" style="padding:9px 12px" style-hover="background:#b8c6ff;color:#17150f">Orders</a>
+        <a href="#" style="padding:9px 12px" style-hover="background:#b8c6ff;color:#17150f">Customers</a>
+        <a href="Storeloom Insights.dc.html" style="padding:9px 12px;background:#17150f;color:#f4efe4">Insights</a>
+      </nav>
+    </div>
+    <span style="width:38px;height:38px;border-radius:50%;background:#b8c6ff;border:1.5px solid #17150f;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">MR</span>
+  </header>
+
+  <!-- PAGE HEAD -->
+  <section style="padding:clamp(32px,4vw,56px) clamp(20px,3vw,40px) 28px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span style="background:#b8c6ff;padding:4px 8px;border:1.5px solid #17150f">Insights</span>
+        <span>Updated 1 Oct 2026 · 10:45 AM</span>
+      </div>
+      <h1 style="margin:0;font-weight:800;font-stretch:125%;font-size:clamp(40px,5.4vw,84px);line-height:0.9;letter-spacing:-0.035em;text-transform:uppercase">Retail sales</h1>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button type="button" style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;border:1.5px solid #17150f;background:#fffdf8;padding:0 16px;height:44px;cursor:pointer;color:#17150f" style-hover="background:#b8c6ff">Schedule</button>
+      <button type="button" style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;border:1.5px solid #17150f;background:#fffdf8;padding:0 16px;height:44px;cursor:pointer;color:#17150f" style-hover="background:#b8c6ff">Share</button>
+      <button type="button" style="font-family:'Archivo',sans-serif;font-weight:700;font-size:15px;border:2px solid #17150f;background:#e5502a;padding:0 18px;height:44px;cursor:pointer;color:#17150f;box-shadow:4px 4px 0 #17150f" style-hover="transform:translate(2px,2px);box-shadow:2px 2px 0 #17150f">Download PDF</button>
+    </div>
+  </section>
+
+  <!-- GLOBAL FILTERS -->
+  <section style="position:sticky;top:0;z-index:10;background:#17150f;color:#f4efe4;padding:14px clamp(20px,3vw,40px);display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-top:2px solid #17150f">
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:#b8c6ff;display:flex;flex-direction:column;line-height:1.3;padding-right:6px">
+      <span>Filters</span><span style="color:#bdb5a3">All tabs</span>
+    </span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;flex:1;min-width:0">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="7">
+        <div style="position:relative">
+          <button type="button" onClick="{{ f.toggle }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:7px 12px;min-height:46px;border:1.5px solid {{ f.border }};background:{{ f.bg }};color:{{ f.fg }};cursor:pointer;text-align:left;font-family:'Archivo',sans-serif">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;opacity:0.8">{{ f.label }}</span>
+            <span style="font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;white-space:nowrap">{{ f.summary }}<span style="font-size:10px">▼</span></span>
+          </button>
+          <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:calc(100% + 8px);left:0;z-index:30;width:260px;background:#fffdf8;color:#17150f;border:2px solid #17150f;box-shadow:6px 6px 0 #17150f;display:flex;flex-direction:column">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1.5px dashed #17150f;font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.06em">
+                <span>{{ f.label }}</span>
+                <button type="button" onClick="{{ f.clear }}" style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;background:none;border:none;cursor:pointer;color:#17150f;text-decoration:underline">Clear</button>
+              </div>
+              <div style="display:flex;flex-direction:column;max-height:260px;overflow-y:auto;padding:6px 0">
+                <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="5">
+                  <button type="button" onClick="{{ o.pick }}" style="display:flex;gap:10px;align-items:center;padding:10px 14px;min-height:40px;background:transparent;border:none;cursor:pointer;font-family:'Archivo',sans-serif;font-size:15px;color:#17150f;text-align:left" style-hover="background:#b8c6ff">
+                    <span style="width:16px;height:16px;border:1.5px solid #17150f;border-radius:{{ o.radius }};background:{{ o.mark }};flex:none"></span>{{ o.label }}
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ anyActive }}" hint-placeholder-val="{{ false }}">
+      <button type="button" onClick="{{ resetAll }}" style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;border:1.5px solid #f4efe4;background:transparent;color:#f4efe4;padding:0 14px;height:44px;cursor:pointer" style-hover="background:#e5502a;color:#17150f;border-color:#e5502a">Reset · {{ activeCount }}</button>
+    </sc-if>
+  </section>
+  <sc-if value="{{ anyOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeAll }}" style="position:fixed;inset:0;z-index:9"></div>
+  </sc-if>
+
+  <!-- TABS -->
+  <nav style="display:flex;flex-wrap:wrap;gap:0;padding:28px clamp(20px,3vw,40px) 0;padding-right:calc(clamp(20px,3vw,40px) + 2px)">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+      <button type="button" onClick="{{ t.pick }}" style="position:relative;z-index:1;display:flex;align-items:baseline;gap:10px;padding:12px 18px 14px;min-height:50px;border:2px solid #17150f;border-bottom:none;margin-right:-2px;margin-bottom:{{ t.lift }};background:{{ t.bg }};color:#17150f;cursor:pointer;font-family:'Archivo',sans-serif;font-weight:700;font-stretch:112%;font-size:16px;white-space:nowrap" style-hover="background:#b8c6ff">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500">{{ t.n }}</span>{{ t.label }}
+      </button>
+    </sc-for>
+  </nav>
+
+  <!-- EMBED FRAME -->
+  <section style="padding:0 clamp(20px,3vw,40px) clamp(40px,5vw,72px)">
+    <div id="liveboard-embed" data-embed-slot="thoughtspot-liveboard" style="background:#fffdf8;border:2px solid #17150f;box-shadow:8px 8px 0 #17150f;padding:clamp(16px,2vw,24px);display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:12px;border-bottom:1.5px dashed #17150f">
+        <span>Liveboard embed · {{ tabLabel }}</span>
+        <span style="color:#4a463b">{{ filterLine }}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px">
+        <sc-for list="{{ tiles }}" as="v" hint-placeholder-count="10">
+          <div style="grid-column:span {{ v.span }};min-width:0;border:1.5px solid #17150f;background:#fffdf8;display:flex;flex-direction:column">
+            <div style="display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1.5px solid #17150f;font-weight:700;font-size:14px">
+              <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.title }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#4a463b;white-space:nowrap">{{ v.sub }}</span>
+            </div>
+            <div style="height:{{ v.h }};background:repeating-linear-gradient(135deg,#ebe4d4 0 1px,transparent 1px 11px);display:flex;align-items:center;justify-content:center;padding:12px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;background:#fffdf8;border:1px solid #17150f;padding:4px 8px;text-align:center">{{ v.kind }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;motion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const FILTERS = [
+  { id: 'region', label: 'Store Region', multi: true, options: ['East','Midwest','South','Southwest','West'] },
+  { id: 'state', label: 'Store State', multi: true, options: ['California','Texas','Florida','Washington','Michigan','Arizona','New York','Colorado'] },
+  { id: 'category', label: 'Category', multi: true, options: ['Apparel','Footwear','Outdoor Gear','Accessories','Home'] },
+  { id: 'department', label: 'Department', multi: true, options: ["Men's","Women's","Kids","Equipment"] },
+  { id: 'brand', label: 'Brand', multi: true, options: ['Fieldhouse','Northbound','Tern & Co','Ridgeline','Harbor Supply'] },
+  { id: 'store', label: 'Store Name', multi: true, options: ['Portland #002','Phoenix #014','Denver #031','Austin #047','Chicago #058','Brooklyn #102','San Diego #126'] },
+  { id: 'date', label: 'Date', multi: false, def: 'Last 12 months', options: ['Last 12 months','Last 90 days','Last 30 days','This quarter','Year to date'] }
+];
+const KPI = t => ({ title: t, sub: 'Sep 2026', kind: 'KPI · MoM delta', span: 2, h: '96px' });
+const TABS = [
+  { label: 'Exec KPIs', tiles: [
+    { title: 'About this tab', sub: 'Text', kind: 'Tab description', span: 6, h: '120px' },
+    { title: 'Ask Spotter', sub: 'Prompts', kind: 'Suggested questions', span: 6, h: '120px' },
+    KPI('Sales'), KPI('Gross Profit'), KPI('Gross Margin'), KPI('Transactions'), KPI('Avg Ticket Size'), KPI('Avg Basket Size'),
+    { title: 'Sales by Month', sub: 'Last 12 months', kind: 'Line chart · monthly trend', span: 6, h: '300px' },
+    { title: 'Sales by State', sub: 'Geo', kind: 'Map · sales by state', span: 6, h: '300px' },
+    { title: 'Sales vs Gross Profit', sub: 'By region', kind: 'Grouped bar · region', span: 12, h: '260px' }
+  ]},
+  { label: 'Store Performance', tiles: [
+    { title: 'Sales by Store', sub: 'Ranked', kind: 'Bar chart · top stores', span: 8, h: '300px' },
+    { title: 'Store Count', sub: 'Active', kind: 'KPI', span: 4, h: '300px' },
+    { title: 'Sales per Sq Ft', sub: 'By region', kind: 'Column chart', span: 6, h: '260px' },
+    { title: 'Transactions by Hour', sub: 'Heatmap', kind: 'Heatmap · hour × day', span: 6, h: '260px' },
+    { title: 'Store Detail', sub: 'Table', kind: 'Pivot table', span: 12, h: '220px' }
+  ]},
+  { label: 'Category & Brand', tiles: [
+    { title: 'Sales by Category', sub: 'Share', kind: 'Treemap · category', span: 7, h: '320px' },
+    { title: 'Margin by Brand', sub: 'Ranked', kind: 'Bar chart · brand', span: 5, h: '320px' },
+    { title: 'Department Mix', sub: 'Monthly', kind: 'Stacked area', span: 12, h: '260px' }
+  ]},
+  { label: 'Customers & Basket', tiles: [
+    KPI('Avg Basket Size'), KPI('Avg Ticket Size'), KPI('Items per Txn'), KPI('Repeat Rate'), KPI('Members'), KPI('New Members'),
+    { title: 'Basket Size by Region', sub: 'Avg items', kind: 'Bar chart · region', span: 6, h: '280px' },
+    { title: 'Ticket Size Trend', sub: 'Last 12 months', kind: 'Line chart', span: 6, h: '280px' }
+  ]}
+];
+
+class Component extends DCLogic {
+  state = { tab: 0, open: null, sel: Object.fromEntries(FILTERS.map(f => [f.id, f.multi ? [] : [f.def]])) };
+  componentDidMount(){ this.onKey = e => { if (e.key === 'Escape') this.setState({ open: null }); }; window.addEventListener('keydown', this.onKey); }
+  componentWillUnmount(){ window.removeEventListener('keydown', this.onKey); }
+  isActive(f, v){ return f.multi ? v.length > 0 : v[0] !== f.def; }
+  renderVals(){
+    const s = this.state;
+    const still = this.props.motion === false;
+    const layer = (bg, anim) => React.createElement('div', { style: { position: 'absolute', inset: 0, backgroundImage: bg, animation: still ? 'none' : anim } });
+    const backdrop = React.createElement('div', { 'aria-hidden': true, style: { position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none' } },
+      layer('repeating-linear-gradient(90deg, rgba(23,21,15,0.055) 0 1px, transparent 1px 40px)', 'sl-warp 90s linear infinite'),
+      layer('repeating-linear-gradient(0deg, rgba(229,80,42,0.07) 0 1px, transparent 1px 80px), repeating-linear-gradient(0deg, rgba(23,21,15,0.04) 0 1px, transparent 1px 40px)', 'sl-weft 120s linear infinite'));
+    const setSel = (id, v) => this.setState(st => ({ sel: { ...st.sel, [id]: v } }));
+    const filters = FILTERS.map(f => {
+      const v = s.sel[f.id], active = this.isActive(f, v), open = s.open === f.id;
+      return {
+        label: f.label, open,
+        summary: f.multi ? (v.length === 0 ? 'All' : v.length === 1 ? v[0] : `${v[0]} +${v.length - 1}`) : v[0],
+        bg: active ? '#b8c6ff' : open ? '#f4efe4' : 'transparent',
+        fg: active || open ? '#17150f' : '#f4efe4',
+        border: active || open ? '#b8c6ff' : '#5b5648',
+        toggle: () => this.setState({ open: open ? null : f.id }),
+        clear: () => setSel(f.id, f.multi ? [] : [f.def]),
+        options: f.options.map(o => {
+          const on = v.includes(o);
+          return { label: o, radius: f.multi ? '0' : '50%', mark: on ? '#17150f' : 'transparent',
+            pick: () => f.multi ? setSel(f.id, on ? v.filter(x => x !== o) : [...v, o]) : (setSel(f.id, [o]), this.setState({ open: null })) };
+        })
+      };
+    });
+    const active = FILTERS.filter(f => this.isActive(f, s.sel[f.id]));
+    const tab = TABS[s.tab];
+    return {
+      backdrop, filters,
+      anyOpen: !!s.open, closeAll: () => this.setState({ open: null }),
+      anyActive: active.length > 0, activeCount: active.length,
+      resetAll: () => this.setState({ open: null, sel: Object.fromEntries(FILTERS.map(f => [f.id, f.multi ? [] : [f.def]])) }),
+      tabs: TABS.map((t, i) => ({ label: t.label, n: String(i + 1).padStart(2, '0'), bg: i === s.tab ? '#fffdf8' : '#ebe4d4', lift: i === s.tab ? '-2px' : '0', pick: () => this.setState({ tab: i }) })),
+      tabLabel: tab.label,
+      filterLine: active.length ? active.map(f => `${f.label}: ${s.sel[f.id].join(', ')}`).join(' · ') : `No filters · ${s.sel.date[0]}`,
+      tiles: tab.tiles
+    };
+  }
+}
+</script>
+</body>
+</html>

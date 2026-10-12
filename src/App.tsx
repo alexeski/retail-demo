@@ -1,0 +1,42 @@
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { AuthProvider, RequireAuth } from './auth'
+import { AppBar } from './components/AppBar'
+import { Backdrop } from './components/Backdrop'
+import { ShuttleProvider } from './components/Shuttle'
+import { Home } from './pages/Home'
+import { Insights } from './pages/Insights'
+import { Landing } from './pages/Landing'
+import { Login } from './pages/Login'
+
+/** Signed-in pages share one layout, so Shuttle keeps its conversation across them. */
+function AppShell() {
+  return (
+    <RequireAuth>
+      <ShuttleProvider>
+        <AppBar />
+        <Outlet />
+      </ShuttleProvider>
+    </RequireAuth>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <div className="app">
+          <Backdrop />
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route element={<AppShell />}>
+              <Route path="/home" element={<Home />} />
+              <Route path="/insights" element={<Insights />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}

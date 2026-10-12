@@ -1,0 +1,342 @@
+/* Shared by Landing and Login */
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px clamp(20px, 4vw, 56px);
+  border-bottom: 2px solid var(--ink);
+  flex-wrap: wrap;
+}
+
+.mono-link {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.site-footer {
+  padding: 20px clamp(20px, 4vw, 56px);
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-top: 2px solid var(--ink);
+}
+
+.site-footer > div {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Login ---------- */
+.login {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  gap: clamp(40px, 6vw, 96px);
+  padding: clamp(40px, 6vw, 88px) clamp(20px, 4vw, 56px);
+  align-items: center;
+}
+
+.login-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.login-h1 {
+  font-size: clamp(44px, 6vw, 96px);
+  text-wrap: balance;
+}
+
+.login-lede {
+  margin: 0;
+  font-size: clamp(17px, 1.4vw, 20px);
+  line-height: 1.5;
+  max-width: 460px;
+  text-wrap: pretty;
+}
+
+.login-card-wrap {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.login-card {
+  position: relative;
+  width: min(100%, 460px);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: 8px 8px 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+
+.login-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 2px solid var(--ink);
+}
+
+.login-modes button {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 16px;
+  min-height: 52px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+}
+
+.login-modes button:first-child {
+  border-right: 2px solid var(--ink);
+}
+
+.login-modes button.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.login-body {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.field input {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  padding: 12px 0;
+  border: none;
+  border-bottom: 2px solid var(--ink);
+  background: transparent;
+  outline: none;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.field input:focus-visible {
+  border-bottom-color: var(--accent);
+}
+
+.field-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.field-pw {
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid var(--ink);
+}
+
+.field-pw input {
+  flex: 1;
+  min-width: 0;
+  border-bottom: none;
+}
+
+.field-pw button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 12px 0 12px 12px;
+  min-height: 44px;
+}
+
+.keep {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 15px;
+  cursor: pointer;
+  min-height: 44px;
+  position: relative;
+}
+
+.keep input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.keep-box {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--ink);
+  flex: none;
+}
+
+.keep input:checked + .keep-box {
+  background: var(--ink);
+}
+
+.keep input:focus-visible + .keep-box {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.field .store-code {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  text-transform: uppercase;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 10px;
+}
+
+.pin-dots span {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+}
+
+.pin-dots span.is-filled {
+  background: var(--ink);
+}
+
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pin-pad button {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 22px;
+  min-height: 56px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.pin-pad button:hover {
+  background: var(--periwinkle);
+}
+
+.pin-pad button:active {
+  background: var(--accent);
+}
+
+.login-submit {
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 18px;
+  padding: 18px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 56px;
+}
+
+.login-submit:hover {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.login-submit:disabled {
+  cursor: progress;
+  background: var(--ink);
+  color: var(--paper);
+  opacity: 0.8;
+}
+
+.login-error {
+  background: var(--accent);
+  border: 1.5px solid var(--ink);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.login-error a {
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.login-error a:hover {
+  color: var(--ink);
+}
+
+.login-foot {
+  border-top: 1.5px dashed var(--ink);
+  padding: 14px 28px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-wrap: wrap;
+}
+
+.login-badge {
+  position: absolute;
+  top: -30px;
+  right: -26px;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(12deg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  .login-badge {
+    right: -8px;
+  }
+}

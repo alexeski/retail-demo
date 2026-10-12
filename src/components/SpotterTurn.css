@@ -1,0 +1,453 @@
+.sp-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 100%;
+  animation: sp-in 0.3s ease-out both;
+}
+
+@keyframes sp-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.sp-label {
+  font-size: 11px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ---------- Work log ---------- */
+.sp-work {
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+
+.sp-work-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
+.sp-work-head:hover {
+  background: var(--sand);
+}
+
+.sp-work-caret {
+  margin-left: auto;
+  font-size: 16px;
+}
+
+.sp-work.is-open .sp-work-head {
+  border-bottom: 1px dashed var(--ink);
+}
+
+.sp-steps {
+  list-style: none;
+  margin: 0;
+  padding: 6px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.sp-step {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sand);
+  animation: sp-in 0.25s ease-out both;
+}
+
+.sp-step:last-child {
+  border-bottom: none;
+}
+
+.sp-step-icon {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--muted);
+}
+
+.sp-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sp-step-title {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sp-step.is-running .sp-step-title {
+  background: linear-gradient(90deg, var(--ink) 0%, var(--ink) 40%, var(--muted-light) 50%, var(--ink) 60%, var(--ink) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sp-sheen 1.6s linear infinite;
+}
+
+@keyframes sp-sheen {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
+
+.sp-stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sp-stage {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--muted-light);
+  color: var(--muted);
+  padding: 2px 6px;
+}
+
+.sp-stage.is-current {
+  border-color: var(--accent);
+  color: var(--ink);
+  background: rgba(229, 80, 42, 0.12);
+}
+
+.sp-thinking {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.sp-step-answer {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sp-output-toggle {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  color: var(--muted);
+}
+
+.sp-output {
+  margin: 0;
+  max-height: 200px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.4;
+  background: var(--card);
+  border: 1px solid var(--sand);
+  padding: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sp-step-pending {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 0;
+}
+
+/* Shuttle "working" mark (two bars passing). */
+@keyframes sp-shuttle {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(8px); }
+}
+
+.sp-shuttle {
+  position: relative;
+  display: inline-block;
+  width: 16px;
+  height: 9px;
+  flex: none;
+}
+
+.sp-shuttle::before,
+.sp-shuttle::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+  animation: sp-shuttle 0.9s ease-in-out infinite;
+}
+
+.sp-shuttle::after {
+  top: 6px;
+  left: 8px;
+  background: var(--ink);
+  animation-direction: reverse;
+}
+
+/* ---------- Answer chart ---------- */
+.sp-answer {
+  margin: 0;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  box-shadow: 4px 4px 0 var(--ink);
+  animation: sp-in 0.35s ease-out both;
+}
+
+.sp-answer figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-bottom: 1px dashed var(--ink);
+}
+
+.sp-answer-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.sp-answer-query {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.sp-answer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sp-expand {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.sp-expand:hover {
+  background: var(--periwinkle);
+}
+
+/* Fits a full chart or table (header, tokens, filters, axis); drag the corner
+   for more. The bottom padding keeps the resize grip clear of the iframe. */
+.sp-answer-frame {
+  height: 560px;
+  min-height: 320px;
+  max-height: 1200px;
+  resize: vertical;
+  overflow: hidden;
+  padding-bottom: 10px;
+  background: #fff;
+}
+
+.sp-answer-frame iframe,
+.sp-overlay-panel iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: #fff;
+}
+
+/* The answer page ends with a 24px vendor footer that can't be styled from
+   here; the frame runs 24px taller than this clip so it falls out of view. */
+.sp-answer-clip {
+  height: 100%;
+  overflow: hidden;
+}
+
+.sp-answer-clip iframe {
+  height: calc(100% + 24px);
+}
+
+.sp-overlay-panel .sp-answer-clip {
+  flex: 1;
+  min-height: 0;
+}
+
+.sp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(23, 21, 15, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 3vh 3vw;
+  animation: sp-in 0.2s ease-out both;
+}
+
+.sp-overlay-panel {
+  width: min(1400px, 94vw);
+  height: 92vh;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: 8px 8px 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+
+.sp-overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+
+
+
+/* ---------- Narrative ---------- */
+.md {
+  font-size: 15px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.md > :first-child {
+  margin-top: 0;
+}
+
+.md > :last-child {
+  margin-bottom: 0;
+}
+
+.md p,
+.md ul,
+.md ol {
+  margin: 0 0 10px;
+}
+
+.md table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 6px 0 12px;
+  font-size: 13px;
+}
+
+.md th,
+.md td {
+  border: 1px solid var(--ink);
+  padding: 5px 8px;
+  text-align: left;
+}
+
+.md th {
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.md code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--paper);
+  padding: 1px 4px;
+}
+
+.md pre {
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+
+.sp-thinking.md {
+  font-size: 13px;
+}
+
+.sp-thinking.md table {
+  font-size: 12px;
+}
+
+@keyframes sp-caret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.is-streaming > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--accent);
+  animation: sp-caret 1s steps(1) infinite;
+}
+
+.sp-note {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sp-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--accent);
+  border: 1.5px solid var(--ink);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.sp-error button {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-turn,
+  .sp-step,
+  .sp-answer,
+  .sp-shuttle::before,
+  .sp-shuttle::after,
+  .sp-step.is-running .sp-step-title,
+  .is-streaming > :last-child::after {
+    animation: none;
+  }
+}

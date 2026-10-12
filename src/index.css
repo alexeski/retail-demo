@@ -1,0 +1,386 @@
+/* Storeloom tokens, from the Claude Design project (design/). */
+:root {
+  --ink: #17150f;
+  --paper: #f4efe4;
+  --card: #fffdf8;
+  --sand: #ebe4d4;
+  --accent: #e5502a;
+  --accent-dark: #c2401c;
+  --periwinkle: #b8c6ff;
+  --muted: #4a463b;
+  --muted-light: #bdb5a3;
+  --line-dark: #5b5648;
+  --placeholder: #8a8372;
+
+  --font-sans: 'Archivo', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --gutter: clamp(20px, 3vw, 40px);
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+input::placeholder {
+  color: var(--placeholder);
+}
+
+button {
+  font: inherit;
+  color: var(--ink);
+}
+
+.app {
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+/* ---------- Woven backdrop ---------- */
+@keyframes sl-warp {
+  from { background-position: 0 0; }
+  to { background-position: -480px 0; }
+}
+
+@keyframes sl-weft {
+  from { background-position: 0 0; }
+  to { background-position: 0 -640px; }
+}
+
+.sl-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.sl-backdrop > div {
+  position: absolute;
+  inset: 0;
+}
+
+.sl-backdrop-warp {
+  background-image: repeating-linear-gradient(90deg, rgba(23, 21, 15, 0.055) 0 1px, transparent 1px 40px);
+  animation: sl-warp 90s linear infinite;
+}
+
+.sl-backdrop-weft {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(229, 80, 42, 0.07) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(0deg, rgba(23, 21, 15, 0.04) 0 1px, transparent 1px 40px);
+  animation: sl-weft 120s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-backdrop > div {
+    animation: none;
+  }
+}
+
+/* ---------- App bar ---------- */
+.appbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px var(--gutter);
+  border-bottom: 2px solid var(--ink);
+  background: var(--paper);
+  flex-wrap: wrap;
+}
+
+.appbar-left {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-mark {
+  display: grid;
+  grid-template-columns: repeat(2, 10px);
+  gap: 3px;
+}
+
+.brand-mark span {
+  width: 10px;
+  height: 10px;
+  background: var(--ink);
+}
+
+.brand-mark span:nth-child(2),
+.brand-mark span:nth-child(3) {
+  background: var(--accent);
+}
+
+.brand-name {
+  font-weight: 800;
+  font-stretch: 125%;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+.appnav {
+  display: flex;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-wrap: wrap;
+}
+
+.appnav-item {
+  padding: 9px 12px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.appnav-item:hover {
+  background: var(--periwinkle);
+  color: var(--ink);
+}
+
+.appnav-item.active,
+.appnav-item.active:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.brand.is-large .brand-mark {
+  grid-template-columns: repeat(2, 11px);
+}
+
+.brand.is-large .brand-mark span {
+  width: 11px;
+  height: 11px;
+}
+
+.brand.is-large .brand-name {
+  font-size: 24px;
+}
+
+.account {
+  position: relative;
+}
+
+.account-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  min-width: 240px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+
+.account-who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-bottom: 1.5px dashed var(--ink);
+  font-size: 15px;
+}
+
+.account-who span {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.account-menu button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: left;
+  padding: 12px 14px;
+  min-height: 44px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.account-menu button:hover {
+  background: var(--periwinkle);
+}
+
+.avatar {
+  cursor: pointer;
+  padding: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--periwinkle);
+  border: 1.5px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* ---------- Shared bits ---------- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tag {
+  background: var(--periwinkle);
+  padding: 4px 8px;
+  border: 1.5px solid var(--ink);
+}
+
+.highlight {
+  background: var(--periwinkle);
+  padding: 0 0.08em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.bar {
+  height: 16px;
+  background: var(--sand);
+  position: relative;
+}
+
+.bar.is-thin {
+  height: 14px;
+}
+
+.bar.is-tall {
+  height: 18px;
+}
+
+.bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+}
+
+.display {
+  margin: 0;
+  font-weight: 800;
+  font-stretch: 125%;
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+.btn-outline {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  padding: 0 16px;
+  height: 44px;
+  cursor: pointer;
+}
+
+.btn-outline:hover {
+  background: var(--periwinkle);
+}
+
+.btn-primary {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 15px;
+  border: 2px solid var(--ink);
+  background: var(--accent);
+  padding: 0 18px;
+  height: 44px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.btn-primary:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.btn-chip {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  padding: 10px 14px;
+  min-height: 44px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  cursor: pointer;
+  text-align: left;
+}
+
+.btn-chip:hover {
+  background: var(--periwinkle);
+}
+
+/* Shuttle assistant mark, used by Home and the drawer. */
+.shuttle-pill {
+  width: 20px;
+  height: 10px;
+  border-radius: 10px;
+  background: var(--accent);
+  border: 1.5px solid var(--ink);
+  flex: none;
+}
+
+.shuttle-pill.is-large {
+  width: 30px;
+  height: 14px;
+  border-radius: 14px;
+}
+
+.shuttle-pill.is-small {
+  width: 16px;
+  height: 8px;
+  border-radius: 8px;
+  border: none;
+}
+

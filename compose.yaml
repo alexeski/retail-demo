@@ -1,0 +1,18 @@
+# Local Docker testing only — Coolify builds the Dockerfile directly and
+# doesn't use this file. Run with: npm run docker:up (wraps
+# `docker compose --env-file .env.local up --build -d`, so the build args below
+# come from that one file; it's optional, the defaults in src/thoughtspot.ts
+# apply without it).
+services:
+  storeloom:
+    build:
+      context: .
+      args:
+        # Bare names: Compose fills these from its interpolation environment
+        # (--env-file .env.local) and passes them through as Docker build args.
+        - VITE_TS_HOST
+        - VITE_INSIGHTS_LIVEBOARD_ID
+        - VITE_REGION_LIVEBOARD_ID
+    ports:
+      # Host port 3100, not 5173: 5173 is kept free for `npm run dev`.
+      - "3100:8080"

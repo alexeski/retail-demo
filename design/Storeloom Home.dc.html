@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+html{background:#f4efe4}
+body{margin:0;padding:0;color:#17150f;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#17150f;text-decoration:none}
+a:hover{color:#e5502a}
+input::placeholder{color:#8a8372}
+@keyframes sl-warp{from{background-position:0 0}to{background-position:-480px 0}}
+@keyframes sl-weft{from{background-position:0 0}to{background-position:0 -640px}}
+@keyframes sl-dot{0%,80%,100%{opacity:.2}40%{opacity:1}}
+</style>
+</helmet>
+
+<div data-screen-label="Storeloom home" style="font-family:'Archivo',sans-serif;color:#17150f;min-height:100vh;isolation:isolate">
+  {{ backdrop }}
+
+  <!-- APP BAR -->
+  <header style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px clamp(20px,3vw,40px);border-bottom:2px solid #17150f;background:#f4efe4;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:36px;flex-wrap:wrap">
+      <a href="Storeloom Landing.dc.html" style="display:flex;align-items:center;gap:10px">
+        <span style="display:grid;grid-template-columns:repeat(2,10px);gap:3px">
+          <span style="width:10px;height:10px;background:#17150f"></span>
+          <span style="width:10px;height:10px;background:#e5502a"></span>
+          <span style="width:10px;height:10px;background:#e5502a"></span>
+          <span style="width:10px;height:10px;background:#17150f"></span>
+        </span>
+        <span style="font-weight:800;font-stretch:125%;font-size:21px;letter-spacing:-0.02em">storeloom</span>
+      </a>
+      <nav style="display:flex;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;flex-wrap:wrap">
+        <a href="#" style="padding:9px 12px;background:#17150f;color:#f4efe4">Home</a>
+        <a href="#" style="padding:9px 12px" style-hover="background:#b8c6ff;color:#17150f">Stores</a>
+        <a href="#" style="padding:9px 12px" style-hover="background:#b8c6ff;color:#17150f">Inventory</a>
+        <a href="#" style="padding:9px 12px" style-hover="background:#b8c6ff;color:#17150f">Orders</a>
+        <a href="#" style="padding:9px 12px" style-hover="background:#b8c6ff;color:#17150f">Customers</a>
+        <a href="Storeloom Insights.dc.html" style="padding:9px 12px" style-hover="background:#b8c6ff;color:#17150f">Insights</a>
+      </nav>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="width:38px;height:38px;border-radius:50%;background:#b8c6ff;border:1.5px solid #17150f;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">MR</span>
+    </div>
+  </header>
+
+  <!-- HERO / SHUTTLE -->
+  <section style="padding:clamp(48px,6vw,88px) clamp(20px,3vw,40px) clamp(48px,5vw,72px);border-bottom:2px solid #17150f;display:flex;flex-direction:column;gap:28px;align-items:flex-start">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <span>Thu 01 Oct · 9:12 AM</span>
+      <span style="width:24px;border-top:1.5px solid #17150f"></span>
+      <span>Good morning, Maya</span>
+    </div>
+    <h1 style="margin:0;font-weight:800;font-stretch:125%;font-size:clamp(40px,6vw,96px);line-height:0.9;letter-spacing:-0.035em;text-transform:uppercase;max-width:1200px;text-wrap:balance">What should we <span style="background:#b8c6ff;padding:0 0.08em;box-decoration-break:clone;-webkit-box-decoration-break:clone">pull together</span> today?</h1>
+
+    <form onSubmit="{{ submitHero }}" style="width:100%;max-width:980px;background:#fffdf8;border:2px solid #17150f;box-shadow:8px 8px 0 #17150f;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px 12px 20px;border-bottom:1.5px dashed #17150f;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em">
+        <span style="display:flex;align-items:center;gap:8px"><span style="width:20px;height:10px;border-radius:10px;background:#e5502a;border:1.5px solid #17150f"></span><strong>Shuttle</strong></span>
+        <span>Your stores' assistant</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 10px 10px 20px">
+        <input value="{{ heroText }}" onChange="{{ setHero }}" placeholder="Ask Shuttle about any store, product or shift…" style="flex:1;min-width:0;font-family:'Archivo',sans-serif;font-size:clamp(18px,1.8vw,24px);padding:16px 0;border:none;background:transparent;outline:none;color:#17150f">
+        <button type="submit" style="background:#17150f;color:#f4efe4;border:none;font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;padding:0 24px;height:56px;cursor:pointer;display:flex;gap:10px;align-items:center;flex:none" style-hover="background:#e5502a;color:#17150f">Ask <span>→</span></button>
+      </div>
+    </form>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;max-width:980px">
+      <sc-for list="{{ suggestions }}" as="q" hint-placeholder-count="4">
+        <button type="button" onClick="{{ q.ask }}" style="font-family:'Archivo',sans-serif;font-size:15px;padding:10px 14px;min-height:44px;border:1.5px solid #17150f;background:#f4efe4;color:#17150f;cursor:pointer;text-align:left" style-hover="background:#b8c6ff">{{ q.text }}</button>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- TODAY STRIP -->
+  <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));border-bottom:2px solid #17150f;background:#fffdf8">
+    <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+      <div style="padding:24px clamp(20px,2vw,28px);border-right:1.5px solid #17150f;display:flex;flex-direction:column;gap:10px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em">{{ k.label }}</span>
+        <span style="font-weight:800;font-stretch:120%;font-size:clamp(30px,3vw,44px);letter-spacing:-0.025em;line-height:1">{{ k.value }}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:{{ k.tone }}">{{ k.delta }}</span>
+      </div>
+    </sc-for>
+  </section>
+
+  <!-- WORK AREA -->
+  <section style="padding:clamp(40px,4vw,64px) clamp(20px,3vw,40px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:clamp(24px,3vw,40px);align-items:start">
+
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+        <h2 style="margin:0;font-weight:800;font-stretch:125%;font-size:28px;letter-spacing:-0.02em;text-transform:uppercase">Needs attention</h2>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em">4 open</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="4">
+          <div style="background:#fffdf8;border:1.5px solid #17150f;display:grid;grid-template-columns:76px 1fr auto;align-items:stretch">
+            <div style="background:{{ a.bg }};border-right:1.5px dashed #17150f;display:flex;flex-direction:column;justify-content:center;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:12px 6px;text-align:center;gap:2px">
+              <span style="font-weight:600">{{ a.store }}</span><span style="text-transform:uppercase;font-size:11px">{{ a.kind }}</span>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0">
+              <span style="font-weight:700;font-size:16px">{{ a.title }}</span>
+              <span style="font-size:14px;line-height:1.4;color:#4a463b">{{ a.detail }}</span>
+            </div>
+            <button type="button" onClick="{{ a.ask }}" style="border:none;border-left:1.5px solid #17150f;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;padding:0 16px;cursor:pointer;color:#17150f;min-width:44px" style-hover="background:#b8c6ff">Ask ↗</button>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+        <h2 style="margin:0;font-weight:800;font-stretch:125%;font-size:28px;letter-spacing:-0.02em;text-transform:uppercase">Top stores today</h2>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em">Net sales</span>
+      </div>
+      <div style="background:#fffdf8;border:1.5px solid #17150f;padding:20px;display:flex;flex-direction:column;gap:14px">
+        <sc-for list="{{ leaders }}" as="l" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:22px 110px 1fr 84px;gap:12px;align-items:center;font-size:15px">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">{{ l.rank }}</span>
+            <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ l.city }}</span>
+            <span style="height:16px;background:#ebe4d4;position:relative"><span style="position:absolute;inset:0 auto 0 0;width:{{ l.w }};background:{{ l.c }}"></span></span>
+            <span style="font-family:'IBM Plex Mono',monospace;text-align:right;font-size:14px">{{ l.sales }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#17150f;color:#f4efe4;padding:18px 20px;display:flex;flex-direction:column;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:13px">
+        <span style="text-transform:uppercase;letter-spacing:0.06em;color:#b8c6ff;font-size:12px">Network feed</span>
+        <sc-for list="{{ feed }}" as="f" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:52px 1fr;gap:10px;line-height:1.4"><span style="color:#bdb5a3">{{ f.t }}</span><span>{{ f.text }}</span></div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- SHUTTLE DRAWER -->
+  <div onClick="{{ close }}" style="position:fixed;inset:0;background:rgba(23,21,15,0.38);opacity:{{ scrimOpacity }};pointer-events:{{ scrimEvents }};transition:opacity 0.25s;z-index:20"></div>
+  <aside role="dialog" aria-label="Shuttle conversation" style="position:fixed;top:0;right:0;bottom:0;width:min(640px,100vw);background:#fffdf8;border-left:2px solid #17150f;box-shadow:-12px 0 0 rgba(23,21,15,0.12);transform:{{ drawerX }};transition:transform 0.35s cubic-bezier(.2,.8,.2,1);z-index:21;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:2px solid #17150f;background:#f4efe4">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:30px;height:14px;border-radius:14px;background:#e5502a;border:1.5px solid #17150f"></span>
+        <span style="font-weight:800;font-stretch:125%;font-size:22px;letter-spacing:-0.02em;text-transform:uppercase">Shuttle</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;border:1.5px solid #17150f;padding:3px 7px">All stores</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button type="button" onClick="{{ reset }}" style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;border:1.5px solid #17150f;background:transparent;padding:0 12px;height:40px;cursor:pointer;color:#17150f" style-hover="background:#b8c6ff">New chat</button>
+        <button type="button" onClick="{{ close }}" aria-label="Close" style="font-size:20px;border:1.5px solid #17150f;background:#17150f;color:#f4efe4;width:40px;height:40px;cursor:pointer;line-height:1" style-hover="background:#e5502a;color:#17150f">×</button>
+      </div>
+    </div>
+
+    <div ref="{{ scrollRef }}" style="flex:1;overflow-y:auto;padding:24px 20px;display:flex;flex-direction:column;gap:20px">
+      <sc-for list="{{ messages }}" as="m" hint-placeholder-count="0">
+        <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ true }}">
+          <div style="align-self:flex-end;max-width:85%;background:#17150f;color:#f4efe4;padding:12px 16px;font-size:16px;line-height:1.45">{{ m.text }}</div>
+        </sc-if>
+        <sc-if value="{{ m.isBot }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px;max-width:100%">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;display:flex;gap:8px;align-items:center"><span style="width:16px;height:8px;border-radius:8px;background:#e5502a"></span>Shuttle</span>
+            <p style="margin:0;font-size:16px;line-height:1.55;text-wrap:pretty">{{ m.text }}</p>
+            <sc-if value="{{ m.hasRows }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1.5px solid #17150f;background:#f4efe4;padding:16px;display:flex;flex-direction:column;gap:10px">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.06em">{{ m.rowsTitle }}</span>
+                <sc-for list="{{ m.rows }}" as="r" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:110px 1fr 64px;gap:10px;align-items:center;font-size:14px">
+                    <span style="font-weight:600">{{ r.label }}</span>
+                    <span style="height:14px;background:#ebe4d4;position:relative"><span style="position:absolute;inset:0 auto 0 0;width:{{ r.w }};background:{{ r.c }}"></span></span>
+                    <span style="font-family:'IBM Plex Mono',monospace;text-align:right">{{ r.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ m.follow }}" as="fq" hint-placeholder-count="0">
+                <button type="button" onClick="{{ fq.ask }}" style="font-family:'Archivo',sans-serif;font-size:14px;padding:8px 12px;min-height:40px;border:1.5px solid #17150f;background:transparent;color:#17150f;cursor:pointer" style-hover="background:#b8c6ff">{{ fq.text }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </sc-for>
+      <sc-if value="{{ thinking }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:6px;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em">{{ dots }}<span style="margin-left:6px">Pulling threads from 214 stores</span></div>
+      </sc-if>
+    </div>
+
+    <form onSubmit="{{ submitDrawer }}" style="border-top:2px solid #17150f;padding:14px;display:flex;gap:10px;background:#f4efe4">
+      <input ref="{{ drawerInputRef }}" value="{{ drawerText }}" onChange="{{ setDrawer }}" placeholder="Ask a follow-up…" style="flex:1;min-width:0;font-family:'Archivo',sans-serif;font-size:17px;padding:0 14px;height:52px;border:1.5px solid #17150f;background:#fffdf8;outline:none;color:#17150f">
+      <button type="submit" style="background:#17150f;color:#f4efe4;border:none;font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;padding:0 20px;height:52px;cursor:pointer" style-hover="background:#e5502a;color:#17150f">Send →</button>
+    </form>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;motion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const ANSWERS = [
+  { k: ['fleece','run out','stock','out of'], text: 'Six stores will sell through size M fleece before Friday’s delivery at the current pace. Denver and Salt Lake are the tightest. The Phoenix DC has 140 units that could cover all six.', title: 'Days of cover · Fleece vest M', rows: [['Denver',1.5],['Salt Lake',2],['Minneapolis',2.5],['Chicago',3],['Boston',3.5],['Brooklyn',4]].map(([l,d]) => ({ label: l, v: d + 'd', w: (100 - d*18) + '%', c: d <= 2 ? '#e5502a' : '#17150f' })), follow: ['Draft a transfer from Phoenix', 'Which sizes sell fastest?'] },
+  { k: ['denver','austin','compare','weekend','sell-through'], text: 'Denver sold through 38% of weekend stock, Austin 29%. Most of the gap is outerwear: Denver moved 2.1× more rain shells after Saturday’s storm.', title: 'Weekend sell-through', rows: [{ label: 'Denver', v: '38%', w: '76%', c: '#17150f' }, { label: 'Austin', v: '29%', w: '58%', c: '#e5502a' }], follow: ['Break down by category', 'Show the same for last month'] },
+  { k: ['staff','shift','labor','schedule'], text: 'Three stores are understaffed for this afternoon’s forecast traffic. Brooklyn is short two associates between 3 and 6 PM.', title: 'Forecast gap · associates', rows: [{ label: 'Brooklyn', v: '−2', w: '80%', c: '#e5502a' }, { label: 'Chicago', v: '−1', w: '40%', c: '#17150f' }, { label: 'Atlanta', v: '−1', w: '40%', c: '#17150f' }], follow: ['Who can pick up shifts?', 'Compare to last Thursday'] },
+  { k: ['loyalty','member','customer'], text: 'Loyalty members made 41% of transactions yesterday and 53% of revenue. Their average basket was $86 versus $57 for guests.', title: 'Avg basket', rows: [{ label: 'Members', v: '$86', w: '86%', c: '#17150f' }, { label: 'Guests', v: '$57', w: '57%', c: '#e5502a' }], follow: ['What do members buy first?', 'Top stores for sign-ups'] }
+];
+const FALLBACK = { text: 'Here’s net sales so far today for your five busiest stores. Portland is ahead of its usual Thursday pace by 12%.', title: 'Net sales · today', rows: [['Portland','$9.4k',94],['Brooklyn','$8.8k',88],['Chicago','$8.1k',81],['Denver','$7.6k',76],['Austin','$6.9k',69]].map(([l,v,w],i) => ({ label: l, v, w: w + '%', c: i === 0 ? '#e5502a' : '#17150f' })), follow: ['Why is Portland ahead?', 'Show yesterday too'] };
+
+class Component extends DCLogic {
+  state = { open: false, heroText: '', drawerText: '', messages: [], thinking: false };
+  scrollRef = React.createRef();
+  drawerInputRef = React.createRef();
+  componentDidMount(){ this.onKey = e => { if (e.key === 'Escape' && this.state.open) this.setState({ open: false }); }; window.addEventListener('keydown', this.onKey); }
+  componentWillUnmount(){ window.removeEventListener('keydown', this.onKey); clearTimeout(this.t); }
+  componentDidUpdate(pp, ps){
+    if (ps.messages.length !== this.state.messages.length || ps.thinking !== this.state.thinking) { const el = this.scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }
+    if (!ps.open && this.state.open) setTimeout(() => this.drawerInputRef.current && this.drawerInputRef.current.focus(), 300);
+  }
+  ask(q){
+    q = (q || '').trim(); if (!q) return;
+    this.setState(s => ({ open: true, heroText: '', drawerText: '', thinking: true, messages: [...s.messages, { role: 'user', text: q }] }));
+    clearTimeout(this.t);
+    this.t = setTimeout(() => {
+      const lq = q.toLowerCase();
+      const a = ANSWERS.find(x => x.k.some(k => lq.includes(k))) || FALLBACK;
+      this.setState(s => ({ thinking: false, messages: [...s.messages, { role: 'bot', ...a }] }));
+    }, 1200);
+  }
+  renderVals(){
+    const s = this.state;
+    const still = this.props.motion === false;
+    const layer = (bg, anim) => React.createElement('div', { style: { position: 'absolute', inset: 0, backgroundImage: bg, animation: still ? 'none' : anim } });
+    const backdrop = React.createElement('div', { 'aria-hidden': true, style: { position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none' } },
+      layer('repeating-linear-gradient(90deg, rgba(23,21,15,0.055) 0 1px, transparent 1px 40px)', 'sl-warp 90s linear infinite'),
+      layer('repeating-linear-gradient(0deg, rgba(229,80,42,0.07) 0 1px, transparent 1px 80px), repeating-linear-gradient(0deg, rgba(23,21,15,0.04) 0 1px, transparent 1px 40px)', 'sl-weft 120s linear infinite'));
+    const dots = React.createElement('span', { style: { display: 'flex', gap: 5 } }, [0,1,2].map(i => React.createElement('span', { key: i, style: { width: 8, height: 8, borderRadius: '50%', background: '#e5502a', animation: `sl-dot 1.2s ${i*0.15}s infinite` } })));
+    const askFn = q => () => this.ask(q);
+    return {
+      backdrop, dots,
+      heroText: s.heroText, setHero: e => this.setState({ heroText: e.target.value }),
+      drawerText: s.drawerText, setDrawer: e => this.setState({ drawerText: e.target.value }),
+      submitHero: e => { e.preventDefault(); this.ask(s.heroText); },
+      submitDrawer: e => { e.preventDefault(); this.ask(s.drawerText); },
+      suggestions: ['Which stores run out of size M fleece by Friday?', 'Compare weekend sell-through, Denver vs. Austin', 'Where are we short-staffed this afternoon?', 'How are loyalty members spending this week?'].map(t => ({ text: t, ask: askFn(t) })),
+      kpis: [
+        { label: 'Net sales · today', value: '$412,860', delta: '▲ 6.2% vs last Thu', tone: '#17150f' },
+        { label: 'Transactions', value: '7,184', delta: '▲ 3.9%', tone: '#17150f' },
+        { label: 'Avg basket', value: '$57.47', delta: '▲ $1.18', tone: '#17150f' },
+        { label: 'Registers online', value: '861 / 864', delta: '3 offline · Atlanta #079', tone: '#c2401c' }
+      ],
+      alerts: [
+        { store: '#031', kind: 'Stock', bg: '#e5502a', title: 'Fleece vest M below 2 days of cover', detail: 'Denver and five other stores. Phoenix DC has 140 units.', q: 'Which stores run out of size M fleece by Friday?' },
+        { store: '#079', kind: 'Device', bg: '#e5502a', title: '3 registers offline since 8:40 AM', detail: 'Atlanta. Sales are queuing locally and will sync.', q: 'What happened to the Atlanta registers this morning?' },
+        { store: '#102', kind: 'Staff', bg: '#b8c6ff', title: 'Short 2 associates, 3–6 PM', detail: 'Brooklyn traffic forecast is up 18% for the afternoon.', q: 'Where are we short-staffed this afternoon?' },
+        { store: 'DC-2', kind: 'Transfer', bg: '#b8c6ff', title: '12 transfers waiting for approval', detail: 'Mostly outerwear moving to Mountain region stores.', q: 'Summarize the pending transfers' }
+      ].map(a => ({ ...a, ask: askFn(a.q) })),
+      leaders: [['Portland',9412],['Brooklyn',8840],['Chicago',8105],['Denver',7630],['Austin',6920],['San Diego',6488]].map(([c,v],i) => ({ rank: String(i+1).padStart(2,'0'), city: c, sales: '$' + v.toLocaleString(), w: Math.round(v/9412*100) + '%', c: i === 0 ? '#e5502a' : '#17150f' })),
+      feed: [
+        { t: '09:11', text: 'Transfer #4471 received at Boston #139' },
+        { t: '09:06', text: 'Price change pushed to 214 stores · Fall outerwear' },
+        { t: '08:52', text: 'Online order picked up at Portland #002' },
+        { t: '08:40', text: 'Atlanta #079 · 3 registers switched to offline mode' }
+      ],
+      scrimOpacity: s.open ? 1 : 0, scrimEvents: s.open ? 'auto' : 'none',
+      drawerX: s.open ? 'translateX(0)' : 'translateX(105%)',
+      close: () => this.setState({ open: false }),
+      reset: () => { clearTimeout(this.t); this.setState({ messages: [], thinking: false }); },
+      messages: s.messages.map(m => ({
+        isUser: m.role === 'user', isBot: m.role === 'bot', text: m.text,
+        hasRows: !!(m.rows && m.rows.length), rows: m.rows || [], rowsTitle: m.title || '',
+        follow: (m.follow || []).map(t => ({ text: t, ask: askFn(t) }))
+      })),
+      thinking: s.thinking,
+      scrollRef: this.scrollRef, drawerInputRef: this.drawerInputRef
+    };
+  }
+}
+</script>
+</body>
+</html>

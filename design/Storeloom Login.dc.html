@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+html{background:#f4efe4}
+body{margin:0;padding:0;color:#17150f;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#17150f;text-decoration:none}
+a:hover{color:#e5502a}
+input::placeholder{color:#8a8372}
+@keyframes sl-warp{from{background-position:0 0}to{background-position:-480px 0}}
+@keyframes sl-weft{from{background-position:0 0}to{background-position:0 -640px}}
+</style>
+</helmet>
+
+<div data-screen-label="Storeloom login" style="font-family:'Archivo',sans-serif;color:#17150f;min-height:100vh;display:flex;flex-direction:column;isolation:isolate">
+  {{ backdrop }}
+
+  <header style="display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px clamp(20px,4vw,56px);border-bottom:2px solid #17150f;flex-wrap:wrap">
+    <a href="Storeloom Landing.dc.html" style="display:flex;align-items:center;gap:10px">
+      <span style="display:grid;grid-template-columns:repeat(2,11px);gap:3px">
+        <span style="width:11px;height:11px;background:#17150f"></span>
+        <span style="width:11px;height:11px;background:#e5502a"></span>
+        <span style="width:11px;height:11px;background:#e5502a"></span>
+        <span style="width:11px;height:11px;background:#17150f"></span>
+      </span>
+      <span style="font-weight:800;font-stretch:125%;font-size:24px;letter-spacing:-0.02em">storeloom</span>
+    </a>
+    <a href="Storeloom Landing.dc.html" style="font-family:'IBM Plex Mono',monospace;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">← Back to site</a>
+  </header>
+
+  <main style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:clamp(40px,6vw,96px);padding:clamp(40px,6vw,88px) clamp(20px,4vw,56px);align-items:center">
+
+    <div style="display:flex;flex-direction:column;gap:24px;min-width:0">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span style="background:#b8c6ff;padding:4px 8px;border:1.5px solid #17150f">Sign in</span>
+        <span>Back office &amp; registers</span>
+      </span>
+      <h1 style="margin:0;font-weight:800;font-stretch:125%;font-size:clamp(44px,6vw,96px);line-height:0.9;letter-spacing:-0.035em;text-transform:uppercase;text-wrap:balance">Open the <span style="background:#b8c6ff;padding:0 0.08em;box-decoration-break:clone;-webkit-box-decoration-break:clone">doors.</span></h1>
+      <p style="margin:0;font-size:clamp(17px,1.4vw,20px);line-height:1.5;max-width:460px;text-wrap:pretty">Sign in to manage every location, or clock a register in with your store code and PIN.</p>
+    </div>
+
+    <div style="display:flex;justify-content:center;min-width:0">
+      <form onSubmit="{{ submit }}" style="position:relative;width:min(100%,460px);background:#fffdf8;border:2px solid #17150f;box-shadow:8px 8px 0 #17150f;display:flex;flex-direction:column">
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid #17150f">
+          <button type="button" onClick="{{ toOffice }}" style="font-family:'IBM Plex Mono',monospace;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;padding:16px;min-height:52px;border:none;border-right:2px solid #17150f;cursor:pointer;background:{{ officeBg }};color:{{ officeFg }}">Back office</button>
+          <button type="button" onClick="{{ toRegister }}" style="font-family:'IBM Plex Mono',monospace;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;padding:16px;min-height:52px;border:none;cursor:pointer;background:{{ regBg }};color:{{ regFg }}">Register</button>
+        </div>
+
+        <div style="padding:28px;display:flex;flex-direction:column;gap:20px">
+          <sc-if value="{{ isOffice }}" hint-placeholder-val="{{ true }}">
+            <label style="display:flex;flex-direction:column;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">Work email
+              <input type="email" required="{{ true }}" value="{{ email }}" onChange="{{ setEmail }}" placeholder="you@company.com" style="font-family:'Archivo',sans-serif;font-size:18px;padding:12px 0;border:none;border-bottom:2px solid #17150f;background:transparent;outline:none;color:#17150f">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">
+              <span style="display:flex;justify-content:space-between"><span>Password</span><a href="#" style="text-transform:uppercase">Forgot?</a></span>
+              <span style="display:flex;align-items:center;border-bottom:2px solid #17150f">
+                <input type="{{ pwType }}" required="{{ true }}" placeholder="••••••••" style="flex:1;min-width:0;font-family:'Archivo',sans-serif;font-size:18px;padding:12px 0;border:none;background:transparent;outline:none;color:#17150f">
+                <button type="button" onClick="{{ togglePw }}" style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;background:none;border:none;cursor:pointer;padding:12px 0 12px 12px;color:#17150f;min-height:44px">{{ pwLabel }}</button>
+              </span>
+            </label>
+            <label style="display:flex;gap:10px;align-items:center;font-size:15px;cursor:pointer;min-height:44px">
+              <span onClick="{{ toggleKeep }}" style="width:20px;height:20px;border:2px solid #17150f;background:{{ keepBg }};flex:none"></span>
+              <span onClick="{{ toggleKeep }}">Keep me signed in on this device</span>
+            </label>
+          </sc-if>
+
+          <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ false }}">
+            <label style="display:flex;flex-direction:column;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">Store code
+              <input value="{{ store }}" onChange="{{ setStore }}" placeholder="#014" style="font-family:'IBM Plex Mono',monospace;font-size:22px;padding:12px 0;border:none;border-bottom:2px solid #17150f;background:transparent;outline:none;color:#17150f;text-transform:uppercase">
+            </label>
+            <div style="display:flex;flex-direction:column;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">
+              <span>Associate PIN</span>
+              <div style="display:flex;gap:10px">
+                <sc-for list="{{ pinDots }}" as="d" hint-placeholder-count="4">
+                  <span style="width:20px;height:20px;border-radius:50%;border:2px solid #17150f;background:{{ d.bg }}"></span>
+                </sc-for>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px">
+                <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+                  <button type="button" onClick="{{ k.press }}" style="font-family:'Archivo',sans-serif;font-weight:700;font-size:22px;min-height:56px;border:1.5px solid #17150f;background:#f4efe4;color:#17150f;cursor:pointer" style-hover="background:#b8c6ff" style-active="background:#e5502a">{{ k.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <button type="submit" style="background:#17150f;color:#f4efe4;border:none;font-family:'Archivo',sans-serif;font-weight:700;font-size:18px;padding:18px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;min-height:56px" style-hover="background:#e5502a;color:#17150f">
+            <span>{{ submitLabel }}</span><span>→</span>
+          </button>
+
+
+          <sc-if value="{{ hasError }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#e5502a;border:1.5px solid #17150f;padding:10px 12px;font-family:'IBM Plex Mono',monospace;font-size:13px">{{ error }}</div>
+          </sc-if>
+        </div>
+
+        <div style="border-top:1.5px dashed #17150f;padding:14px 28px;display:flex;justify-content:space-between;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;flex-wrap:wrap">
+          <span>214 / 214 stores online</span>
+          <a href="Storeloom Landing.dc.html#demo">New to Storeloom?</a>
+        </div>
+
+        <div style="position:absolute;top:-30px;right:-26px;width:88px;height:88px;border-radius:50%;background:#e5502a;border:2px solid #17150f;display:flex;align-items:center;justify-content:center;transform:rotate(12deg);font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;text-align:center;line-height:1.2">{{ badge }}</div>
+      </form>
+    </div>
+  </main>
+
+  <footer style="padding:20px clamp(20px,4vw,56px);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;border-top:2px solid #17150f">
+    <span>© 2026 Storeloom · Demo brand</span>
+    <div style="display:flex;gap:24px;flex-wrap:wrap"><a href="#">Status</a><a href="#">Privacy</a><a href="#">Help</a></div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;motion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;next&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Storeloom Home.dc.html&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { mode: 'office', email: '', store: '', pin: '', showPw: false, keep: true, error: '', busy: false };
+  renderVals(){
+    const s = this.state, office = s.mode === 'office';
+    const still = this.props.motion === false;
+    const layer = (bg, anim) => React.createElement('div', { style: { position: 'absolute', inset: 0, backgroundImage: bg, animation: still ? 'none' : anim } });
+    const backdrop = React.createElement('div', { 'aria-hidden': true, style: { position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none' } },
+      layer('repeating-linear-gradient(90deg, rgba(23,21,15,0.055) 0 1px, transparent 1px 40px)', 'sl-warp 90s linear infinite'),
+      layer('repeating-linear-gradient(0deg, rgba(229,80,42,0.07) 0 1px, transparent 1px 80px), repeating-linear-gradient(0deg, rgba(23,21,15,0.04) 0 1px, transparent 1px 40px)', 'sl-weft 120s linear infinite'));
+    const press = (k) => () => this.setState(st => k === '⌫' ? { pin: st.pin.slice(0, -1), error: '' } : k === 'C' ? { pin: '', error: '' } : st.pin.length < 4 ? { pin: st.pin + k, error: '' } : null);
+    const go = () => { this.setState({ busy: true, error: '' }); setTimeout(() => { this.setState({ busy: false }); window.location.href = this.props.next || 'Storeloom Home.dc.html'; }, 900); };
+    return {
+      backdrop,
+      isOffice: office, isRegister: !office,
+      officeBg: office ? '#17150f' : 'transparent', officeFg: office ? '#f4efe4' : '#17150f',
+      regBg: !office ? '#17150f' : 'transparent', regFg: !office ? '#f4efe4' : '#17150f',
+      toOffice: () => this.setState({ mode: 'office', error: '' }),
+      toRegister: () => this.setState({ mode: 'register', error: '' }),
+      email: s.email, setEmail: e => this.setState({ email: e.target.value }),
+      store: s.store, setStore: e => this.setState({ store: e.target.value }),
+      pwType: s.showPw ? 'text' : 'password', pwLabel: s.showPw ? 'Hide' : 'Show',
+      togglePw: () => this.setState({ showPw: !s.showPw }),
+      keepBg: s.keep ? '#17150f' : 'transparent', toggleKeep: (e) => { e.preventDefault(); this.setState({ keep: !s.keep }); },
+      pinDots: [0,1,2,3].map(i => ({ bg: i < s.pin.length ? '#17150f' : 'transparent' })),
+      keys: ['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k => ({ label: k, press: press(k) })),
+      badge: office ? 'Secure sign-in' : 'Till mode',
+      submitLabel: s.busy ? 'Signing in…' : office ? 'Sign in' : 'Open register',
+      hasError: !!s.error, error: s.error,
+      submit: (e) => {
+        e.preventDefault();
+        if (!office && (!s.store.trim() || s.pin.length < 4)) { this.setState({ error: 'Enter a store code and 4-digit PIN.' }); return; }
+        go();
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

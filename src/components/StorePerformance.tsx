@@ -1,0 +1,227 @@
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type RefObject } from 'react'
+import { CustomActionsPosition, CustomActionTarget, RuntimeFilterOp } from '@thoughtspot/visual-embed-sdk'
+import { LiveboardEmbed } from '@thoughtspot/visual-embed-sdk/react'
+import { REGION_COLUMN, type FilterUpdate } from '../liveboardFilters'
+import { STORE_ACTION_ID, STORE_PICK_ACTION_ID, STORE_SCATTER_VIZ_ID, storeFromPoint, type StoreSelection } from '../storeActions'
+import { CountUp } from './CountUp'
+import { ALL_REGIONS, getRegionKpis, KPI_COLUMNS, REGIONS, type Region, type RegionKpis, type StoreKpis } from '../storePerformance'
+import { HIDDEN_BRANDED_ACTIONS, REGION_LIVEBOARD_ID } from '../thoughtspot'
+import './StorePerformance.css'
+
+/**
+ * Custom actions on the "Sales per Store Sq Ft vs Store Space" chart only:
+ * - a header button to pick a store and act on it (works on any chart type,
+ *   including the Muze custom chart, which doesn't forward point clicks);
+ * - a context-menu action on a clicked store (for charts that support it).
+ */
+const STORE_CUSTOM_ACTIONS = [
+  {
+    id: STORE_PICK_ACTION_ID,
+    name: '⚡ Act on a store',
+    position: CustomActionsPosition.PRIMARY,
+    target: CustomActionTarget.VIZ,
+    metadataIds: { vizIds: [STORE_SCATTER_VIZ_ID] },
+  },
+  {
+    id: STORE_ACTION_ID,
+    name: 'Build store action plan',
+    position: CustomActionsPosition.CONTEXTMENU,
+    target: CustomActionTarget.VIZ,
+    metadataIds: { vizIds: [STORE_SCATTER_VIZ_ID] },
+  },
+]
+
+type EventPayload = { data?: Record<string, unknown> } & Record<string, unknown>
+const dataOf = (p: unknown) => ((p as EventPayload)?.data ?? p) as Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
+
+type Props = {
+  openRegion: Region | null
+  onToggle: (region: Region) => void
+  /** Global filters (minus Store Region) the KPI summary should respect. */
+  globalFilters: FilterUpdate[]
+  embedRef: RefObject<InstanceType<typeof import('@thoughtspot/visual-embed-sdk').LiveboardEmbed> | null>
+  /** Must be stable per region: the SDK re-creates the embed when listeners change. */
+  onLiveboardRendered: () => void
+  onFilterChanged: () => void
+  /** A store was picked on the scatter chart; `act` when it came from the custom action. */
+  onStorePicked: (store: StoreSelection, act: boolean) => void
+  /** The chart-header action: choose a store to act on. */
+  onPickRequested: () => void
+}
+
+/**
+ * Store Performance tab: one row per region with a KPI summary (rendered here,
+ * from the ThoughtSpot Search Data API via getRegionKpis), expanding into the
+ * Region Performance Liveboard filtered to that region.
+ */
+export function StorePerformance({
+  openRegion,
+  onToggle,
+  globalFilters,
+  embedRef,
+  onLiveboardRendered,
+  onFilterChanged,
+  onStorePicked,
+  onPickRequested,
+}: Props) {
+  // Stable handlers: the SDK re-creates the embed when a listener changes identity.
+  const onVizPointClick = useCallback(
+    (payload: unknown) => {
+      const data = dataOf(payload)
+      if (data?.vizId !== STORE_SCATTER_VIZ_ID) return
+      const store = storeFromPoint(data.clickedPoint)
+      if (store) onStorePicked(store, false)
+    },
+    [onStorePicked],
+  )
+  const onCustomAction = useCallback(
+    (payload: unknown) => {
+      const data = dataOf(payload)
+      if (data?.id === STORE_PICK_ACTION_ID) return onPickRequested()
+      if (data?.id !== STORE_ACTION_ID) return
+      const store = storeFromPoint(data.contextMenuPoints?.clickedPoint)
+      if (store) onStorePicked(store, true)
+    },
+    [onStorePicked, onPickRequested],
+  )
+
+  const [kpis, setKpis] = useState<StoreKpis | null>(null)
+  const [status, setStatus] = useState<{ loading: boolean; error?: string; at?: Date }>({ loading: true })
+  const [progress, setProgress] = useState({ done: 0, total: 3 })
+  const [attempt, setAttempt] = useState(0)
+  const filtersKey = JSON.stringify(globalFilters)
+
+  useEffect(() => {
+    let cancelled = false
+    setStatus((s) => ({ ...s, loading: true, error: undefined }))
+    getRegionKpis(JSON.parse(filtersKey), (done, total) => !cancelled && setProgress({ done, total }))
+      .then((k) => {
+        if (cancelled) return
+        setKpis(k)
+        setStatus({ loading: false, at: new Date() })
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.error('Could not load region KPIs', err)
+        setStatus({ loading: false, error: 'Couldn’t load the latest figures.' })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [filtersKey, attempt])
+
+  const phase = status.error ? 'error' : status.loading ? 'loading' : 'ready'
+  // While loading, never show an empty bar: start at a sliver and advance per query.
+  const progressPct = phase === 'loading' ? Math.max(6, (progress.done / progress.total) * 100) : 100
+
+  // Applied when the embed loads, so the region shows without an unfiltered flash.
+  // The All regions row has none.
+  const runtimeFilters = useMemo(
+    () =>
+      openRegion && openRegion !== ALL_REGIONS
+        ? [{ columnName: REGION_COLUMN, operator: RuntimeFilterOp.EQ, values: [openRegion] }]
+        : [],
+    [openRegion],
+  )
+  const rows: { region: Region; kpis?: RegionKpis }[] = [
+    { region: ALL_REGIONS, kpis: kpis?.all },
+    ...REGIONS.map((region) => ({ region, kpis: kpis?.regions.find((r) => r.region === region) })),
+  ]
+
+  return (
+    <div className="regions">
+      <div className="regions-bar">
+        <span className="regions-title">Stores by region</span>
+        <span className="regions-hint">Expand a region for its detailed view</span>
+        <span className={`regions-status is-${phase}`} aria-live="polite">
+          {phase === 'loading' && (
+            <>
+              <span className="regions-spinner" aria-hidden />
+              Syncing figures · {progress.done}/{progress.total}
+            </>
+          )}
+          {phase === 'ready' && (
+            <>
+              <span className="regions-live-dot" aria-hidden />
+              Live · updated {status.at?.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+            </>
+          )}
+          {phase === 'error' && (
+            <>
+              {status.error}
+              <button type="button" onClick={() => setAttempt((a) => a + 1)}>
+                Retry
+              </button>
+            </>
+          )}
+        </span>
+      </div>
+
+      <div className={`regions-progress is-${phase}`} aria-hidden>
+        <span style={{ width: `${progressPct}%` }} />
+      </div>
+
+      <div className={['regions-table', status.loading && kpis && 'is-stale'].filter(Boolean).join(' ')} role="table" aria-busy={status.loading}>
+        <div className="regions-head" role="row">
+          <span role="columnheader">Region</span>
+          {KPI_COLUMNS.map((c) => (
+            <span key={c.key} role="columnheader">
+              {c.label}
+            </span>
+          ))}
+          <span aria-hidden />
+        </div>
+
+        {rows.map(({ region, kpis: k }, i) => {
+          const open = region === openRegion
+          const classes = ['region', open && 'is-open', region === ALL_REGIONS && 'is-total', k && 'is-ready']
+            .filter(Boolean)
+            .join(' ')
+          return (
+            <div key={region} className={classes} role="rowgroup" style={{ '--i': i } as CSSProperties}>
+              <button type="button" className="region-row" role="row" aria-expanded={open} onClick={() => onToggle(region)}>
+                <span className="region-name">{region}</span>
+                {KPI_COLUMNS.map((c, j) =>
+                  k ? (
+                    <CountUp key={c.key} className="region-kpi" value={k[c.key]} format={c.format} delay={i * 70 + j * 25} />
+                  ) : (
+                    <span key={c.key} className="region-kpi">
+                      <span className="kpi-skeleton" style={{ animationDelay: `${(i + j) * 80}ms` }} />
+                    </span>
+                  ),
+                )}
+                <span className="region-toggle" aria-hidden>
+                  {open ? '−' : '+'}
+                </span>
+              </button>
+
+              {open && (
+                <div className="region-detail">
+                  <div className="insights-embed">
+                    <LiveboardEmbed
+                      key={region}
+                      ref={embedRef}
+                      liveboardId={REGION_LIVEBOARD_ID}
+                      runtimeFilters={runtimeFilters}
+                      hiddenActions={HIDDEN_BRANDED_ACTIONS}
+                      customActions={STORE_CUSTOM_ACTIONS}
+                      hideTabPanel
+                      // Kept on (and hidden with CSS, see thoughtspot.ts) so OpenFilter works.
+                      hideLiveboardHeader={false}
+                      fullHeight
+                      minimumHeight={480}
+                      onLiveboardRendered={onLiveboardRendered}
+                      onFilterChanged={onFilterChanged}
+                      onVizPointClick={onVizPointClick}
+                      onCustomAction={onCustomAction}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
