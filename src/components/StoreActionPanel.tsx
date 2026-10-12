@@ -8,6 +8,7 @@ import {
   recommendedPlays,
   shortStoreName,
   type Play,
+  type Quadrant,
   type RegionStore,
   type StoreProfile,
   type StoreSelection,
@@ -21,6 +22,12 @@ const int = (n: number) => Math.round(n).toLocaleString('en-US')
 const compact = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : int(n))
 const pct = (a: number, b: number) => (b ? Math.round((a / b - 1) * 100) : 0)
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n))
+const percent1 = (n: number) => `${(n * 100).toFixed(1)}%`
+/** Difference between two ratios in percentage points, e.g. "+0.4 pts". */
+const pts = (a: number, b: number) => {
+  const d = Math.round((a - b) * 1000) / 10
+  return `${d > 0 ? '+' : ''}${d.toFixed(1)} pts`
+}
 
 const isoInDays = (days: number) => {
   const d = new Date()
@@ -43,12 +50,15 @@ export function StoreActionPanel({
   region,
   onClose,
   onPick,
+  onLaunched,
 }: {
   /** null: start by picking a store from `region`. */
   store: StoreSelection | null
   region?: string
   onClose: () => void
   onPick: (store: StoreSelection) => void
+  /** The action plan for `store` was launched. */
+  onLaunched?: () => void
 }) {
   const { user } = useAuth()
   const [profile, setProfile] = useState<StoreProfile | null>(null)
@@ -97,7 +107,8 @@ export function StoreActionPanel({
     setNotes(
       `${shortStoreName(profile.name)} (${profile.region}) · ${q.label}. ` +
         `${money2(profile.salesPerSqFt)} sales per sq ft vs ${money2(profile.regionMedianSalesPerSqFt)} region median ` +
-        `on ${int(profile.sqFt)} sq ft (rank ${profile.rankInRegion}/${profile.regionStores}).` +
+        `on ${int(profile.sqFt)} sq ft (rank ${profile.rankInRegion}/${profile.regionStores}). ` +
+        `Gross margin ${percent1(profile.grossMargin)} vs ${percent1(profile.regionMedianGrossMargin)} region median.` +
         (profile.opportunity > 0 ? ` Annual opportunity to median: ${money0(profile.opportunity)}.` : ''),
     )
   }, [profile, recs])
@@ -136,11 +147,12 @@ export function StoreActionPanel({
       ),
       ...(notifySlack ? [{ label: `Posted to #${profile.region.toLowerCase()}-store-ops with the chart snapshot` }] : []),
       ...(notifyEmail ? [{ label: `${chosen.length} owner${chosen.length === 1 ? '' : 's'} notified by email` }] : []),
-      { label: 'Follow-up check scheduled: re-measure sales per sq ft in 30 days' },
+      { label: 'Follow-up check scheduled: re-measure sales per sq ft and gross margin in 30 days' },
     ]
     setRun(steps)
     setRunDone(0)
     setPhase('running')
+    onLaunched?.()
   }
 
   // Reveal the simulated workflow one step at a time.
@@ -172,7 +184,7 @@ export function StoreActionPanel({
             <span className="sa-sub mono-label">
               {store
                 ? `${profile?.region ?? store.region ?? 'Loading region…'} · Store action plan`
-                : `${region || 'All regions'} · weakest sales per sq ft first`}
+                : `${region || 'All regions'} · pick a store`}
             </span>
           </div>
           <button type="button" className="drawer-close" aria-label="Close" onClick={onClose} disabled={phase === 'running'}>
@@ -200,6 +212,13 @@ export function StoreActionPanel({
             <div className="sa-stats">
               {[
                 { label: 'Sales', value: profile?.sales12m, format: money0 },
+                {
+                  label: 'Gross margin',
+                  value: profile?.grossMargin,
+                  format: percent1,
+                  note: profile && `${pts(profile.grossMargin, profile.regionMedianGrossMargin)} vs median`,
+                  bad: profile ? profile.grossMargin < profile.regionMedianGrossMargin : false,
+                },
                 { label: 'Selling sq ft', value: profile?.sqFt, format: int, note: profile && `${signed(pct(profile.sqFt, profile.regionMedianSqFt))}% vs median` },
                 {
                   label: 'Sales / sq ft',
@@ -247,7 +266,8 @@ export function StoreActionPanel({
               <div className="sa-diagnosis-head">
                 <span className="sa-badge">{q.label}</span>
                 <span className="mono-label">
-                  Rank {profile.rankInRegion} of {profile.regionStores} in {profile.region} on sales per sq ft
+                  Rank {profile.rankInRegion} of {profile.regionStores} in {profile.region} on sales per sq ft · Gross margin{' '}
+                  {percent1(profile.grossMargin)} ({pts(profile.grossMargin, profile.regionMedianGrossMargin)})
                 </span>
               </div>
               <p>{q.summary}</p>
@@ -333,7 +353,7 @@ export function StoreActionPanel({
                   <strong>
                     {chosen.length} play{chosen.length === 1 ? '' : 's'} in motion for {shortStoreName(store.name)}.
                   </strong>{' '}
-                  Owners have their tasks; Shuttle will re-check sales per sq ft in 30 days and flag the result on your Home page.
+                  Owners have their tasks; Shuttle will re-check sales per sq ft and gross margin in 30 days and flag the result on your Home page.
                   <span className="sa-demo-note mono-label">Demo · simulated, nothing was sent</span>
                 </div>
               )}
@@ -427,11 +447,27 @@ function PlayCard({
   )
 }
 
+type PickerSortKey = 'quadrant' | 'sqFt' | 'salesPerSqFt' | 'grossMargin'
+
+const QUADRANT_ORDER = Object.keys(QUADRANTS) as Quadrant[]
+
+/** Picker columns. `desc` is the direction a column sorts in when first clicked. */
+const PICKER_COLUMNS: { key: PickerSortKey; label: string; desc: boolean }[] = [
+  { key: 'quadrant', label: 'Classification', desc: false },
+  { key: 'sqFt', label: 'Size', desc: true },
+  { key: 'salesPerSqFt', label: '$ / sq ft', desc: true },
+  { key: 'grossMargin', label: 'Gross margin', desc: true },
+]
+
+const sortValue = (s: RegionStore, key: PickerSortKey) =>
+  key === 'quadrant' ? QUADRANT_ORDER.indexOf(s.quadrant) : s[key]
+
 /** First step from the chart-header action: choose which store to act on. */
 function StorePicker({ region, onPick }: { region: string; onPick: (store: StoreSelection) => void }) {
   const [stores, setStores] = useState<RegionStore[] | null>(null)
   const [error, setError] = useState(false)
   const [query, setQuery] = useState('')
+  const [sort, setSort] = useState<{ key: PickerSortKey; desc: boolean }>({ key: 'grossMargin', desc: true })
 
   useEffect(() => {
     let cancelled = false
@@ -446,13 +482,28 @@ function StorePicker({ region, onPick }: { region: string; onPick: (store: Store
     }
   }, [region])
 
-  const shown = (stores ?? []).filter((s) => s.name.toLowerCase().includes(query.trim().toLowerCase()))
+  const shown = useMemo(() => {
+    const dir = sort.desc ? -1 : 1
+    return (stores ?? [])
+      .filter((s) => s.name.toLowerCase().includes(query.trim().toLowerCase()))
+      .sort(
+        (a, b) =>
+          dir * (sortValue(a, sort.key) - sortValue(b, sort.key)) ||
+          // Ties (same classification): highest gross margin first.
+          b.grossMargin - a.grossMargin,
+      )
+  }, [stores, query, sort])
+
+  const sortBy = (key: PickerSortKey) =>
+    setSort((cur) =>
+      cur.key === key ? { key, desc: !cur.desc } : { key, desc: PICKER_COLUMNS.find((c) => c.key === key)!.desc },
+    )
 
   return (
     <div className="sa-body">
       <p className="sa-picker-intro">
-        Choose a store from the chart. Stores are ordered by sales per sq ft, weakest first, and tagged with their
-        quadrant.
+        Choose a store from the chart. Figures cover the last 12 months; click a column to sort by classification,
+        size, sales per sq ft or gross margin.
       </p>
       <input
         className="sa-picker-search"
@@ -463,6 +514,29 @@ function StorePicker({ region, onPick }: { region: string; onPick: (store: Store
         autoFocus
       />
       {error && <div className="sa-error">Couldn’t load the region’s stores.</div>}
+      <div className="sa-picker-table">
+      <div className="sa-picker-row sa-picker-head">
+        <span className="mono-label">Store</span>
+        {PICKER_COLUMNS.map((c) => {
+          const active = sort.key === c.key
+          return (
+            <button
+              key={c.key}
+              type="button"
+              aria-pressed={active}
+              title={`Sort by ${c.label.toLowerCase()}`}
+              className={['sa-picker-sort mono-label', c.key !== 'quadrant' && 'is-num', active && 'is-active']
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => sortBy(c.key)}
+            >
+              {c.label}
+              <span aria-hidden>{active ? (sort.desc ? '↓' : '↑') : '↕'}</span>
+            </button>
+          )
+        })}
+        <span />
+      </div>
       <ul className="sa-picker">
         {stores === null && !error
           ? Array.from({ length: 6 }, (_, i) => (
@@ -475,17 +549,21 @@ function StorePicker({ region, onPick }: { region: string; onPick: (store: Store
                 <button
                   type="button"
                   className="sa-picker-row"
-                  onClick={() => onPick({ name: s.name, region: region || undefined, sales: s.sales, sqFt: s.sqFt })}
+                  onClick={() =>
+                    onPick({ name: s.name, region: region || undefined, sales: s.sales, sqFt: s.sqFt, grossMargin: s.grossMargin })
+                  }
                 >
                   <span className="sa-picker-name">{shortStoreName(s.name)}</span>
                   <span className={`sa-picker-tag is-${QUADRANTS[s.quadrant].tone}`}>{QUADRANTS[s.quadrant].label}</span>
                   <span className="sa-picker-num">{int(s.sqFt)} sq ft</span>
-                  <span className="sa-picker-num is-strong">{money2(s.salesPerSqFt)}/sq ft</span>
+                  <span className="sa-picker-num">{money2(s.salesPerSqFt)}/sq ft</span>
+                  <span className="sa-picker-num is-strong">{(s.grossMargin * 100).toFixed(1)}%</span>
                   <span aria-hidden>→</span>
                 </button>
               </li>
             ))}
       </ul>
+      </div>
     </div>
   )
 }

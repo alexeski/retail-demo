@@ -160,8 +160,7 @@
 
 .kpi-skeleton {
   display: inline-block;
-  width: 64%;
-  max-width: 72px;
+  width: 64px;
   height: 12px;
   vertical-align: middle;
   background: linear-gradient(90deg, var(--sand) 0%, var(--sand) 35%, #f7f1e4 50%, var(--sand) 65%, var(--sand) 100%);
@@ -192,19 +191,26 @@
   .regions-live-dot,
   .regions-progress > span,
   .kpi-skeleton,
+  .sparkline-line,
+  .sparkline-dot,
   .region.is-ready .region-kpi {
     animation: none;
   }
 }
 
-/* Region | 6 KPIs | toggle */
+.kpi-skeleton.is-wide {
+  width: 120px;
+  height: 20px;
+}
+
+/* Region | sales trend | 6 KPIs | toggle */
 .regions-head,
 .region-row {
   display: grid;
-  grid-template-columns: minmax(130px, 1.3fr) repeat(6, minmax(96px, 1fr)) 40px;
+  grid-template-columns: minmax(110px, 1.1fr) 132px repeat(6, minmax(96px, 1fr)) 40px;
   align-items: center;
   gap: 12px;
-  min-width: 860px;
+  min-width: 1000px;
   padding: 0 18px;
 }
 
@@ -219,7 +225,7 @@
   color: var(--muted);
 }
 
-.regions-head > span:not(:first-child) {
+.regions-head > span:nth-child(n + 3) {
   text-align: right;
 }
 
@@ -264,11 +270,143 @@
 }
 
 .region-kpi {
+  justify-self: end;
+  /* Every cell is padded the same, so flagged values stay aligned with the rest. */
+  padding: 3px 7px;
   font-family: var(--font-mono);
   font-size: 15px;
   font-weight: 500;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* Highest / lowest region on a ranked column (never the All regions row). */
+.region-kpi.is-best,
+.region-kpi.is-worst {
+  font-weight: 600;
+}
+
+.region-kpi.is-best {
+  background: var(--good-soft);
+}
+
+.region-kpi.is-worst {
+  background: var(--bad-soft);
+}
+
+.region-kpi.is-best::before,
+.region-kpi.is-worst::before {
+  margin-right: 6px;
+  font-size: 10px;
+  vertical-align: 1px;
+}
+
+.region-kpi.is-best::before {
+  content: '▲' / 'Highest: ';
+  color: var(--good);
+}
+
+.region-kpi.is-worst::before {
+  content: '▼' / 'Lowest: ';
+  color: var(--accent-dark);
+}
+
+.regions-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.regions-legend .kpi-flag {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  font-size: 9px;
+}
+
+.regions-legend .kpi-flag.is-best {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+.regions-legend .kpi-flag.is-worst {
+  margin-left: 8px;
+  background: var(--bad-soft);
+  color: var(--accent-dark);
+}
+
+/* ---------- Sales sparkline ---------- */
+.region-trend {
+  display: flex;
+  align-items: center;
+}
+
+.sparkline {
+  position: relative;
+  display: inline-flex;
+}
+
+.sparkline svg {
+  display: block;
+  overflow: visible;
+}
+
+.sparkline-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  animation: sl-spark-draw 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes sl-spark-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+.sparkline-dot {
+  fill: var(--accent);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+
+/* The end dot lands once the line has drawn in. */
+.sparkline-dot {
+  animation: sl-spark-dot 1s ease-out both;
+}
+
+@keyframes sl-spark-dot {
+  0%, 80% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.sparkline-rule {
+  stroke: var(--muted-light);
+  stroke-width: 1;
+}
+
+.sparkline-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 4px 8px;
+  background: var(--ink);
+  color: var(--card);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.sparkline.is-empty {
+  color: var(--muted);
 }
 
 .region-toggle {

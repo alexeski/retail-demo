@@ -363,6 +363,8 @@ export function Insights() {
             setPickedStore(store)
             setActionPanel({ store })
           }}
+          // Plan launched: the store's ⚡ button has done its job.
+          onLaunched={() => setPickedStore(null)}
         />
       )}
     </div>

@@ -8,7 +8,7 @@ export const STORE_ACTION_ID = 'store-action-plan'
 export const STORE_PICK_ACTION_ID = 'store-action-pick'
 
 /** A store picked on the scatter chart. */
-export type StoreSelection = { name: string; region?: string; sales?: number; sqFt?: number }
+export type StoreSelection = { name: string; region?: string; sales?: number; sqFt?: number; grossMargin?: number }
 
 type PointColumn = { column?: { name?: string }; value?: unknown }
 type ClickedPoint = { selectedAttributes?: PointColumn[]; selectedMeasures?: PointColumn[] }
@@ -44,6 +44,9 @@ export type StoreProfile = {
   salesPerSqFt: number
   regionMedianSqFt: number
   regionMedianSalesPerSqFt: number
+  /** Gross profit / sales (0–1), last 12 months. */
+  grossMargin: number
+  regionMedianGrossMargin: number
   regionStores: number
   /** 1 = best sales per sq ft in the region. */
   rankInRegion: number
@@ -68,18 +71,35 @@ const median = (xs: number[]) => {
 
 const q = (v: string) => `'${v.replace(/'/g, "\\'")}'`
 
-export type RegionStore = { name: string; sqFt: number; sales: number; salesPerSqFt: number; quadrant: Quadrant }
+export type RegionStore = {
+  name: string
+  sqFt: number
+  sales: number
+  /** Gross profit / sales (0–1). */
+  grossMargin: number
+  salesPerSqFt: number
+  quadrant: Quadrant
+}
 
-/** Every store in a region (last 12 months), weakest sales per sq ft first, with its quadrant. */
+/** Every store in a region (last 12 months), highest gross margin first, with its quadrant. */
 export async function getRegionStores(region: string): Promise<RegionStore[]> {
   const rows = await searchData(
-    `[Store Name] [Store Selling Square Footage] [Sales] [Transaction Date].'last 12 months' ${region ? `[Store Region].${q(region)}` : ''}`,
+    `[Store Name] [Store Selling Square Footage] [Sales] [Gross Profit ($)] [Transaction Date].'last 12 months' ${region ? `[Store Region].${q(region)}` : ''}`,
     1000,
   )
   const stores = rows
-    .map(([name, sqFt, sales]) => ({ name: String(name), sqFt: Number(sqFt) || 0, sales: Number(sales) || 0 }))
+    .map(([name, sqFt, sales, grossProfit]) => ({
+      name: String(name),
+      sqFt: Number(sqFt) || 0,
+      sales: Number(sales) || 0,
+      grossProfit: Number(grossProfit) || 0,
+    }))
     .filter((s) => s.sqFt > 0)
-    .map((s) => ({ ...s, salesPerSqFt: s.sales / s.sqFt }))
+    .map(({ grossProfit, ...s }) => ({
+      ...s,
+      grossMargin: s.sales ? grossProfit / s.sales : 0,
+      salesPerSqFt: s.sales / s.sqFt,
+    }))
   const mSqFt = median(stores.map((s) => s.sqFt))
   const mSpsf = median(stores.map((s) => s.salesPerSqFt))
   return stores
@@ -89,7 +109,7 @@ export async function getRegionStores(region: string): Promise<RegionStore[]> {
       const quadrant: Quadrant = big ? (eff ? 'big-efficient' : 'big-under') : eff ? 'small-efficient' : 'small-low'
       return { ...s, quadrant }
     })
-    .sort((a, b) => a.salesPerSqFt - b.salesPerSqFt)
+    .sort((a, b) => b.grossMargin - a.grossMargin)
 }
 
 export async function getStoreProfile(store: StoreSelection): Promise<StoreProfile> {
@@ -101,16 +121,24 @@ export async function getStoreProfile(store: StoreSelection): Promise<StoreProfi
   const regionToken = region ? `[Store Region].${q(region)}` : ''
 
   const [peers, traffic, txns, categories] = await Promise.all([
-    searchData(`[Store Name] [Store Selling Square Footage] [Sales] [Transaction Date].'last 12 months' ${regionToken}`, 1000),
+    searchData(
+      `[Store Name] [Store Selling Square Footage] [Sales] [Gross Profit ($)] [Transaction Date].'last 12 months' ${regionToken}`,
+      1000,
+    ),
     searchData(`[Foot Traffic] [Transaction Date].'last 30 days' ${storeToken}`, 5),
     searchData(`[Sales] [Number of Transactions] [Transaction Date].'last 30 days' ${storeToken}`, 5),
     searchData(`[Category] [Sales] [Transaction Date].'last 12 months' ${storeToken} sort by [Sales] descending`, 10),
   ])
 
   const stores = peers
-    .map(([name, sqFt, sales]) => ({ name: String(name), sqFt: Number(sqFt) || 0, sales: Number(sales) || 0 }))
+    .map(([name, sqFt, sales, grossProfit]) => ({
+      name: String(name),
+      sqFt: Number(sqFt) || 0,
+      sales: Number(sales) || 0,
+      grossProfit: Number(grossProfit) || 0,
+    }))
     .filter((s) => s.sqFt > 0)
-    .map((s) => ({ ...s, spsf: s.sales / s.sqFt }))
+    .map((s) => ({ ...s, spsf: s.sales / s.sqFt, margin: s.sales ? s.grossProfit / s.sales : 0 }))
     .sort((a, b) => b.spsf - a.spsf)
 
   const me = stores.find((s) => s.name === store.name) ?? {
@@ -118,6 +146,7 @@ export async function getStoreProfile(store: StoreSelection): Promise<StoreProfi
     sqFt: store.sqFt ?? 0,
     sales: store.sales ?? 0,
     spsf: store.sqFt ? (store.sales ?? 0) / store.sqFt : 0,
+    margin: store.grossMargin ?? 0,
   }
   const medianSqFt = median(stores.map((s) => s.sqFt))
   const medianSpsf = median(stores.map((s) => s.spsf))
@@ -136,6 +165,8 @@ export async function getStoreProfile(store: StoreSelection): Promise<StoreProfi
     salesPerSqFt: me.spsf,
     regionMedianSqFt: medianSqFt,
     regionMedianSalesPerSqFt: medianSpsf,
+    grossMargin: me.margin,
+    regionMedianGrossMargin: median(stores.map((s) => s.margin)),
     regionStores: stores.length,
     rankInRegion: stores.findIndex((s) => s.name === store.name) + 1 || stores.length,
     quadrant,

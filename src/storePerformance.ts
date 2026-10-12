@@ -10,22 +10,32 @@ export type Region = (typeof REGIONS)[number] | typeof ALL_REGIONS
 export type RegionKpis = {
   region: Region
   stores: number
-  sellingSqFt: number
+  /** Gross profit / sales (0–1). */
+  grossMargin: number
   avgStoreSqFt: number
   footTrafficPerStore30d: number
   transactionsPerStore30d: number
   salesPerSqFt: number
 }
 
-export type StoreKpis = { regions: RegionKpis[]; all: RegionKpis }
+/** Daily sales over the last 30 days: `days` (epoch seconds, oldest first) and one series per row. */
+export type SalesTrend = { days: number[]; byRegion: Record<Region, number[]> }
 
-export const KPI_COLUMNS: { key: Exclude<keyof RegionKpis, 'region'>; label: string; format: (n: number) => string }[] = [
+export type StoreKpis = { regions: RegionKpis[]; all: RegionKpis; trend: SalesTrend }
+
+export const KPI_COLUMNS: {
+  key: Exclude<keyof RegionKpis, 'region'>
+  label: string
+  format: (n: number) => string
+  /** Flag the highest and lowest region (higher is better). */
+  ranked?: boolean
+}[] = [
   { key: 'stores', label: 'Stores', format: (n) => Math.round(n).toLocaleString('en-US') },
-  { key: 'sellingSqFt', label: 'Selling sq ft', format: (n) => compact(n) },
+  { key: 'grossMargin', label: 'Gross margin', format: (n) => `${(n * 100).toFixed(1)}%`, ranked: true },
   { key: 'avgStoreSqFt', label: 'Avg store size', format: (n) => compact(n) },
-  { key: 'footTrafficPerStore30d', label: 'Foot traffic / store · 30d', format: (n) => compact(n) },
-  { key: 'transactionsPerStore30d', label: 'Txns / store · 30d', format: (n) => Math.round(n).toLocaleString('en-US') },
-  { key: 'salesPerSqFt', label: 'Sales / sq ft', format: (n) => `$${n.toFixed(2)}` },
+  { key: 'footTrafficPerStore30d', label: 'Foot traffic / store · 30d', format: (n) => compact(n), ranked: true },
+  { key: 'transactionsPerStore30d', label: 'Txns / store · 30d', format: (n) => Math.round(n).toLocaleString('en-US'), ranked: true },
+  { key: 'salesPerSqFt', label: 'Sales / sq ft', format: (n) => `$${n.toFixed(2)}`, ranked: true },
 ]
 
 function compact(n: number) {
@@ -113,7 +123,7 @@ function periodTokens(filters: FilterUpdate[]): string {
   return DEFAULT_PERIOD
 }
 
-type StoreFacts = { region: string; sqFt: number; sales: number }
+type StoreFacts = { region: string; sqFt: number; sales: number; grossProfit: number }
 
 function kpisFor(region: Region, stores: StoreFacts[], footTraffic: number[], transactions: number[]): RegionKpis {
   const sellingSqFt = stores.reduce((n, s) => n + s.sqFt, 0)
@@ -122,7 +132,7 @@ function kpisFor(region: Region, stores: StoreFacts[], footTraffic: number[], tr
   return {
     region,
     stores: stores.length,
-    sellingSqFt,
+    grossMargin: sales ? stores.reduce((n, s) => n + s.grossProfit, 0) / sales : 0,
     avgStoreSqFt: stores.length ? sellingSqFt / stores.length : 0,
     footTrafficPerStore30d: avg(footTraffic),
     transactionsPerStore30d: avg(transactions),
@@ -132,9 +142,10 @@ function kpisFor(region: Region, stores: StoreFacts[], footTraffic: number[], tr
 
 /**
  * KPI summary per region and for all regions, computed from store-level rows:
- * - stores, selling sq ft, average store size and sales / sq ft over the selected
+ * - stores, gross margin, average store size and sales / sq ft over the selected
  *   period (the Liveboards' "last 12 months" unless changed);
  * - foot traffic and transactions per store over the last 30 days.
+ * - daily sales over the last 30 days, for the sparklines.
  * Foot traffic and transactions sit across a chasm trap, so each gets its own query.
  * Store Region is never applied: each row is one region.
  */
@@ -144,13 +155,14 @@ export async function getRegionKpis(
 ): Promise<StoreKpis> {
   const filters = attributeTokens(globalFilters).join(' ')
   const queries = [
-    `[Store Name] [Store Region] [Store Selling Square Footage] [Sales] ${periodTokens(globalFilters)} ${filters}`,
+    `[Store Name] [Store Region] [Store Selling Square Footage] [Sales] [Gross Profit ($)] ${periodTokens(globalFilters)} ${filters}`,
     `[Store Name] [Store Region] [Foot Traffic] ${LAST_30_DAYS} ${filters}`,
     `[Store Name] [Store Region] [Number of Transactions] ${LAST_30_DAYS} ${filters}`,
+    `[Store Region] [Transaction Date].daily [Sales] ${LAST_30_DAYS} ${filters}`,
   ]
   let done = 0
   onProgress?.(0, queries.length)
-  const [facts, traffic, txns] = await Promise.all(
+  const [facts, traffic, txns, daily] = await Promise.all(
     queries.map((q) =>
       searchData(q).then((rows) => {
         onProgress?.(++done, queries.length)
@@ -159,10 +171,11 @@ export async function getRegionKpis(
     ),
   )
 
-  const stores: StoreFacts[] = facts.map(([, region, sqFt, sales]) => ({
+  const stores: StoreFacts[] = facts.map(([, region, sqFt, sales, grossProfit]) => ({
     region: String(region),
     sqFt: Number(sqFt) || 0,
     sales: Number(sales) || 0,
+    grossProfit: Number(grossProfit) || 0,
   }))
   const byRegion = (rows: Row[], region?: string) =>
     rows.filter((r) => !region || r[1] === region).map((r) => Number(r[2]) || 0)
@@ -177,5 +190,21 @@ export async function getRegionKpis(
       ),
     ),
     all: kpisFor(ALL_REGIONS, stores, byRegion(traffic), byRegion(txns)),
+    trend: salesTrend(daily),
   }
+}
+
+/** Rows of [region, day (epoch seconds), sales] into aligned daily series; missing days count as 0. */
+function salesTrend(rows: Row[]): SalesTrend {
+  const days = [...new Set(rows.map((r) => Number(r[1])))].sort((a, b) => a - b)
+  const index = new Map(days.map((d, i) => [d, i]))
+  const series = () => days.map(() => 0)
+  const byRegion = Object.fromEntries([ALL_REGIONS, ...REGIONS].map((r) => [r, series()])) as Record<Region, number[]>
+  for (const [region, day, sales] of rows) {
+    const i = index.get(Number(day))!
+    const value = Number(sales) || 0
+    byRegion[ALL_REGIONS][i] += value
+    if (region && String(region) in byRegion) byRegion[String(region) as Region][i] += value
+  }
+  return { days, byRegion }
 }

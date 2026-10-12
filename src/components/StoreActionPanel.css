@@ -78,20 +78,26 @@
 }
 
 /* Snapshot */
+/* 12-month figures (4) on the first row, 30-day figures (3) on the second. */
 .sa-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   border: 1.5px solid var(--ink);
   background: var(--card);
 }
 
 .sa-stat {
+  grid-column: span 3;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
   border-right: 1px solid var(--sand);
   border-bottom: 1px solid var(--sand);
+}
+
+.sa-stat:nth-child(n + 5) {
+  grid-column: span 4;
 }
 
 .sa-stat .mono-label {
@@ -524,11 +530,53 @@
   outline: none;
 }
 
+.sa-picker-table {
+  border: 1.5px solid var(--ink);
+}
+
 .sa-picker {
   list-style: none;
   margin: 0;
   padding: 0;
-  border: 1.5px solid var(--ink);
+}
+
+.sa-picker-row.sa-picker-head {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  background: var(--sand);
+  border-bottom: 1.5px solid var(--ink);
+  cursor: default;
+  animation: none;
+}
+
+.sa-picker-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sa-picker-sort.is-num {
+  justify-content: flex-end;
+}
+
+.sa-picker-sort:hover,
+.sa-picker-sort.is-active {
+  color: var(--ink);
+}
+
+.sa-picker-sort > span {
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+.sa-picker-sort.is-active > span {
+  opacity: 1;
 }
 
 .sa-picker li + li {
@@ -538,7 +586,7 @@
 .sa-picker-row {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) auto 110px 110px 20px;
+  grid-template-columns: minmax(140px, 1fr) 170px 100px 100px 100px 20px;
   gap: 12px;
   align-items: center;
   padding: 11px 14px;
@@ -560,6 +608,7 @@ li > .sa-picker-row:hover {
 }
 
 .sa-picker-tag {
+  justify-self: start;
   font-family: var(--font-mono);
   font-size: 10px;
   text-transform: uppercase;
@@ -574,6 +623,7 @@ li > .sa-picker-row:hover {
 .sa-picker-tag.is-good { background: #e7ecff; }
 
 .sa-picker-num {
+  white-space: nowrap;
   font-family: var(--font-mono);
   font-size: 12px;
   text-align: right;
@@ -607,8 +657,17 @@ li > .sa-picker-row:hover {
   transform: none;
 }
 
+@media (max-width: 860px) {
+  .sa-picker-row {
+    grid-template-columns: minmax(90px, 1fr) 150px 96px 96px 64px 20px;
+    gap: 8px;
+  }
+  .sa-picker-sort { white-space: normal; text-align: right; }
+}
+
 @media (max-width: 720px) {
-  .sa-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sa-stat, .sa-stat:nth-child(n + 5) { grid-column: span 6; }
+  .sa-stat:last-child { grid-column: span 12; }
   .sa-plays { grid-template-columns: 1fr; }
 }
 

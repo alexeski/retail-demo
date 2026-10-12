@@ -4,6 +4,7 @@ import { LiveboardEmbed } from '@thoughtspot/visual-embed-sdk/react'
 import { REGION_COLUMN, type FilterUpdate } from '../liveboardFilters'
 import { STORE_ACTION_ID, STORE_PICK_ACTION_ID, STORE_SCATTER_VIZ_ID, storeFromPoint, type StoreSelection } from '../storeActions'
 import { CountUp } from './CountUp'
+import { Sparkline } from './Sparkline'
 import { ALL_REGIONS, getRegionKpis, KPI_COLUMNS, REGIONS, type Region, type RegionKpis, type StoreKpis } from '../storePerformance'
 import { HIDDEN_BRANDED_ACTIONS, REGION_LIVEBOARD_ID } from '../thoughtspot'
 import './StorePerformance.css'
@@ -30,6 +31,8 @@ const STORE_CUSTOM_ACTIONS = [
     metadataIds: { vizIds: [STORE_SCATTER_VIZ_ID] },
   },
 ]
+
+const money = (n: number) => '$' + Math.round(n).toLocaleString('en-US')
 
 type EventPayload = { data?: Record<string, unknown> } & Record<string, unknown>
 const dataOf = (p: unknown) => ((p as EventPayload)?.data ?? p) as Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -87,7 +90,7 @@ export function StorePerformance({
 
   const [kpis, setKpis] = useState<StoreKpis | null>(null)
   const [status, setStatus] = useState<{ loading: boolean; error?: string; at?: Date }>({ loading: true })
-  const [progress, setProgress] = useState({ done: 0, total: 3 })
+  const [progress, setProgress] = useState({ done: 0, total: 4 })
   const [attempt, setAttempt] = useState(0)
   const filtersKey = JSON.stringify(globalFilters)
 
@@ -123,6 +126,24 @@ export function StorePerformance({
         : [],
     [openRegion],
   )
+  // Highest and lowest region per ranked column; the All regions row is left out.
+  const extremes = useMemo(() => {
+    const out = new Map<string, { best: Region; worst: Region }>()
+    if (!kpis) return out
+    for (const c of KPI_COLUMNS) {
+      if (!c.ranked) continue
+      const sorted = [...kpis.regions].sort((a, b) => b[c.key] - a[c.key])
+      const best = sorted[0]
+      const worst = sorted[sorted.length - 1]
+      // Ties at either end (or all equal): nothing stands out, so flag nothing.
+      if (!best || c.format(best[c.key]) === c.format(worst[c.key])) continue
+      if (c.format(sorted[1][c.key]) === c.format(best[c.key])) continue
+      if (c.format(sorted[sorted.length - 2][c.key]) === c.format(worst[c.key])) continue
+      out.set(c.key, { best: best.region, worst: worst.region })
+    }
+    return out
+  }, [kpis])
+
   const rows: { region: Region; kpis?: RegionKpis }[] = [
     { region: ALL_REGIONS, kpis: kpis?.all },
     ...REGIONS.map((region) => ({ region, kpis: kpis?.regions.find((r) => r.region === region) })),
@@ -133,6 +154,10 @@ export function StorePerformance({
       <div className="regions-bar">
         <span className="regions-title">Stores by region</span>
         <span className="regions-hint">Expand a region for its detailed view</span>
+        <span className="regions-legend" aria-hidden>
+          <span className="kpi-flag is-best">▲</span> Highest
+          <span className="kpi-flag is-worst">▼</span> Lowest across regions
+        </span>
         <span className={`regions-status is-${phase}`} aria-live="polite">
           {phase === 'loading' && (
             <>
@@ -164,6 +189,7 @@ export function StorePerformance({
       <div className={['regions-table', status.loading && kpis && 'is-stale'].filter(Boolean).join(' ')} role="table" aria-busy={status.loading}>
         <div className="regions-head" role="row">
           <span role="columnheader">Region</span>
+          <span role="columnheader">Sales · 30d</span>
           {KPI_COLUMNS.map((c) => (
             <span key={c.key} role="columnheader">
               {c.label}
@@ -181,15 +207,36 @@ export function StorePerformance({
             <div key={region} className={classes} role="rowgroup" style={{ '--i': i } as CSSProperties}>
               <button type="button" className="region-row" role="row" aria-expanded={open} onClick={() => onToggle(region)}>
                 <span className="region-name">{region}</span>
-                {KPI_COLUMNS.map((c, j) =>
-                  k ? (
-                    <CountUp key={c.key} className="region-kpi" value={k[c.key]} format={c.format} delay={i * 70 + j * 25} />
+                <span className="region-trend">
+                  {kpis ? (
+                    <Sparkline
+                      values={kpis.trend.byRegion[region]}
+                      days={kpis.trend.days}
+                      format={money}
+                      label={region}
+                      delay={i * 70}
+                    />
+                  ) : (
+                    <span className="kpi-skeleton is-wide" style={{ animationDelay: `${i * 80}ms` }} />
+                  )}
+                </span>
+                {KPI_COLUMNS.map((c, j) => {
+                  const ext = extremes.get(c.key)
+                  const flag = ext?.best === region ? 'is-best' : ext?.worst === region ? 'is-worst' : ''
+                  return k ? (
+                    <CountUp
+                      key={c.key}
+                      className={flag ? `region-kpi ${flag}` : 'region-kpi'}
+                      value={k[c.key]}
+                      format={c.format}
+                      delay={i * 70 + j * 25}
+                    />
                   ) : (
                     <span key={c.key} className="region-kpi">
                       <span className="kpi-skeleton" style={{ animationDelay: `${(i + j) * 80}ms` }} />
                     </span>
-                  ),
-                )}
+                  )
+                })}
                 <span className="region-toggle" aria-hidden>
                   {open ? '−' : '+'}
                 </span>

@@ -8,6 +8,10 @@
   --accent-dark: #c2401c;
   --periwinkle: #b8c6ff;
   --muted: #4a463b;
+  /* Highest / lowest flags: a soft cell fill, with the arrow in the strong tone. */
+  --good: #1f6b3d;
+  --good-soft: #dcefdf;
+  --bad-soft: #fde9e2;
   --muted-light: #bdb5a3;
   --line-dark: #5b5648;
   --placeholder: #8a8372;
