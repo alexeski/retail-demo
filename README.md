@@ -21,7 +21,7 @@ Configuration is optional. Copy `.env.example` to `.env.local` to point at a dif
 
 ## Docker
 
-`Dockerfile` is a multi-stage build. Node 22 Alpine runs `npm run build`, and unprivileged nginx serves `dist/` on port **8080**. Client-side routes fall back to `index.html`, and `/healthz` returns 200 for the health check.
+`Dockerfile` is a multi-stage build. Node 22 Alpine runs `npm run build`, and unprivileged nginx serves `dist/` on port **3000**. Client-side routes fall back to `index.html`, and `/healthz` returns 200 for the health check.
 
 For local testing, `compose.yaml` and these scripts read build args from `.env.local` (copy `.env.example` first):
 
@@ -36,7 +36,7 @@ npm run docker:down   # stop and remove it
 ## Deploying with Coolify
 
 1. **New Resource → Application**, pick the Git repository and branch, and set **Build Pack: Dockerfile**.
-2. **Ports Exposes: `8080`**. Set your domain under **Domains** (e.g. `https://storeloom.example.com`); Coolify provisions TLS.
+2. **Ports Exposes: `3000`** (the default). Set your domain under **Domains** (e.g. `https://storeloom.example.com`); Coolify provisions TLS.
 3. **Environment variables** (optional, since defaults apply): add any `VITE_*` overrides with **"Build Variable?"** ticked. They only take effect at build time, so redeploy after changing one. There are no runtime-only variables.
 
 ThoughtSpot side (**Develop → Customizations → Security Settings**) for the deployed domain:

@@ -15,4 +15,4 @@ services:
         - VITE_REGION_LIVEBOARD_ID
     ports:
       # Host port 3100, not 5173: 5173 is kept free for `npm run dev`.
-      - "3100:8080"
+      - "3100:3000"
