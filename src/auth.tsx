@@ -1,93 +1,89 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { THOUGHTSPOT_HOST } from './thoughtspot'
+import { SIGNED_OUT_EVENT } from './tsApi'
+
+// Sign-in is ThoughtSpot trusted authentication, done by Storeloom's server
+// (server/api.ts): it mints a token for an existing ThoughtSpot user and keeps it
+// in an httpOnly cookie. The browser only ever learns who is signed in.
 
 export type StoreloomUser = { name: string; displayName: string; email?: string }
 
-type TsSessionUser = { name: string; display_name: string; email?: string | null }
+export type SignInError = 'unknown-user' | 'not-configured' | 'register-not-configured' | 'username-required' | 'unavailable'
 
-/** The user signed in to the ThoughtSpot cluster in this browser, or null if there is no session. */
-export async function fetchThoughtSpotUser(): Promise<StoreloomUser | null> {
-  const res = await fetch(`${THOUGHTSPOT_HOST}/api/rest/2.0/auth/session/user`, {
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
+export class SignInFailed extends Error {
+  code: SignInError
+
+  constructor(code: SignInError) {
+    super(code)
+    this.code = code
+  }
+}
+
+async function postJson(path: string, body?: unknown) {
+  return fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (res.status === 401 || res.status === 403) return null
-  if (!res.ok) throw new Error(`Session check failed (${res.status})`)
-  const u: TsSessionUser = await res.json()
-  return { name: u.name, displayName: u.display_name, email: u.email ?? undefined }
-}
-
-const STORAGE_KEY = 'storeloom.user'
-
-function readStoredUser(): StoreloomUser | null {
-  for (const store of [sessionStorage, localStorage]) {
-    try {
-      const raw = store.getItem(STORAGE_KEY)
-      if (raw) return JSON.parse(raw)
-    } catch {
-      // Storage can be unavailable (private mode, blocked site data).
-    }
-  }
-  return null
-}
-
-function writeStoredUser(user: StoreloomUser | null, keep = false) {
-  for (const store of [sessionStorage, localStorage]) {
-    try {
-      store.removeItem(STORAGE_KEY)
-    } catch {
-      // ignore
-    }
-  }
-  if (!user) return
-  try {
-    ;(keep ? localStorage : sessionStorage).setItem(STORAGE_KEY, JSON.stringify(user))
-  } catch {
-    // ignore
-  }
 }
 
 type AuthContextValue = {
   user: StoreloomUser | null
-  signIn: (user: StoreloomUser, keep: boolean) => void
-  signOut: () => void
+  /** False until the first session check has answered. */
+  ready: boolean
+  /** `mode: 'register'` signs in as the server's configured register user. */
+  signIn: (params: { username?: string; keep: boolean; mode?: 'office' | 'register' }) => Promise<StoreloomUser>
+  signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<StoreloomUser | null>(readStoredUser)
+  const [user, setUser] = useState<StoreloomUser | null>(null)
+  const [ready, setReady] = useState(false)
 
-  const signIn = useCallback((u: StoreloomUser, keep: boolean) => {
-    writeStoredUser(u, keep)
-    setUser(u)
-  }, [])
-
-  const signOut = useCallback(() => {
-    writeStoredUser(null)
-    setUser(null)
-  }, [])
-
-  // A remembered Storeloom sign-in is only valid while the same ThoughtSpot session is.
+  // Resume an existing session (the cookie survives reloads).
   useEffect(() => {
-    if (!user) return
     let cancelled = false
-    fetchThoughtSpotUser()
-      .then((ts) => {
-        if (!cancelled && (!ts || ts.name !== user.name)) signOut()
-      })
-      .catch(() => {
-        // Network trouble: keep the user signed in rather than bouncing them.
+    fetch('/api/session', { headers: { Accept: 'application/json' } })
+      .then(async (res) => (res.ok ? ((await res.json()) as { user: StoreloomUser }).user : null))
+      .catch(() => null)
+      .then((u) => {
+        if (cancelled) return
+        setUser(u)
+        setReady(true)
       })
     return () => {
       cancelled = true
     }
-    // Only re-check when the signed-in identity changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.name, signOut])
+  }, [])
 
-  return <AuthContext.Provider value={{ user, signIn, signOut }}>{children}</AuthContext.Provider>
+  // The server reports an expired or revoked token on any ThoughtSpot call.
+  useEffect(() => {
+    const onSignedOut = () => setUser(null)
+    window.addEventListener(SIGNED_OUT_EVENT, onSignedOut)
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, onSignedOut)
+  }, [])
+
+  const signIn = useCallback<AuthContextValue['signIn']>(async ({ username, keep, mode = 'office' }) => {
+    let res: Response
+    try {
+      res = await postJson('/api/login', { username, keep, mode })
+    } catch {
+      throw new SignInFailed('unavailable')
+    }
+    const body = (await res.json().catch(() => ({}))) as { user?: StoreloomUser; error?: SignInError }
+    if (!res.ok || !body.user) throw new SignInFailed(body.error ?? 'unavailable')
+    setUser(body.user)
+    return body.user
+  }, [])
+
+  const signOut = useCallback(async () => {
+    await postJson('/api/logout').catch(() => {})
+    setUser(null)
+  }, [])
+
+  return <AuthContext.Provider value={{ user, ready, signIn, signOut }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
@@ -97,8 +93,9 @@ export function useAuth() {
 }
 
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
+  const { user, ready } = useAuth()
   const location = useLocation()
+  if (!ready) return null
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return <>{children}</>
 }

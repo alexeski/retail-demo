@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { initials, useAuth } from '../auth'
 import { Brand } from './Brand'
 
@@ -11,7 +11,6 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 
 export function AppBar() {
   const { user, signOut } = useAuth()
-  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -67,9 +66,10 @@ export function AppBar() {
               <button
                 type="button"
                 role="menuitem"
-                onClick={() => {
-                  signOut()
-                  navigate('/login')
+                onClick={async () => {
+                  await signOut()
+                  // A full reload drops the embed SDK's cached token for this user.
+                  window.location.assign('/login')
                 }}
               >
                 Sign out of Storeloom

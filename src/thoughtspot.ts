@@ -1,4 +1,4 @@
-import { Action, AuthType, init } from '@thoughtspot/visual-embed-sdk'
+import { Action, AuthType, init, startAutoMCPFrameRenderer } from '@thoughtspot/visual-embed-sdk'
 
 // VITE_* values are inlined at build time (Docker build args in Coolify). `||`
 // rather than `??`: an unset Docker ARG arrives as an empty string.
@@ -45,12 +45,30 @@ export const HIDDEN_BRANDED_ACTIONS = [Action.SpotterOnLiveboard, Action.Spotter
 export const THOUGHTSPOT_CSS_URL =
   'https://cdn.jsdelivr.net/gh/jhegele-ts/industry-demos-assets@main/retail-sales/styles.css'
 
-// Reuses the viewer's existing ThoughtSpot session. The app's origin must be in the
-// cluster's CSP visual-embed hosts and CORS allowlist (Develop > Security Settings).
+/** The signed-in user's trusted-auth token, from Storeloom's server (httpOnly session cookie). */
+async function getAuthToken(): Promise<string> {
+  const res = await fetch('/api/thoughtspot/token', { headers: { Accept: 'application/json' } })
+  if (!res.ok) throw new Error(`No ThoughtSpot token (${res.status})`)
+  return ((await res.json()) as { token: string }).token
+}
+
+let started = false
+
+/**
+ * Cookieless trusted authentication: every embed uses the signed-in user's token
+ * as a bearer token, so no ThoughtSpot session or third-party cookie is needed.
+ * Call once a user is signed in. The app's origin must be in the cluster's CSP
+ * visual-embed hosts and CORS allowlist (Develop > Security Settings).
+ */
 export function initThoughtSpot() {
+  if (started) return
+  started = true
   init({
     thoughtSpotHost: THOUGHTSPOT_HOST,
-    authType: AuthType.None,
+    authType: AuthType.TrustedAuthTokenCookieless,
+    getAuthToken,
+    // Fetch a fresh token before the current one expires.
+    autoLogin: true,
     customizations: {
       // Interface text inside the embeds: the AI assistant is Shuttle, dashboards
       // are dashboards.
@@ -87,4 +105,7 @@ export function initThoughtSpot() {
       },
     },
   })
+  // Shuttle's answer charts are iframes marked tsmcp=true: upgrade each one to an
+  // authenticated embed as it appears (they can't use the token on their own).
+  startAutoMCPFrameRenderer()
 }

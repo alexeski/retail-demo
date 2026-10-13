@@ -1,5 +1,5 @@
 import type { FilterUpdate } from './liveboardFilters'
-import { THOUGHTSPOT_HOST } from './thoughtspot'
+import { tsFetch } from './tsApi'
 
 export const REGIONS = ['East', 'Midwest', 'South', 'Southwest', 'West'] as const
 export const ALL_REGIONS = 'All regions'
@@ -56,9 +56,8 @@ const LAST_30_DAYS = "[Transaction Date].'last 30 days'"
 export type Row = (string | number | null)[]
 
 /**
- * Runs a search query (ThoughtSpot Search Data API). Authenticates with the viewer's session cookie
- * (the same session the embeds use); the cluster's CORS allowlist must include
- * this app's origin.
+ * Runs a search query (ThoughtSpot Search Data API) as the signed-in user,
+ * through Storeloom's server.
  */
 export async function searchData(queryString: string, recordSize = 5000): Promise<Row[]> {
   return (await searchTable(queryString, recordSize)).rows
@@ -66,10 +65,8 @@ export async function searchData(queryString: string, recordSize = 5000): Promis
 
 /** Like searchData, with the column names (e.g. "Store Name", "Gross Profit (%)"). */
 export async function searchTable(queryString: string, recordSize = 5000): Promise<{ columns: string[]; rows: Row[] }> {
-  const res = await fetch(`${THOUGHTSPOT_HOST}/api/rest/2.0/searchdata`, {
+  const res = await tsFetch('/searchdata', {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Requested-By': 'ThoughtSpot' },
     body: JSON.stringify({
       query_string: queryString,
       logical_table_identifier: DATA_SOURCE_ID,

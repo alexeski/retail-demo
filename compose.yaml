@@ -1,8 +1,7 @@
 # Local Docker testing only — Coolify builds the Dockerfile directly and
 # doesn't use this file. Run with: npm run docker:up (wraps
-# `docker compose --env-file .env.local up --build -d`, so the build args below
-# come from that one file; it's optional, the defaults in src/thoughtspot.ts
-# apply without it).
+# `docker compose --env-file .env.local up --build -d`). Copy .env.example to
+# .env.local first and fill in THOUGHTSPOT_SECRET_KEY.
 services:
   storeloom:
     build:
@@ -13,6 +12,11 @@ services:
         - VITE_TS_HOST
         - VITE_INSIGHTS_LIVEBOARD_ID
         - VITE_REGION_LIVEBOARD_ID
+    # Loads every var in .env.local into the running container: this supplies
+    # the server's runtime secrets (THOUGHTSPOT_SECRET_KEY, THOUGHTSPOT_ORG_ID…).
+    # The VITE_* ones are harmless at runtime (already baked into the bundle).
+    env_file:
+      - .env.local
     ports:
       # Host port 3100, not 5173: 5173 is kept free for `npm run dev`.
       - "3100:3000"
