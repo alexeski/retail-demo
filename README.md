@@ -4,6 +4,16 @@ Retail demo app (React + Vite) with ThoughtSpot embedded: dashboards via the Vis
 
 There is no backend and no secrets. Sign-in reuses the visitor's own ThoughtSpot browser session on the configured cluster, so log in to ThoughtSpot in the same browser first.
 
+## Demo controls (`/config`)
+
+An unlinked page at `/config` (no sign-in needed) with presenter controls, saved in the browser's localStorage and applied live to any open tab:
+
+- **Shuttle metering**: on/off, current plan (Growth 500, Scale 2,500, Enterprise unlimited), questions used and allowed, plus shortcuts (one left, at limit, reset). Defaults to Growth with 497 of 500 used, so the limit shows within three questions. Each question sent to Spotter uses one; replies Shuttle handles itself (picking a store to act on) don't.
+- **Account & rep**: the customer company and the account rep shown in the upgrade flow.
+- **Hotkeys**: record a combo (with ⌘, Ctrl or ⌥) and a phrase; pressing it anywhere types the phrase into the focused field and copies it.
+
+At the limit, Shuttle shows an upgrade flow: plan comparison (monthly or annual), booking a plan review with the rep (with a downloadable calendar invite), or a card checkout with proration. Everything is simulated: a "purchase" only changes the local plan settings, and card details stay in the page (pre-filled with the standard 4242 test card, autofill off, never stored or sent).
+
 ## Development
 
 ```bash
