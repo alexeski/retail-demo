@@ -1,14 +1,15 @@
 # syntax=docker/dockerfile:1
 
-# Storeloom is a static Vite SPA: build it with Node, serve dist/ with nginx.
-# There's no server-side code and no secrets — sign-in rides on the visitor's
-# own ThoughtSpot browser session.
+# Storeloom: a Vite single-page app plus a small Express server (server/) that
+# signs users in with ThoughtSpot trusted authentication and relays ThoughtSpot
+# REST calls with their token. The server runs as TypeScript directly (Node 24
+# strips types natively), so only the client needs a build.
 
-# ---- Build ----
-# Vite 8 requires Node >= 20.19 / 22.12.
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS base
 WORKDIR /app
 
+# ---- Build ----
+FROM base AS builder
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -25,16 +26,32 @@ ENV VITE_TS_HOST=$VITE_TS_HOST \
     VITE_INSIGHTS_LIVEBOARD_ID=$VITE_INSIGHTS_LIVEBOARD_ID \
     VITE_REGION_LIVEBOARD_ID=$VITE_REGION_LIVEBOARD_ID
 
+# Type-checks the app and the server, then builds the client into dist/.
 RUN npm run build
 
 # ---- Run ----
-# Unprivileged nginx: runs as a non-root user and listens on 3000 (Coolify's default "Ports Exposes").
-FROM nginxinc/nginx-unprivileged:1.29-alpine AS runner
+FROM base AS runner
+ENV NODE_ENV=production \
+    PORT=3000
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
+COPY --from=builder /app/dist ./dist
+COPY server ./server
+
+# THOUGHTSPOT_SECRET_KEY / THOUGHTSPOT_ORG_ID (and the optional
+# THOUGHTSPOT_REGISTER_USERNAME / THOUGHTSPOT_HOST) are read by the server at
+# runtime. They're secrets or server settings: supply them as Coolify runtime
+# environment variables, never as build args (they'd stay in the image history).
+# The server falls back to VITE_TS_HOST for the cluster URL, so pass that at
+# runtime too if you changed it.
+
+USER node
+# Port 3000 matches Coolify's default "Ports Exposes".
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget -q -O /dev/null http://127.0.0.1:3000/healthz || exit 1
+
+CMD ["node", "server/index.ts"]

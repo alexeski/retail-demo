@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "start": "node server/index.ts",
     "lint": "oxlint",
     "preview": "vite preview",
     "docker:up": "docker compose --env-file .env.local up --build -d",
@@ -15,12 +16,14 @@
   "dependencies": {
     "@thoughtspot/visual-embed-sdk": "^1.53.0",
     "dompurify": "^3.4.16",
+    "express": "5.2.1",
     "marked": "^18.1.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
+    "@types/express": "5.0.6",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
@@ -30,6 +33,6 @@
     "vite": "^8.3.0"
   },
   "engines": {
-    "node": ">=22.12"
+    "node": ">=22.18"
   }
 }

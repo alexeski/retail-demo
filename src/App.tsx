@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider, RequireAuth } from './auth'
 import { AppBar } from './components/AppBar'
@@ -7,15 +8,24 @@ import { Home } from './pages/Home'
 import { Insights } from './pages/Insights'
 import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
+import { initThoughtSpot } from './thoughtspot'
+
+/** Starts the embed SDK with the signed-in user's token (once). */
+function ThoughtSpotSession({ children }: { children: ReactNode }) {
+  initThoughtSpot()
+  return <>{children}</>
+}
 
 /** Signed-in pages share one layout, so Shuttle keeps its conversation across them. */
 function AppShell() {
   return (
     <RequireAuth>
+      <ThoughtSpotSession>
       <ShuttleProvider>
         <AppBar />
         <Outlet />
       </ShuttleProvider>
+      </ThoughtSpotSession>
     </RequireAuth>
   )
 }
