@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "start": "node server/index.ts",
+    "start": "node --env-file-if-exists=.env.local server/index.ts",
     "lint": "oxlint",
     "preview": "vite preview",
     "docker:up": "docker compose --env-file .env.local up --build -d",

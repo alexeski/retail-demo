@@ -35,7 +35,7 @@ npm run dev                  # http://localhost:5173, app and API in one process
 
 `VITE_*` values are inlined into the client bundle at build time. The server values are read at runtime.
 
-`npm run build` type-checks the app and the server and builds the client into `dist/`. `npm start` runs the production server (`server/index.ts`, run directly by Node 22.18+/24 with native type stripping), which serves the API and `dist/`.
+`npm run build` type-checks the app and the server and builds the client into `dist/`. `npm start` runs the production server (`server/index.ts`, run directly by Node 22.18+/24 with native type stripping) on http://localhost:3000, serving the API and `dist/`. It loads `.env.local` when present; variables already set in the environment win. The Docker image runs the server directly and never reads an env file.
 
 ## Docker
 
