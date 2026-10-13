@@ -19,7 +19,7 @@ The Register (store code + PIN) sign-in signs in as `THOUGHTSPOT_REGISTER_USERNA
 
 An unlinked page at `/config` (no sign-in needed) with presenter controls, saved in the browser's localStorage and applied live to any open tab:
 
-- **Shuttle metering**: on/off, current plan (Growth 500, Scale 2,500, Enterprise unlimited), questions used and allowed, plus shortcuts (one left, at limit, reset). Defaults to Growth with 497 of 500 used, so the limit shows within three questions. Each question sent to Spotter uses one; replies Shuttle handles itself (picking a store to act on) don't.
+- **Shuttle metering**: on/off, current plan (Growth 500, Scale 2,500, Enterprise unlimited), questions used and allowed, plus shortcuts (one left, at limit, reset). Defaults to Growth with 400 of 500 used; use *One left* or *At limit* to bring up the upgrade flow. Each question sent to Spotter uses one; replies Shuttle handles itself (picking a store to act on) don't.
 - **Account & rep**: the customer company and the account rep shown in the upgrade flow.
 - **Hotkeys**: record a combo (with ⌘, Ctrl or ⌥) and a phrase; pressing it anywhere types the phrase into the focused field and copies it.
 

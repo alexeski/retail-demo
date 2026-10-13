@@ -131,9 +131,9 @@ export type Usage = {
   plan: PlanId
 }
 
-// Near the limit out of the box, like the HR demo, so the upgrade flow shows up
-// within a few questions without touching /config.
-export const USAGE_DEFAULTS: Usage = { enabled: true, used: 497, total: 500, plan: 'growth' }
+// 400 of 500 used out of the box: the meter shows real usage, with room to demo
+// freely. Use "One left" / "At limit" on /config to bring up the upgrade flow.
+export const USAGE_DEFAULTS: Usage = { enabled: true, used: 400, total: 500, plan: 'growth' }
 
 export const usageStore = persistedStore<Usage>('storeloom.demo.usage', USAGE_DEFAULTS)
 export const useUsage = () => useStore(usageStore)
