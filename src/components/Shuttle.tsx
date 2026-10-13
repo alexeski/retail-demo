@@ -6,6 +6,8 @@ import { findStoreLeads, leadLabel, leadSelection, storeFromReply, type StoreLea
 import { SpotterTurn } from './SpotterTurn'
 import { StoreActionPanel } from './StoreActionPanel'
 import { StoreLeadsCard } from './StoreLeadsCard'
+import { UpgradeDialog, type UpgradeOutcome } from './UpgradeDialog'
+import { consumeQuestion, formatQuestions, limitReached, PLANS, usageStore, useUsage } from '../demoConfig'
 import './Shuttle.css'
 
 /** Questions the retail sales data can answer. */
@@ -23,7 +25,7 @@ type ChatItem =
   | { id: number; kind: 'user'; text: string }
   | { id: number; kind: 'assistant'; turn: Turn; leads?: LeadsState }
   /** Shuttle's own reply, written locally (no data question involved). */
-  | { id: number; kind: 'note'; text: string; tone?: 'done' }
+  | { id: number; kind: 'note'; text: string; tone?: 'done' | 'limit' }
 
 type ShuttleApi = {
   /** Opens the drawer and asks a question. */
@@ -67,6 +69,11 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
   /** Store name → ticket of the plan launched from Shuttle. */
   const [actioned, setActioned] = useState<Record<string, string>>({})
 
+  // Question metering (set on /config): one question per Spotter request.
+  const usage = useUsage()
+  const atLimit = limitReached(usage)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+
   useEffect(() => {
     // An expanded answer handles Escape itself; only close the drawer otherwise.
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !document.querySelector('.sp-overlay') && setIsOpen(false)
@@ -94,7 +101,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
     setItems((list) => list.map((it) => (it.id === id && it.kind === 'assistant' ? { ...it, turn: fn(it.turn) } : it)))
   const setLeads = (id: number, leads: LeadsState | undefined) =>
     setItems((list) => list.map((it) => (it.id === id && it.kind === 'assistant' ? { ...it, leads } : it)))
-  const addNote = (text: string, tone?: 'done') => setItems((list) => [...list, { id: nextId.current++, kind: 'note', text, tone }])
+  const addNote = (text: string, tone?: 'done' | 'limit') => setItems((list) => [...list, { id: nextId.current++, kind: 'note', text, tone }])
 
   /** Leads offered by the most recent answer that had any. */
   const latestLeads = (): StoreLead[] => {
@@ -115,6 +122,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
       stickToBottom.current = true
 
       // "the 2nd one", "act on Portland": answer it here with the action plan.
+      // Handled locally, so it doesn't use a metered question.
       const picked = await storeFromReply(q, latestLeads()).catch(() => null)
       if (picked) {
         setItems((list) => [...list, { id: nextId.current++, kind: 'user', text: q }])
@@ -122,6 +130,14 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
         actOn(picked)
         return
       }
+
+      // Out of questions: keep the question in the box for after an upgrade.
+      if (!consumeQuestion()) {
+        setDrawerText(q)
+        setUpgradeOpen(true)
+        return
+      }
+      const lastQuestion = limitReached(usageStore.get())
 
       const userId = nextId.current++
       const id = nextId.current++
@@ -143,6 +159,13 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
         )
         turn = finishTurn(turn)
         updateTurn(id, () => turn)
+        if (lastQuestion) {
+          const plan = PLANS[usageStore.get().plan]
+          addNote(
+            `That was the last of your ${formatQuestions(plan.questions)} Shuttle questions on ${plan.name} this month. Upgrade to keep asking, or talk to your account team.`,
+            'limit',
+          )
+        }
         if (turn.phase === 'done') {
           // Look for stores worth acting on (in the background; the answer is already shown).
           setLeads(id, { status: 'loading' })
@@ -248,9 +271,16 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
                 {it.text}
               </div>
             ) : it.kind === 'note' ? (
-              <div key={it.id} className={it.tone === 'done' ? 'msg-note is-done' : 'msg-note'}>
+              <div key={it.id} className={it.tone ? `msg-note is-${it.tone}` : 'msg-note'}>
                 <span className="shuttle-pill" aria-hidden />
-                <p>{it.text}</p>
+                <div>
+                  <p>{it.text}</p>
+                  {it.tone === 'limit' && (
+                    <button type="button" className="msg-note-action" onClick={() => setUpgradeOpen(true)}>
+                      See upgrade options →
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               <div key={it.id} className="msg-turn">
@@ -267,23 +297,52 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
           )}
         </div>
 
+        {usage.enabled && <UsageMeter usage={usage} onUpgrade={() => setUpgradeOpen(true)} />}
+
         <form onSubmit={submit} className="drawer-form">
           <input
             ref={drawerInputRef}
             value={drawerText}
             onChange={(e) => setDrawerText(e.target.value)}
-            placeholder={streaming ? 'Shuttle is working…' : 'Ask a follow-up…'}
+            placeholder={
+              streaming
+                ? 'Shuttle is working…'
+                : atLimit
+                  ? `You’ve used all your Shuttle questions on ${PLANS[usage.plan].name}`
+                  : 'Ask a follow-up…'
+            }
             disabled={streaming}
           />
           {streaming ? (
             <button type="button" className="drawer-stop" onClick={stop}>
               Stop ■
             </button>
+          ) : atLimit ? (
+            <button type="button" className="drawer-upgrade" onClick={() => setUpgradeOpen(true)}>
+              Upgrade →
+            </button>
           ) : (
             <button type="submit">Send →</button>
           )}
         </form>
       </aside>
+
+      {upgradeOpen && (
+        <UpgradeDialog
+          onClose={() => {
+            setUpgradeOpen(false)
+            setTimeout(() => drawerInputRef.current?.focus(), 50)
+          }}
+          onDone={(o: UpgradeOutcome) =>
+            addNote(
+              o.kind === 'upgrade'
+                ? `You’re on ${o.plan.name} now: ${o.available === null ? 'unlimited questions' : `${o.available.toLocaleString('en-US')} Shuttle questions`} available. Ask away.`
+                : `Plan review booked with ${o.rep} on ${o.when.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${o.when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}. The invitation is in your inbox.`,
+              'done',
+            )
+          }
+        />
+      )}
 
       {action && (
         <StoreActionPanel
@@ -305,5 +364,39 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
         />
       )}
     </ShuttleContext.Provider>
+  )
+}
+
+/** Plan usage, under the conversation (only while metering is on). */
+function UsageMeter({ usage, onUpgrade }: { usage: ReturnType<typeof useUsage>; onUpgrade: () => void }) {
+  const plan = PLANS[usage.plan]
+  const unlimited = plan.questions === null
+  const left = Math.max(0, usage.total - usage.used)
+  const pct = unlimited ? 0 : Math.min(100, (usage.used / Math.max(1, usage.total)) * 100)
+  const tone = left === 0 ? 'is-out' : left <= Math.max(5, usage.total * 0.02) ? 'is-low' : ''
+  return (
+    <div className={`usage ${tone}`}>
+      <div className="usage-row">
+        <span className="mono-label">Shuttle questions · {plan.name}</span>
+        <span className="usage-count">
+          {unlimited ? 'Unlimited' : `${usage.used.toLocaleString('en-US')} of ${usage.total.toLocaleString('en-US')}`}
+        </span>
+      </div>
+      {!unlimited && (
+        <div className="usage-bar" aria-hidden>
+          <span style={{ width: `${pct}%` }} />
+        </div>
+      )}
+      <div className="usage-row">
+        <span className="usage-left">
+          {unlimited ? 'No monthly limit on your plan' : left === 0 ? 'No questions left this month' : `${left.toLocaleString('en-US')} left this month`}
+        </span>
+        {plan.id !== 'enterprise' && (
+          <button type="button" className="usage-upgrade" onClick={onUpgrade}>
+            {left === 0 ? 'Upgrade' : 'Plans'}
+          </button>
+        )}
+      </div>
+    </div>
   )
 }

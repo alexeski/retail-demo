@@ -8,6 +8,8 @@ import { Home } from './pages/Home'
 import { Insights } from './pages/Insights'
 import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
+import { Config } from './pages/Config'
+import { useHotkeyListener } from './hotkeys'
 import { initThoughtSpot } from './thoughtspot'
 
 /** Starts the embed SDK with the signed-in user's token (once). */
@@ -31,6 +33,8 @@ function AppShell() {
 }
 
 export default function App() {
+  // Hotkey phrases (set on /config) work on every page.
+  useHotkeyListener()
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -39,6 +43,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
+            {/* Demo controls: unlinked, no sign-in needed. */}
+            <Route path="/config" element={<Config />} />
             <Route element={<AppShell />}>
               <Route path="/home" element={<Home />} />
               <Route path="/insights" element={<Insights />} />
