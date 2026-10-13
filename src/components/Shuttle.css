@@ -514,3 +514,121 @@
   .msg-note,
   .leads { animation: none; }
 }
+
+/* ---------- Plan usage (metering, set on /config) ---------- */
+.usage {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 16px 12px;
+  border-top: 1.5px solid var(--ink);
+  background: var(--card);
+}
+
+.usage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.usage .mono-label {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.usage-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-bar {
+  height: 7px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+}
+
+.usage-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.usage.is-low .usage-bar > span,
+.usage.is-out .usage-bar > span {
+  background: var(--accent);
+}
+
+.usage-left {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.usage.is-low .usage-left,
+.usage.is-out .usage-left {
+  color: var(--accent-dark);
+}
+
+.usage-upgrade {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.usage.is-out .usage-upgrade {
+  padding: 3px 9px;
+  background: var(--accent);
+  border: 1.5px solid var(--ink);
+  text-decoration: none;
+}
+
+.drawer-form .drawer-upgrade {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.drawer-form .drawer-upgrade:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.msg-note > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.msg-note.is-limit p {
+  padding: 8px 12px;
+  background: var(--bad-soft);
+  border-left: 3px solid var(--accent);
+}
+
+.msg-note-action {
+  padding: 7px 12px;
+  border: 1.5px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.msg-note-action:hover {
+  background: var(--accent);
+  color: var(--ink);
+}

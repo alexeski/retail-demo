@@ -1,0 +1,334 @@
+.cfg {
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.cfg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px var(--gutter);
+  border-bottom: 2px solid var(--ink);
+}
+
+.cfg-head .mono-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.cfg-main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 16px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.cfg-title {
+  margin: 0;
+  font-size: clamp(36px, 6vw, 56px);
+}
+
+.cfg-lede {
+  margin: -6px 0 10px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.cfg-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.cfg-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cfg-card-head h2 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.cfg-card-head p {
+  margin: 6px 0 0;
+  max-width: 52ch;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.cfg-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 14px;
+}
+
+.cfg-grid.is-two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.cfg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cfg-field .mono-label {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.cfg-field input,
+.cfg-field select,
+.cfg-hotkey-form textarea {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  padding: 9px 10px;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  outline: none;
+}
+
+.cfg-field input:focus-visible,
+.cfg-field select:focus-visible,
+.cfg-hotkey-form textarea:focus-visible {
+  border-color: var(--accent);
+}
+
+.cfg-field input:disabled {
+  background: var(--paper);
+  color: var(--muted);
+}
+
+.cfg-meter {
+  height: 10px;
+  background: var(--sand);
+  border: 1px solid var(--ink);
+}
+
+.cfg-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.3s;
+}
+
+.cfg-meter > span.is-full {
+  background: var(--accent);
+}
+
+.cfg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cfg-row.is-end {
+  justify-content: flex-end;
+}
+
+.cfg-row .mono-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.cfg-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cfg-actions .btn-outline {
+  height: 34px;
+  padding: 0 12px;
+  background: transparent;
+}
+
+.cfg-primary {
+  height: 34px;
+  padding: 0 14px;
+  border: 1.5px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.cfg-primary:hover {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.cfg-link {
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-dark);
+  cursor: pointer;
+}
+
+.cfg-link:hover {
+  color: var(--ink);
+}
+
+.cfg-link:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.cfg-link.is-danger {
+  color: var(--muted);
+}
+
+/* Toggle switch */
+.cfg-toggle {
+  flex: none;
+  position: relative;
+  width: 48px;
+  height: 26px;
+  border: 1.5px solid var(--ink);
+  background: var(--sand);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cfg-toggle > span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 19px;
+  height: 19px;
+  background: var(--ink);
+  transition: transform 0.2s;
+}
+
+.cfg-toggle.is-on {
+  background: var(--accent);
+}
+
+.cfg-toggle.is-on > span {
+  transform: translateX(22px);
+}
+
+/* Hotkeys */
+.cfg-hotkeys {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--ink);
+}
+
+.cfg-hotkeys > li + li {
+  border-top: 1px solid var(--sand);
+}
+
+.cfg-empty {
+  padding: 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.cfg-hotkey {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+}
+
+.cfg-hotkey kbd,
+.cfg-combo {
+  min-width: 72px;
+  padding: 5px 9px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cfg-phrase {
+  font-size: 14px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cfg-hotkey-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--paper);
+}
+
+.cfg-hotkey-form textarea {
+  resize: vertical;
+}
+
+.cfg-recorder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cfg-combo {
+  min-width: 140px;
+  cursor: pointer;
+}
+
+.cfg-combo.is-recording {
+  border-color: var(--accent);
+  background: var(--card);
+}
+
+.cfg-warn,
+.cfg-error {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.cfg-warn {
+  color: var(--muted);
+}
+
+.cfg-error {
+  color: var(--accent-dark);
+}
+
+@media (max-width: 640px) {
+  .cfg-grid,
+  .cfg-grid.is-two {
+    grid-template-columns: 1fr;
+  }
+  .cfg-card-head {
+    flex-direction: column;
+  }
+  .cfg-hotkey {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
