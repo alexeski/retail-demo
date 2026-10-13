@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files hold secrets (THOUGHTSPOT_SECRET_KEY): never commit them.
+# Only the template is tracked.
+.env
+.env.*
+!.env.example
