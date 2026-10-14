@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { CustomActionsPosition, CustomActionTarget, RuntimeFilterOp } from '@thoughtspot/visual-embed-sdk'
 import { LiveboardEmbed } from '@thoughtspot/visual-embed-sdk/react'
 import { REGION_COLUMN, type FilterUpdate } from '../liveboardFilters'
@@ -87,6 +87,45 @@ export function StorePerformance({
     },
     [onStorePicked, onPickRequested],
   )
+
+  // A region dashboard is only as tall as its few charts, so a dialog opened in it
+  // (the charts' Shuttle chat, filters) would be cut off with no way to scroll.
+  // While one is open, make the dashboard tall enough and bring it into view.
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const detailRef = useRef<HTMLDivElement>(null)
+  const onDialogOpen = useCallback(() => setDialogOpen(true), [])
+  const onDialogClose = useCallback(() => setDialogOpen(false), [])
+  useEffect(() => setDialogOpen(false), [openRegion])
+
+  /** Scrolls the open region's dashboard to just under the sticky filter bar. */
+  const bringDetailIntoView = useCallback((behavior: ScrollBehavior) => {
+    const detail = detailRef.current
+    if (!detail) return
+    const bar = document.querySelector('.filterbar')
+    const top = detail.getBoundingClientRect().top + window.scrollY - (bar?.getBoundingClientRect().height ?? 0)
+    window.scrollTo({ top, behavior })
+  }, [])
+  // Expanding a region shows its dashboard (and gives its dialogs a full screen).
+  useEffect(() => {
+    if (openRegion) bringDetailIntoView('smooth')
+  }, [openRegion, bringDetailIntoView])
+  // Jump, not smooth: ThoughtSpot measures the visible area as the dialog opens.
+  // Once the dialog has settled (its input takes focus and scrolls the page),
+  // show its bottom (the chat's question bar) with as much as fits above it.
+  useEffect(() => {
+    if (!dialogOpen) return
+    bringDetailIntoView('instant')
+    const t = setTimeout(() => {
+      const frame = detailRef.current?.querySelector('iframe')
+      if (!frame) return
+      const bar = document.querySelector('.filterbar')?.getBoundingClientRect().height ?? 0
+      const box = frame.getBoundingClientRect()
+      const bottomAligned = box.bottom + window.scrollY - window.innerHeight
+      const topUnderBar = box.top + window.scrollY - bar
+      window.scrollTo({ top: Math.max(bottomAligned, topUnderBar), behavior: 'smooth' })
+    }, 700)
+    return () => clearTimeout(t)
+  }, [dialogOpen, bringDetailIntoView])
 
   const [kpis, setKpis] = useState<StoreKpis | null>(null)
   const [status, setStatus] = useState<{ loading: boolean; error?: string; at?: Date }>({ loading: true })
@@ -243,8 +282,8 @@ export function StorePerformance({
               </button>
 
               {open && (
-                <div className="region-detail">
-                  <div className="insights-embed">
+                <div className="region-detail" ref={detailRef}>
+                  <div className={dialogOpen ? 'insights-embed has-dialog' : 'insights-embed'}>
                     <LiveboardEmbed
                       key={region}
                       ref={embedRef}
@@ -263,6 +302,8 @@ export function StorePerformance({
                       onFilterChanged={onFilterChanged}
                       onVizPointClick={onVizPointClick}
                       onCustomAction={onCustomAction}
+                      onDialogOpen={onDialogOpen}
+                      onDialogClose={onDialogClose}
                     />
                   </div>
                 </div>
