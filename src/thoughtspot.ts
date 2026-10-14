@@ -84,6 +84,12 @@ export const HIDDEN_BRANDED_ACTIONS = [Action.SpotterOnLiveboard, Action.Spotter
 export const THOUGHTSPOT_CSS_URL =
   'https://cdn.jsdelivr.net/gh/jhegele-ts/industry-demos-assets@main/retail-sales/styles.css'
 
+// Icon overrides (public/thoughtspot/icons.svg): the Shuttle (Spotter) icon becomes
+// the Storeloom mark. Served by jsDelivr from this repo, pinned to a commit so a
+// change ships with a new URL rather than waiting on the CDN's cache.
+export const THOUGHTSPOT_ICONS_URL =
+  'https://cdn.jsdelivr.net/gh/alexeski/retail-demo@9015fdbca71496eb050cac4d52420c93327a4574/public/thoughtspot/icons.svg'
+
 /** The signed-in user's trusted-auth token, from Storeloom's server (httpOnly session cookie). */
 async function getAuthToken(): Promise<string> {
   const res = await fetch('/api/thoughtspot/token', { headers: { Accept: 'application/json' } })
@@ -121,7 +127,13 @@ export function initThoughtSpot() {
           Liveboard: 'dashboard',
           ThoughtSpot: 'Storeloom',
         },
+        stringIDs: {
+          // The chart Shuttle button's tooltip while ThoughtSpot still checks access
+          // to the data (it shows even once the button works): say what it does.
+          'permission.requestDataAccess': 'Ask Shuttle about this chart: why the numbers moved, and follow-up questions on its data.',
+        },
       },
+      iconSpriteUrl: THOUGHTSPOT_ICONS_URL,
       style: {
         customCSSUrl: THOUGHTSPOT_CSS_URL,
         customCSS: {
