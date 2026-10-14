@@ -251,6 +251,8 @@ export function StorePerformance({
                       liveboardId={REGION_LIVEBOARD_ID}
                       runtimeFilters={runtimeFilters}
                       hiddenActions={HIDDEN_BRANDED_ACTIONS}
+                      // The current Spotter chat UI for the charts' Shuttle (AskAi) button.
+                      updatedSpotterChatPrompt
                       customActions={STORE_CUSTOM_ACTIONS}
                       hideTabPanel
                       // Kept on (and hidden with CSS, see thoughtspot.ts) so OpenFilter works.
