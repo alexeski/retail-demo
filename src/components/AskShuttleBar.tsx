@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
 
 /**
- * "Ask Shuttle" strip under the Insights filter bar: starter questions for the
- * open tab, or the user's own. Questions go to the Shuttle drawer together with
+ * "Ask Shuttle" strip under the Insights filter bar: three starter questions for
+ * the open tab and a box for the user's own, as a 2×2 grid. Questions go to the Shuttle drawer together with
  * the dashboard's live filters (see Insights.askShuttle).
  */
 export function AskShuttleBar({
@@ -41,18 +41,18 @@ export function AskShuttleBar({
             {q}
           </button>
         ))}
+        <form className="askbar-form" onSubmit={submit}>
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={busy ? 'Shuttle is answering…' : `Ask your own question about ${scope}…`}
+            aria-label={`Ask Shuttle about ${scope}`}
+          />
+          <button type="submit" disabled={busy || !text.trim()} aria-label="Ask Shuttle">
+            →
+          </button>
+        </form>
       </div>
-      <form className="askbar-form" onSubmit={submit}>
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={busy ? 'Shuttle is answering…' : `Ask about ${scope}…`}
-          aria-label={`Ask Shuttle about ${scope}`}
-        />
-        <button type="submit" disabled={busy || !text.trim()} aria-label="Ask Shuttle">
-          →
-        </button>
-      </form>
     </section>
   )
 }
