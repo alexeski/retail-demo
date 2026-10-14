@@ -191,9 +191,6 @@ export function Home() {
         ))}
       </section>
 
-      {/* ACTIONS LAUNCHED THIS SESSION */}
-      <ActionsInMotion />
-
       {/* WORK AREA */}
       <section className="work">
         <div className="work-col">
@@ -282,6 +279,8 @@ export function Home() {
         </div>
       </section>
 
+      {/* ACTIONS LAUNCHED THIS SESSION */}
+      <ActionsInMotion />
     </div>
   )
 }
