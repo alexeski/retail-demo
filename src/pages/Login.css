@@ -148,18 +148,6 @@
   border-bottom-color: var(--accent);
 }
 
-.field-row {
-  display: flex;
-  justify-content: space-between;
-}
-
-.field-hint {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: none;
-  color: var(--muted);
-}
-
 .field-pw {
   display: flex;
   align-items: center;

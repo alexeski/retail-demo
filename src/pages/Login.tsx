@@ -113,10 +113,7 @@ export function Login() {
                     />
                   </label>
                   <label className="field">
-                    <span className="field-row">
-                      <span>Password</span>
-                      <span className="field-hint">Not required for the demo</span>
-                    </span>
+                    Password
                     <span className="field-pw">
                       <input type={showPw ? 'text' : 'password'} autoComplete="off" placeholder="••••••••" />
                       <button type="button" onClick={() => setShowPw((v) => !v)}>
