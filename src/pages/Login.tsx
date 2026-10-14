@@ -184,7 +184,7 @@ export function Login() {
             </div>
 
             <div className="login-foot">
-              <span>214 / 214 stores online</span>
+              <span>194 / 194 stores online</span>
               <Link to="/#demo">New to Storeloom?</Link>
             </div>
 
