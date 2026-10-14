@@ -1,5 +1,4 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
 import {
   advancePlay,
   pickupPending,
@@ -55,6 +54,9 @@ export function ActionsInMotion() {
     return () => clearInterval(t)
   }, [plans])
 
+  // Only once something has been launched: the section is the loop closing, not a call to action.
+  if (!plans.length) return null
+
   const counts = { assigned: 0, 'in-progress': 0, done: 0 } as Record<PlayStatus, number>
   for (const plan of plans) plan.plays.forEach((_, i) => counts[playStatus(plan, i, now)]++)
   const plays = counts.assigned + counts['in-progress'] + counts.done
@@ -65,44 +67,24 @@ export function ActionsInMotion() {
         <div className="work-head">
           <h2 id="actions-title">Actions in motion</h2>
           <span className="mono-label">
-            {plans.length
-              ? `${plans.length} plan${plans.length === 1 ? '' : 's'} · ${plays} play${plays === 1 ? '' : 's'} · this session`
-              : 'This session'}
+            {plans.length} plan{plans.length === 1 ? '' : 's'} · {plays} play{plays === 1 ? '' : 's'}
           </span>
         </div>
-        {plans.length > 0 && (
-          <div className="actions-summary" aria-label="Plays by status">
-            {(['assigned', 'in-progress', 'done'] as PlayStatus[]).map((s) => (
-              <span key={s} className={`actions-count is-${s}`}>
-                <span className="actions-dot" aria-hidden />
-                <strong>{counts[s]}</strong> {STATUS_LABEL[s]}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {plans.length === 0 ? (
-        <div className="actions-empty">
-          <span className="actions-empty-icon" aria-hidden>⚡</span>
-          <div>
-            <strong>No actions launched yet.</strong>
-            <span>
-              Act on a store from Insights or from a Shuttle answer, and its plan shows up here with owners, due dates and
-              status.
+        <div className="actions-summary" aria-label="Plays by status">
+          {(['assigned', 'in-progress', 'done'] as PlayStatus[]).map((s) => (
+            <span key={s} className={`actions-count is-${s}`}>
+              <span className="actions-dot" aria-hidden />
+              <strong>{counts[s]}</strong> {STATUS_LABEL[s]}
             </span>
-          </div>
-          <Link to="/insights" className="actions-empty-link">
-            Find a store to act on →
-          </Link>
-        </div>
-      ) : (
-        <div className="actions-grid">
-          {plans.map((plan, i) => (
-            <PlanCard key={plan.ticket} plan={plan} now={now} index={i} />
           ))}
         </div>
-      )}
+      </div>
+
+      <div className="actions-grid">
+        {plans.map((plan, i) => (
+          <PlanCard key={plan.ticket} plan={plan} now={now} index={i} />
+        ))}
+      </div>
     </section>
   )
 }
