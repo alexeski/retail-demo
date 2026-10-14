@@ -7,7 +7,7 @@ import { useSyncExternalStore } from 'react'
 // "purchases" and "meetings" only change these values.
 
 /** A small persisted store: localStorage-backed, synced across tabs, safe when storage is unavailable. */
-function persistedStore<T extends object>(key: string, defaults: T) {
+export function persistedStore<T extends object>(key: string, defaults: T) {
   const read = (): T => {
     try {
       const raw = localStorage.getItem(key)
@@ -53,7 +53,7 @@ function persistedStore<T extends object>(key: string, defaults: T) {
   }
 }
 
-function useStore<T extends object>(store: ReturnType<typeof persistedStore<T>>): T {
+export function useStore<T extends object>(store: ReturnType<typeof persistedStore<T>>): T {
   return useSyncExternalStore(store.subscribe, store.get, store.get)
 }
 

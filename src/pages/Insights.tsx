@@ -281,7 +281,7 @@ export function Insights() {
               disabled={!rendered}
               title="AI highlights for the dashboard on screen"
             >
-              <span aria-hidden>✦</span> AI Highlights
+              <span aria-hidden>✦</span> Shuttle Highlights
             </button>
           )}
           {activeTab.regions && pickedStore && (

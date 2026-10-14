@@ -437,3 +437,7 @@
     animation: none;
   }
 }
+
+.feed-row.is-mine {
+  color: var(--periwinkle);
+}

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { actionTracker } from './actionTracker'
 import { SIGNED_OUT_EVENT } from './tsApi'
 
 // Sign-in is ThoughtSpot trusted authentication, done by Storeloom's server
@@ -80,12 +81,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const body = (await res.json().catch(() => ({}))) as { user?: StoreloomUser; error?: SignInError }
     if (!res.ok || !body.user) throw new SignInFailed(body.error ?? 'unavailable')
+    // Tracked actions last one signed-in session: each sign-in starts a fresh demo.
+    actionTracker.reset()
     setUser(body.user)
     return body.user
   }, [])
 
   const signOut = useCallback(async () => {
     await postJson('/api/logout').catch(() => {})
+    actionTracker.reset()
     setUser(null)
   }, [])
 

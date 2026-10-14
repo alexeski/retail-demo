@@ -1,8 +1,11 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
+import { useTrackedPlans } from '../actionTracker'
 import { firstName, useAuth } from '../auth'
+import { ActionsInMotion } from '../components/ActionsInMotion'
 import { CountUp } from '../components/CountUp'
 import { SHUTTLE_SUGGESTIONS, useShuttle } from '../components/Shuttle'
 import { getTodayKpis, type TodayKpis } from '../homeKpis'
+import { shortStoreName } from '../storeActions'
 import './Home.css'
 
 const ALERTS = [
@@ -105,6 +108,18 @@ export function Home() {
     setHeroText('')
   }
 
+  // Plans launched this session lead the feed.
+  const plans = useTrackedPlans()
+  const feed = [
+    ...plans.map((p) => ({
+      key: p.ticket,
+      t: new Date(p.launchedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      text: `Action plan ${p.ticket} launched for ${shortStoreName(p.store)} · ${p.plays.length} play${p.plays.length === 1 ? '' : 's'}`,
+      mine: true,
+    })),
+    ...FEED.map((f) => ({ ...f, key: f.t, mine: false })),
+  ]
+
   const cards = kpiCards(kpis)
   const topMax = kpis?.topStores[0]?.sales || 1
 
@@ -198,6 +213,9 @@ export function Home() {
         ))}
       </section>
 
+      {/* ACTIONS LAUNCHED THIS SESSION */}
+      <ActionsInMotion />
+
       {/* WORK AREA */}
       <section className="work">
         <div className="work-col">
@@ -257,8 +275,8 @@ export function Home() {
 
           <div className="feed">
             <span className="feed-title">Network feed</span>
-            {FEED.map((f) => (
-              <div key={f.t} className="feed-row">
+            {feed.map((f) => (
+              <div key={f.key} className={f.mine ? 'feed-row is-mine' : 'feed-row'}>
                 <span className="feed-time">{f.t}</span>
                 <span>{f.text}</span>
               </div>
