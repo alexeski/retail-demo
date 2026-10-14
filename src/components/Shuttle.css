@@ -632,3 +632,14 @@
   background: var(--accent);
   color: var(--ink);
 }
+
+/* Where a question was asked from (e.g. a dashboard and its filters). */
+.msg-tag {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--periwinkle);
+  overflow-wrap: anywhere;
+}

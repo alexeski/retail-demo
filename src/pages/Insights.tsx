@@ -1,11 +1,15 @@
 import { useCallback, useRef, useState } from 'react'
 import { HostEvent } from '@thoughtspot/visual-embed-sdk'
 import { LiveboardEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
+import { AskShuttleBar } from '../components/AskShuttleBar'
 import { FilterBar, type LiveboardFilter } from '../components/FilterBar'
+import { useShuttle } from '../components/Shuttle'
 import { StoreActionPanel } from '../components/StoreActionPanel'
 import { StorePerformance } from '../components/StorePerformance'
 import {
+  activeFilters,
   changedFilters,
+  describeFilter,
   filtersMatch,
   mergeRegionSelection,
   REGION_COLUMN,
@@ -226,6 +230,35 @@ export function Insights() {
     embedRef.current?.trigger(HostEvent.OpenFilter, { column: { columnId: f.columnId } })
   }
 
+  // Ask Shuttle about this tab, with the dashboard's live filters as context.
+  const { ask, streaming } = useShuttle()
+  const scope =
+    isRegionView && openRegion ? `${activeTab.label} · ${openRegion === ALL_REGIONS ? 'all regions' : openRegion}` : activeTab.label
+  const askShuttle = async (question: string) => {
+    let filters: FilterUpdate[] = carriedFilters.current
+    const embed = embedRef.current
+    if (embed && rendered) {
+      filters = await readFilters(embed)
+        .then(activeFilters)
+        .catch(() => carriedFilters.current)
+    }
+    // The open region is a runtime filter, which GetFilters doesn't report.
+    if (isRegionView) {
+      filters = withoutRegion(filters)
+      if (openRegion && openRegion !== ALL_REGIONS) filters.push({ column: REGION_COLUMN, oper: 'IN', values: [openRegion] })
+    }
+    const phrases = filters.map(describeFilter)
+    ask(question, {
+      scope,
+      tag: [scope, ...phrases].join(' · '),
+      preamble:
+        `I'm looking at the ${scope} view of the Retail Sales dashboard` +
+        (phrases.length
+          ? `, filtered to: ${phrases.join('; ')}. Apply exactly these filters when answering.`
+          : ', with no filters applied.'),
+    })
+  }
+
   const trigger = (event: HostEvent.AIHighlights | HostEvent.Schedule | HostEvent.Share | HostEvent.DownloadAsPdf) =>
     embedRef.current?.trigger(event)
 
@@ -282,6 +315,8 @@ export function Insights() {
         onReset={resetFilters}
         locked={isRegionView ? { column: REGION_COLUMN, reason: 'Set by the region row you expand below' } : undefined}
       />
+
+      <AskShuttleBar scope={scope} questions={activeTab.questions} onAsk={askShuttle} busy={streaming} />
 
       <nav className="insights-tabs" role="tablist">
         {INSIGHTS_TABS.map((t, i) => (
