@@ -423,3 +423,18 @@
 .region-detail .insights-embed {
   min-height: 480px;
 }
+
+/* ThoughtSpot sizes dialogs (the charts' Shuttle chat, filters) to the part of
+   the dashboard in view when they open. A region dashboard is only one row of
+   charts tall, so keep it at least about a screen tall: then, once it's brought
+   into view, that visible part is the whole screen under the filter bar. */
+.region-detail .insights-embed iframe {
+  /* !important: the SDK sets an inline min-height on the iframe. */
+  min-height: max(480px, calc(100vh - 90px)) !important;
+}
+
+/* While a dialog is open, room for all of it (the chat modal is at least 720px). */
+.region-detail .insights-embed.has-dialog iframe {
+  /* !important: the SDK sets an inline min-height on the iframe. */
+  min-height: 820px !important;
+}

@@ -88,7 +88,7 @@ export function initThoughtSpot() {
             // the page scrolls to the rest. Selectors may need updating after a
             // ThoughtSpot upgrade.
             '[class*="modal-module__modal"]:has([class*="updated-chat-input-module"]), [class*="modal-module__modal"]:has([class*="copilot-container-module"]), [class*="modal-module__modal"]:has([class*="spotter-chat-panel-module"])': {
-              'min-height': '780px !important',
+              'min-height': '720px !important',
             },
           },
         },
