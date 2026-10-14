@@ -73,7 +73,8 @@ export const INSIGHTS_TABS: InsightsTab[] = [
 /**
  * Vendor-branded actions hidden from every embedded dashboard, so the app reads
  * as one product. The per-chart AI button (Action.AskAi) stays, relabelled
- * "Shuttle" below; AI Highlights stays too (the Insights page triggers it).
+ * "Shuttle" below; AI Highlights stays too (the Insights page triggers it, as
+ * "Shuttle Highlights").
  */
 export const HIDDEN_BRANDED_ACTIONS = [Action.SpotterOnLiveboard, Action.SpotterViz, Action.SpotIQAnalyze]
 
@@ -94,7 +95,14 @@ export function initThoughtSpot() {
       // are dashboards.
       // Case-sensitive substring replacement; user-authored titles aren't touched.
       content: {
-        strings: { Spotter: 'Shuttle', Liveboards: 'dashboards', Liveboard: 'dashboard', ThoughtSpot: 'Storeloom' },
+        strings: {
+          Spotter: 'Shuttle',
+          'AI Highlights': 'Shuttle Highlights',
+          'AI highlights': 'Shuttle highlights',
+          Liveboards: 'dashboards',
+          Liveboard: 'dashboard',
+          ThoughtSpot: 'Storeloom',
+        },
       },
       style: {
         customCSSUrl: THOUGHTSPOT_CSS_URL,

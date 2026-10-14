@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { actionTracker } from './actionTracker'
 import { THOUGHTSPOT_HOST } from './thoughtspot'
 
 export type StoreloomUser = { name: string; displayName: string; email?: string }
@@ -72,11 +73,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback((u: StoreloomUser, keep: boolean) => {
     writeStoredUser(u, keep)
+    // Tracked actions last one signed-in session: each sign-in starts a fresh demo.
+    actionTracker.reset()
     setUser(u)
   }, [])
 
   const signOut = useCallback(() => {
     writeStoredUser(null)
+    actionTracker.reset()
     setUser(null)
   }, [])
 

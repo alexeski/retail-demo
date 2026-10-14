@@ -1,0 +1,379 @@
+/* ---------- Actions in motion (Home) ---------- */
+.actions {
+  padding: clamp(32px, 3.5vw, 56px) var(--gutter) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.actions-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.actions-head .work-head {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.actions-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actions-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.actions-count strong {
+  font-size: 14px;
+}
+
+.actions-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+}
+
+/* Status colours, shared by the dots, bar segments, pills and buttons. */
+.is-assigned > .actions-dot,
+.plan-bar .is-assigned,
+.play-status.is-assigned,
+.play-pill.is-assigned,
+.plan-status.is-assigned {
+  background: var(--periwinkle);
+}
+
+.is-in-progress > .actions-dot,
+.plan-bar .is-in-progress,
+.play-status.is-in-progress,
+.play-pill.is-in-progress,
+.plan-status.is-in-progress {
+  background: var(--accent);
+}
+
+.is-done > .actions-dot,
+.plan-bar .is-done,
+.play-status.is-done,
+.play-pill.is-done,
+.plan-status.is-done {
+  background: var(--good);
+  color: var(--card);
+}
+
+/* Empty state */
+.actions-empty {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1.5px dashed var(--ink);
+  background: var(--card);
+}
+
+.actions-empty > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.actions-empty strong {
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.actions-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid var(--ink);
+  background: var(--periwinkle);
+  font-size: 18px;
+}
+
+.actions-empty-link {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  text-decoration: none;
+  border: 1.5px solid var(--ink);
+  padding: 9px 14px;
+  white-space: nowrap;
+}
+
+.actions-empty-link:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Plan cards */
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.plan {
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  animation: home-in 0.35s ease-out both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.plan.is-done {
+  box-shadow: 5px 5px 0 var(--good);
+}
+
+.plan-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1.5px dashed var(--ink);
+}
+
+.plan-status,
+.play-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border: 1.5px solid var(--ink);
+  white-space: nowrap;
+}
+
+.plan-ticket {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.plan-priority {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.plan-priority.is-high {
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+.plan-store {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px 0;
+}
+
+.plan-store > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.plan-store h3 {
+  margin: 0;
+  font-weight: 800;
+  font-stretch: 115%;
+  font-size: 22px;
+  letter-spacing: -0.015em;
+}
+
+.plan-stake {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: right;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.plan-stake strong {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.plan-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 4px;
+}
+
+.plan-bar {
+  flex: 1;
+  display: flex;
+  gap: 3px;
+  height: 8px;
+}
+
+.plan-bar span {
+  flex: 1;
+  border: 1px solid var(--ink);
+  transition: background-color 0.3s ease;
+}
+
+.plan-plays {
+  list-style: none;
+  margin: 0;
+  padding: 6px 14px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-plays li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sand);
+}
+
+.plan-plays li:last-child {
+  border-bottom: none;
+}
+
+.play-status {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s ease;
+}
+
+.play-status:hover {
+  transform: scale(1.12);
+}
+
+.play-status:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.play-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.play-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+li.is-done .play-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  color: var(--muted);
+}
+
+.play-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.play-meta .is-late {
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+.play-pill {
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+.plan-foot {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  border-top: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+
+.plan-foot .mono-label {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.plan-ask {
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.plan-ask:hover {
+  background: var(--periwinkle);
+}
+
+@media (max-width: 640px) {
+  .actions-empty {
+    grid-template-columns: auto 1fr;
+  }
+  .actions-empty-link {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+  .play-pill {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan {
+    animation: none;
+  }
+}

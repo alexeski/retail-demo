@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { trackPlan } from '../actionTracker'
 import { useAuth } from '../auth'
 import {
   getRegionStores,
@@ -153,6 +154,23 @@ export function StoreActionPanel({
     setRun(steps)
     setRunDone(0)
     setPhase('running')
+    // Shown on the Home page with its status until sign-out.
+    trackPlan({
+      ticket,
+      store: profile.name,
+      region: profile.region,
+      profile: QUADRANTS[profile.quadrant].label,
+      priority,
+      requestedBy: user?.displayName ?? 'you',
+      launchedAt: Date.now(),
+      plays: chosen.map((p) => ({ id: p.id, title: p.title, owner: p.owner, due: due[p.id] })),
+      channels: [
+        ...(notifySlack ? [`#${profile.region.toLowerCase()}-store-ops`] : []),
+        ...(notifyEmail ? ['email'] : []),
+      ],
+      opportunity: profile.opportunity,
+      recheckOn: isoInDays(30),
+    })
     onLaunched?.(ticket)
   }
 
