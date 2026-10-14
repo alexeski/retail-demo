@@ -88,9 +88,9 @@ export function StorePerformance({
     [onStorePicked, onPickRequested],
   )
 
-  // A region dashboard is only as tall as its few charts, so a dialog opened in it
-  // (the charts' Shuttle chat, filters) would be cut off with no way to scroll.
-  // While one is open, make the dashboard tall enough and bring it into view.
+  // ThoughtSpot sizes dialogs (the charts' Shuttle chat, filters) to the part of
+  // the dashboard in view when they open; region dashboards are kept about a
+  // screen tall (see the CSS) and brought into view, so dialogs get a full screen.
   const [dialogOpen, setDialogOpen] = useState(false)
   const detailRef = useRef<HTMLDivElement>(null)
   const onDialogOpen = useCallback(() => setDialogOpen(true), [])
@@ -109,22 +109,9 @@ export function StorePerformance({
   useEffect(() => {
     if (openRegion) bringDetailIntoView('smooth')
   }, [openRegion, bringDetailIntoView])
-  // Jump, not smooth: ThoughtSpot measures the visible area as the dialog opens.
-  // Once the dialog has settled (its input takes focus and scrolls the page),
-  // show its bottom (the chat's question bar) with as much as fits above it.
+  // A dialog opened with the dashboard partly scrolled away: show all of it.
   useEffect(() => {
-    if (!dialogOpen) return
-    bringDetailIntoView('instant')
-    const t = setTimeout(() => {
-      const frame = detailRef.current?.querySelector('iframe')
-      if (!frame) return
-      const bar = document.querySelector('.filterbar')?.getBoundingClientRect().height ?? 0
-      const box = frame.getBoundingClientRect()
-      const bottomAligned = box.bottom + window.scrollY - window.innerHeight
-      const topUnderBar = box.top + window.scrollY - bar
-      window.scrollTo({ top: Math.max(bottomAligned, topUnderBar), behavior: 'smooth' })
-    }, 700)
-    return () => clearTimeout(t)
+    if (dialogOpen) bringDetailIntoView('instant')
   }, [dialogOpen, bringDetailIntoView])
 
   const [kpis, setKpis] = useState<StoreKpis | null>(null)
@@ -283,7 +270,7 @@ export function StorePerformance({
 
               {open && (
                 <div className="region-detail" ref={detailRef}>
-                  <div className={dialogOpen ? 'insights-embed has-dialog' : 'insights-embed'}>
+                  <div className="insights-embed">
                     <LiveboardEmbed
                       key={region}
                       ref={embedRef}

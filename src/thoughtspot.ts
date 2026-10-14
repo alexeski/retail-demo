@@ -100,13 +100,20 @@ export function initThoughtSpot() {
             '[class*="pinboard-header-module__tabAndFilterWrapper"]': { display: 'none !important' },
             // Vendor footer ("Powered by …") under embedded content.
             '[class*="embed-module__footerWrapper"]': { display: 'none !important' },
-            // The charts' Shuttle chat opens in a modal sized to the visible part of
-            // the dashboard. On a laptop that's too short: the prompt bar covers the
-            // answer chart and its buttons. Give that modal (only) a minimum height;
-            // the page scrolls to the rest. Selectors may need updating after a
-            // ThoughtSpot upgrade.
-            '[class*="modal-module__modal"]:has([class*="updated-chat-input-module"]), [class*="modal-module__modal"]:has([class*="copilot-container-module"]), [class*="modal-module__modal"]:has([class*="spotter-chat-panel-module"])': {
-              'min-height': '720px !important',
+            // The charts' Shuttle chat (a modal). In full-height embeds ThoughtSpot lets
+            // its conversation grow instead of scrolling, so once it's taller than the
+            // modal the whole modal scrolls, and the question bar (placed at the bottom
+            // of the chat) scrolls away with it or covers the latest answer. Make the
+            // conversation the scroll area instead: the bar stays fixed at the bottom of
+            // the modal, and the padding lets every answer scroll fully above it.
+            // Selectors may need updating after a ThoughtSpot upgrade.
+            '.chat-module__convAssistModalContent .chat-module__globalLoader': {
+              flex: '1 1 0 !important',
+              'min-height': '0 !important',
+              'overflow-y': 'auto !important',
+            },
+            '.chat-module__convAssistModalContent .chat-module__chatItemsWrapperContainer': {
+              'padding-bottom': '170px !important',
             },
           },
         },

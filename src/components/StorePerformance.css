@@ -432,9 +432,3 @@
   /* !important: the SDK sets an inline min-height on the iframe. */
   min-height: max(480px, calc(100vh - 90px)) !important;
 }
-
-/* While a dialog is open, room for all of it (the chat modal is at least 720px). */
-.region-detail .insights-embed.has-dialog iframe {
-  /* !important: the SDK sets an inline min-height on the iframe. */
-  min-height: 820px !important;
-}
