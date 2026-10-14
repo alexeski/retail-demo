@@ -312,6 +312,8 @@ export function Insights() {
                 activeTabId={activeTab.tabId}
                 visibleTabs={embeddedTabIds}
                 hiddenActions={HIDDEN_BRANDED_ACTIONS}
+                // The current Spotter chat UI for the charts' Shuttle (AskAi) button.
+                updatedSpotterChatPrompt
                 hideTabPanel
                 // Kept on (and hidden with CSS, see thoughtspot.ts) so OpenFilter works.
                 hideLiveboardHeader={false}
