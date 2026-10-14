@@ -8,7 +8,13 @@ import { SIGNED_OUT_EVENT } from './tsApi'
 
 export type StoreloomUser = { name: string; displayName: string; email?: string }
 
-export type SignInError = 'unknown-user' | 'not-configured' | 'register-not-configured' | 'username-required' | 'unavailable'
+export type SignInError =
+  | 'unknown-user'
+  | 'not-configured'
+  | 'register-not-configured'
+  | 'username-required'
+  | 'cluster-idle'
+  | 'unavailable'
 
 export class SignInFailed extends Error {
   code: SignInError

@@ -16,6 +16,22 @@ export class ThoughtSpotError extends Error {
 
 export class NotConfiguredError extends Error {}
 
+/**
+ * The cluster is idle (auto-paused after inactivity): every call returns its
+ * "Idle Screen" HTML page, with a 200, while it resumes. Takes a few minutes.
+ */
+export class ClusterIdleError extends Error {}
+
+/** JSON body of a ThoughtSpot API response, or ClusterIdleError if the cluster served its idle page. */
+async function json<T>(res: Response): Promise<T> {
+  if (!res.headers.get('content-type')?.includes('json')) {
+    const text = await res.text()
+    if (/idle screen|back up momentarily/i.test(text)) throw new ClusterIdleError('ThoughtSpot cluster is idle and resuming')
+    throw new ThoughtSpotError(502, `Unexpected ${res.headers.get('content-type') ?? 'response'}: ${text.slice(0, 120)}`)
+  }
+  return (await res.json()) as T
+}
+
 export type MintedToken = { token: string; username: string; expiresAt: number }
 
 /**
@@ -37,7 +53,7 @@ export async function mintToken(username: string): Promise<MintedToken> {
     }),
   })
   if (!res.ok) throw new ThoughtSpotError(res.status, (await res.text()).slice(0, 300))
-  const body = (await res.json()) as { token: string; expiration_time_in_millis: number; valid_for_username?: string }
+  const body = await json<{ token: string; expiration_time_in_millis: number; valid_for_username?: string }>(res)
   return {
     token: body.token,
     username: body.valid_for_username ?? username,
@@ -53,7 +69,7 @@ export async function sessionUser(token: string): Promise<SessionUser> {
     headers: { ...JSON_HEADERS, Authorization: `Bearer ${token}` },
   })
   if (!res.ok) throw new ThoughtSpotError(res.status, (await res.text()).slice(0, 300))
-  const u = (await res.json()) as { name: string; display_name?: string; email?: string | null }
+  const u = await json<{ name: string; display_name?: string; email?: string | null }>(res)
   return { name: u.name, displayName: u.display_name || u.name, email: u.email ?? undefined }
 }
 

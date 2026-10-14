@@ -13,6 +13,7 @@ const SIGN_IN_ERRORS: Record<SignInError, string> = {
   'username-required': 'Enter your username.',
   'not-configured': 'Sign-in isn’t set up on this server yet (trusted authentication key missing).',
   'register-not-configured': 'Register sign-in isn’t set up on this server yet.',
+  'cluster-idle': 'Your analytics workspace is waking up after a period of inactivity. This takes a few minutes, try again shortly.',
   unavailable: 'Could not reach the sign-in service. Check your connection and try again.',
 }
 

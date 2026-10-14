@@ -2,7 +2,7 @@ import { Readable } from 'node:stream'
 import express, { type Request, type Response } from 'express'
 import { config } from './config.ts'
 import { clearSession, readSession, writeSession } from './session.ts'
-import { mintToken, NotConfiguredError, revokeToken, sessionUser, ThoughtSpotError } from './thoughtspot.ts'
+import { ClusterIdleError, mintToken, NotConfiguredError, revokeToken, sessionUser, ThoughtSpotError } from './thoughtspot.ts'
 
 /**
  * ThoughtSpot REST calls the browser may make through /api/ts, with the
@@ -47,6 +47,10 @@ export function createApi() {
       writeSession(req, res, { ...minted, username: user.name }, keep !== false)
       res.json({ user })
     } catch (err) {
+      if (err instanceof ClusterIdleError) {
+        console.warn('Sign-in deferred: the ThoughtSpot cluster is idle and resuming')
+        return res.status(503).json({ error: 'cluster-idle' })
+      }
       if (err instanceof NotConfiguredError) {
         console.error('Sign-in unavailable:', err.message)
         return res.status(503).json({ error: 'not-configured' })
@@ -79,6 +83,7 @@ export function createApi() {
         clearSession(req, res)
         return res.status(401).json({ error: 'signed-out' })
       }
+      if (err instanceof ClusterIdleError) return res.status(503).json({ error: 'cluster-idle' })
       console.error('Session check failed', err)
       res.status(502).json({ error: 'unavailable' })
     }
