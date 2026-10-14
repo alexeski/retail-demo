@@ -75,58 +75,6 @@
   color: var(--card);
 }
 
-/* Empty state */
-.actions-empty {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
-  border: 1.5px dashed var(--ink);
-  background: var(--card);
-}
-
-.actions-empty > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--muted);
-}
-
-.actions-empty strong {
-  color: var(--ink);
-  font-size: 16px;
-}
-
-.actions-empty-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 1.5px solid var(--ink);
-  background: var(--periwinkle);
-  font-size: 18px;
-}
-
-.actions-empty-link {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ink);
-  text-decoration: none;
-  border: 1.5px solid var(--ink);
-  padding: 9px 14px;
-  white-space: nowrap;
-}
-
-.actions-empty-link:hover {
-  background: var(--ink);
-  color: var(--paper);
-}
-
 /* Plan cards */
 .actions-grid {
   display: grid;
@@ -360,13 +308,6 @@ li.is-done .play-title {
 }
 
 @media (max-width: 640px) {
-  .actions-empty {
-    grid-template-columns: auto 1fr;
-  }
-  .actions-empty-link {
-    grid-column: 1 / -1;
-    text-align: center;
-  }
   .play-pill {
     display: none;
   }

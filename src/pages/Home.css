@@ -441,3 +441,54 @@
 .feed-row.is-mine {
   color: var(--periwinkle);
 }
+
+/* Needs attention: loading, error, entrance */
+.alert.is-loading {
+  min-height: 74px;
+}
+
+.alert.is-loading .alert-tag {
+  background: var(--sand);
+}
+
+.alert.is-loading .alert-body {
+  justify-content: center;
+  gap: 10px;
+}
+
+.home-skeleton.is-wide {
+  width: 85%;
+  max-width: 320px;
+}
+
+.alerts.is-ready .alert {
+  animation: home-in 0.35s ease-out both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+.alerts-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1.5px dashed var(--ink);
+  background: var(--card);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.alerts-error button {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  padding: 3px 9px;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alerts.is-ready .alert {
+    animation: none;
+  }
+}

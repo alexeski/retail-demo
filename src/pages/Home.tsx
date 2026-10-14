@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
 import { useTrackedPlans } from '../actionTracker'
+import { getAttentionAlerts, type AttentionAlert } from '../attention'
 import { firstName, useAuth } from '../auth'
 import { ActionsInMotion } from '../components/ActionsInMotion'
 import { CountUp } from '../components/CountUp'
@@ -7,13 +8,6 @@ import { SHUTTLE_SUGGESTIONS, useShuttle } from '../components/Shuttle'
 import { getTodayKpis, type TodayKpis } from '../homeKpis'
 import { shortStoreName } from '../storeActions'
 import './Home.css'
-
-const ALERTS = [
-  { store: '#031', kind: 'Stock', hot: true, title: 'Fleece vest M below 2 days of cover', detail: 'Denver and five other stores. Phoenix DC has 140 units.', q: 'Which Denver stores had the lowest sales last month, and in which categories?' },
-  { store: '#079', kind: 'Device', hot: true, title: '3 registers offline since 8:40 AM', detail: 'Atlanta. Sales are queuing locally and will sync.', q: 'How do transactions at Atlanta stores this week compare with last week?' },
-  { store: '#102', kind: 'Staff', hot: false, title: 'Short 2 associates, 3–6 PM', detail: 'Brooklyn traffic forecast is up 18% for the afternoon.', q: 'Which stores have the highest foot traffic per store this month?' },
-  { store: 'DC-2', kind: 'Transfer', hot: false, title: '12 transfers waiting for approval', detail: 'Mostly outerwear moving to Mountain region stores.', q: 'Which outerwear brands sold best in the Mountain states last quarter?' },
-]
 
 const FEED = [
   { t: '09:11', text: 'Transfer #4471 received at Boston #139' },
@@ -100,6 +94,25 @@ export function Home() {
       cancelled = true
     }
   }, [attempt])
+
+  // Needs attention: the sharpest declines in the dashboards' data.
+  const [alerts, setAlerts] = useState<AttentionAlert[] | null>(null)
+  const [alertsError, setAlertsError] = useState(false)
+  const [alertsAttempt, setAlertsAttempt] = useState(0)
+  useEffect(() => {
+    let cancelled = false
+    setAlertsError(false)
+    getAttentionAlerts()
+      .then((a) => !cancelled && setAlerts(a))
+      .catch((err) => {
+        if (cancelled) return
+        console.error('Could not load the attention alerts', err)
+        setAlertsError(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [alertsAttempt])
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -221,13 +234,32 @@ export function Home() {
         <div className="work-col">
           <div className="work-head">
             <h2>Needs attention</h2>
-            <span className="mono-label">{ALERTS.length} open</span>
+            <span className="mono-label">{alerts ? `${alerts.length} open · last month` : alertsError ? '' : 'Checking…'}</span>
           </div>
-          <div className="alerts">
-            {ALERTS.map((a) => (
-              <div key={a.store} className="alert">
+          <div className={alerts ? 'alerts is-ready' : 'alerts'}>
+            {alertsError && (
+              <div className="alerts-error">
+                Couldn’t check the latest figures.
+                <button type="button" onClick={() => setAlertsAttempt((n) => n + 1)}>
+                  Retry
+                </button>
+              </div>
+            )}
+            {!alerts && !alertsError &&
+              Array.from({ length: 4 }, (_, i) => (
+                <div key={i} className="alert is-loading" aria-hidden>
+                  <div className="alert-tag" />
+                  <div className="alert-body">
+                    <span className="home-skeleton" />
+                    <span className="home-skeleton is-wide" />
+                  </div>
+                </div>
+              ))}
+            {alerts?.length === 0 && <div className="alerts-error">No sharp declines last month.</div>}
+            {alerts?.map((a, i) => (
+              <div key={a.key} className="alert" style={{ '--i': i } as CSSProperties}>
                 <div className={a.hot ? 'alert-tag is-hot' : 'alert-tag'}>
-                  <span className="alert-store">{a.store}</span>
+                  <span className="alert-store">{a.tag}</span>
                   <span className="alert-kind">{a.kind}</span>
                 </div>
                 <div className="alert-body">
