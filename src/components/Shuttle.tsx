@@ -22,14 +22,23 @@ export const SHUTTLE_SUGGESTIONS = [
 type LeadsState = { status: 'loading' } | ({ status: 'ready' } & StoreLeads)
 
 type ChatItem =
-  | { id: number; kind: 'user'; text: string }
+  | { id: number; kind: 'user'; text: string; tag?: string }
   | { id: number; kind: 'assistant'; turn: Turn; leads?: LeadsState }
   /** Shuttle's own reply, written locally (no data question involved). */
   | { id: number; kind: 'note'; text: string; tone?: 'done' | 'limit' }
 
+/**
+ * Context sent to Spotter with a question (not shown in the chat): what the user
+ * is looking at, e.g. a dashboard and its active filters. `tag` labels the
+ * question in the chat. A question from another `scope` (another view) starts a
+ * new Spotter conversation, so the previous view's context doesn't carry over.
+ */
+export type AskContext = { scope: string; tag: string; preamble: string }
+
 type ShuttleApi = {
   /** Opens the drawer and asks a question. */
-  ask: (question: string) => void
+  /** `context`: where the question comes from (e.g. a dashboard and its filters). */
+  ask: (question: string, context?: AskContext) => void
   open: () => void
   streaming: boolean
 }
@@ -54,6 +63,8 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
   const [streaming, setStreaming] = useState(false)
   const [unread, setUnread] = useState(false)
   const conversation = useRef<string | null>(null)
+  /** The view the current conversation is about (AskContext.scope). */
+  const conversationScope = useRef<string | null>(null)
   const abort = useRef<AbortController | null>(null)
   const nextId = useRef(1)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -114,7 +125,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
   const actOn = (store: StoreSelection) => setAction({ store })
 
   const ask = useCallback(
-    async (raw: string) => {
+    async (raw: string, context?: AskContext) => {
       const q = raw.trim()
       if (!q || streaming) return
       setIsOpen(true)
@@ -139,10 +150,20 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
       }
       const lastQuestion = limitReached(usageStore.get())
 
+      if (context && context.scope !== conversationScope.current) {
+        if (conversation.current) {
+          conversation.current = null
+          addNote(`New conversation about ${context.scope}`)
+        }
+        conversationScope.current = context.scope
+      }
+
       const userId = nextId.current++
       const id = nextId.current++
       let turn = newTurn(q)
-      setItems((list) => [...list, { id: userId, kind: 'user', text: q }, { id, kind: 'assistant', turn }])
+      setItems((list) => [...list, { id: userId, kind: 'user', text: q, tag: context?.tag }, { id, kind: 'assistant', turn }])
+      // Spotter keeps the conversation, so follow-ups inherit this context too.
+      const message = context ? `${context.preamble}\n\nQuestion: ${q}` : q
       setStreaming(true)
       const controller = new AbortController()
       abort.current = controller
@@ -150,7 +171,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
         conversation.current ??= await createConversation()
         await streamMessage(
           conversation.current,
-          q,
+          message,
           (e) => {
             turn = applyEvent(turn, e)
             updateTurn(id, () => turn)
@@ -196,6 +217,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
   const newChat = () => {
     stop()
     conversation.current = null
+    conversationScope.current = null
     setItems([])
   }
 
@@ -268,6 +290,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
           {items.map((it) =>
             it.kind === 'user' ? (
               <div key={it.id} className="msg-user">
+                {it.tag && <span className="msg-tag">{it.tag}</span>}
                 {it.text}
               </div>
             ) : it.kind === 'note' ? (

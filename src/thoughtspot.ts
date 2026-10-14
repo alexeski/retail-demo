@@ -21,15 +21,57 @@ export type InsightsTab = {
   tabId?: string
   /** Region rows with the Region Performance Liveboard (Store Performance tab). */
   regions?: boolean
+  /** Starter questions for Shuttle, grounded in what the tab shows. */
+  questions: string[]
   placeholder?: PlaceholderTile[]
 }
 
 // Labels and order follow the Storeloom Insights design.
 export const INSIGHTS_TABS: InsightsTab[] = [
-  { label: 'Exec KPIs', tabId: '852bb05d-3dfa-4aab-ac39-da07cd47e8a0' },
-  { label: 'Store Performance', regions: true },
-  { label: 'Category & Brand', tabId: 'e46419b6-9bdc-4061-9410-9d483dab1b48' },
-  { label: 'Customers & Basket', tabId: '41fb73b8-4841-425c-9906-c7db95dd28e3' },
+  {
+    label: 'Exec KPIs',
+    tabId: '852bb05d-3dfa-4aab-ac39-da07cd47e8a0',
+    // Sales by State · Sales by Month · Sales vs Gross Profit by region · the KPI row.
+    questions: [
+      'What drove the change in sales versus the previous month?',
+      'Which states contributed most to sales over the last 12 months?',
+      'Which region has the best gross margin, and how far ahead is it?',
+      'How have average ticket size and basket size trended monthly?',
+    ],
+  },
+  {
+    label: 'Store Performance',
+    regions: true,
+    // Region KPIs · foot traffic per store · sales per sq ft vs store space.
+    questions: [
+      'Which stores have the lowest sales per square foot?',
+      'How does foot traffic per store compare across regions over the last 6 months?',
+      'Which store type has the highest average ticket size?',
+      'Which regions had the biggest month-over-month change in sales?',
+    ],
+  },
+  {
+    label: 'Category & Brand',
+    tabId: 'e46419b6-9bdc-4061-9410-9d483dab1b48',
+    // Monthly sales by category · category mix (department, brand) · margins · ticket and basket.
+    questions: [
+      'Which categories have the lowest gross margin last month?',
+      'Which departments grew fastest over the last 6 months?',
+      'What are the top 5 brands by sales, and what are their gross margins?',
+      'How does the category mix differ by store region?',
+    ],
+  },
+  {
+    label: 'Customers & Basket',
+    tabId: '41fb73b8-4841-425c-9906-c7db95dd28e3',
+    // Ticket size by age group · demographics · acquisition timeline · loyalty · income.
+    questions: [
+      'Which age group spends the most per transaction?',
+      'How has the number of new customers changed year over year?',
+      'Do longer-standing customers have higher ticket sizes and purchase frequency?',
+      'Which income bands and age groups drove sales over the last 12 months?',
+    ],
+  },
 ]
 
 /**

@@ -137,3 +137,48 @@ export const mergeRegionSelection = (fromRegionTab: FilterUpdate[], previous: Fi
   ...withoutRegion(fromRegionTab),
   ...previous.filter((u) => u.column === REGION_COLUMN),
 ]
+
+// ---------------------------------------------------------------------------
+// Filters in words, for Shuttle questions asked from a dashboard
+// ---------------------------------------------------------------------------
+
+/** Every filter currently restricting the Liveboard (saved or changed); empty ones are skipped. */
+export const activeFilters = (res: GetFiltersResult): FilterUpdate[] =>
+  [...toUpdates(res).values()].filter((u) => u.type || u.values.length > 0)
+
+const PERIOD_WORDS: Record<string, string> = { DAY: 'day', WEEK: 'week', MONTH: 'month', QUARTER: 'quarter', YEAR: 'year' }
+const day = (epochSeconds: number) =>
+  new Date(epochSeconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+const list = (values: (string | number)[], joiner: string) =>
+  values.length <= 2 ? values.join(` ${joiner} `) : `${values.slice(0, -1).join(', ')} ${joiner} ${values.at(-1)}`
+
+/** One filter as a short phrase, e.g. "Store Region is West or East", "Transaction Date in the last 12 months". */
+export function describeFilter(u: FilterUpdate): string {
+  const period = u.datePeriod ? PERIOD_WORDS[u.datePeriod] ?? u.datePeriod.toLowerCase() : ''
+  const n = Number(u.values[0])
+  switch (u.type) {
+    case 'LAST_N_PERIOD':
+      return `${u.column} in the last ${n === 1 ? period : `${n} ${period}s`}`
+    case 'NEXT_N_PERIOD':
+      return `${u.column} in the next ${n === 1 ? period : `${n} ${period}s`}`
+    case 'THIS_PERIOD':
+      return `${u.column} in this ${period}`
+    case 'PERIOD_TO_DATE':
+      return `${u.column} ${period} to date`
+    case 'TODAY':
+    case 'YESTERDAY':
+    case 'TOMORROW':
+      return `${u.column} is ${u.type.toLowerCase()}`
+    case 'YEAR_ONLY':
+      return `${u.column} in ${u.values[0]}`
+    case 'MONTH_YEAR':
+    case 'QUARTER_YEAR':
+      return `${u.column} in ${u.values.filter(Boolean).join(' ')}`
+    case 'EXACT_DATE':
+      return `${u.column} on ${day(n)}`
+    case 'EXACT_DATE_RANGE':
+      return `${u.column} between ${day(n)} and ${day(Number(u.values[1]))}`
+  }
+  if (u.oper === 'NOT_IN' || u.oper === 'NE') return `${u.column} is not ${list(u.values, 'or')}`
+  return `${u.column} is ${list(u.values, 'or')}`
+}
