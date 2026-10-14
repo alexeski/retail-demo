@@ -21,7 +21,7 @@ export type InsightsTab = {
   tabId?: string
   /** Region rows with the Region Performance Liveboard (Store Performance tab). */
   regions?: boolean
-  /** Starter questions for Shuttle, grounded in what the tab shows. */
+  /** Three starter questions for Shuttle, grounded in what the tab shows. */
   questions: string[]
   placeholder?: PlaceholderTile[]
 }
@@ -36,7 +36,6 @@ export const INSIGHTS_TABS: InsightsTab[] = [
       'What drove the change in sales versus the previous month?',
       'Which states contributed most to sales over the last 12 months?',
       'Which region has the best gross margin, and how far ahead is it?',
-      'How have average ticket size and basket size trended monthly?',
     ],
   },
   {
@@ -45,7 +44,6 @@ export const INSIGHTS_TABS: InsightsTab[] = [
     // Region KPIs · foot traffic per store · sales per sq ft vs store space.
     questions: [
       'Which stores have the lowest sales per square foot?',
-      'How does foot traffic per store compare across regions over the last 6 months?',
       'Which store type has the highest average ticket size?',
       'Which regions had the biggest month-over-month change in sales?',
     ],
@@ -58,7 +56,6 @@ export const INSIGHTS_TABS: InsightsTab[] = [
       'Which categories have the lowest gross margin last month?',
       'Which departments grew fastest over the last 6 months?',
       'What are the top 5 brands by sales, and what are their gross margins?',
-      'How does the category mix differ by store region?',
     ],
   },
   {
@@ -69,7 +66,6 @@ export const INSIGHTS_TABS: InsightsTab[] = [
       'Which age group spends the most per transaction?',
       'How has the number of new customers changed year over year?',
       'Do longer-standing customers have higher ticket sizes and purchase frequency?',
-      'Which income bands and age groups drove sales over the last 12 months?',
     ],
   },
 ]

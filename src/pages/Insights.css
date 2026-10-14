@@ -330,7 +330,7 @@
 /* ---------- Ask Shuttle about this tab ---------- */
 .askbar {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(220px, 300px);
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 16px;
   padding: 12px var(--gutter);
@@ -390,6 +390,7 @@
 
 .askbar-form {
   display: flex;
+  min-height: 34px;
   border: 1.5px solid var(--ink);
   background: var(--card);
 }
@@ -397,7 +398,6 @@
 .askbar-form input {
   flex: 1;
   min-width: 0;
-  height: 34px;
   padding: 0 10px;
   border: none;
   background: transparent;
@@ -423,18 +423,12 @@
 
 @media (max-width: 1100px) {
   .askbar {
-    grid-template-columns: minmax(0, 1fr) minmax(200px, 280px);
-  }
-  .askbar-chips {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 
 @media (max-width: 640px) {
-  .askbar {
-    grid-template-columns: 1fr;
-  }
   .askbar-chips {
     grid-template-columns: 1fr;
   }
