@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { fetchThoughtSpotUser, useAuth } from '../auth'
+import { ClusterIdleError, fetchThoughtSpotUser, useAuth } from '../auth'
 import { Brand } from '../components/Brand'
 import { THOUGHTSPOT_HOST } from '../thoughtspot'
 import './Login.css'
@@ -60,8 +60,14 @@ export function Login() {
       }
       signIn(ts, keep)
       navigate(from, { replace: true })
-    } catch {
-      setError({ text: 'Could not reach the sign-in service. Check your connection and try again.' })
+    } catch (err) {
+      setError({
+        text:
+          err instanceof ClusterIdleError
+            ? 'Your analytics workspace is waking up after a period of inactivity. This takes a few minutes, try again shortly.'
+            : // An idle cluster's page may also be unreadable here (no CORS headers), so mention it.
+              'Could not reach your analytics workspace. If it has been idle, it may be waking up (this takes a few minutes): try again shortly.',
+      })
     } finally {
       setBusy(false)
     }
