@@ -82,6 +82,14 @@ export function initThoughtSpot() {
             '[class*="pinboard-header-module__tabAndFilterWrapper"]': { display: 'none !important' },
             // Vendor footer ("Powered by …") under embedded content.
             '[class*="embed-module__footerWrapper"]': { display: 'none !important' },
+            // The charts' Shuttle chat opens in a modal sized to the visible part of
+            // the dashboard. On a laptop that's too short: the prompt bar covers the
+            // answer chart and its buttons. Give that modal (only) a minimum height;
+            // the page scrolls to the rest. Selectors may need updating after a
+            // ThoughtSpot upgrade.
+            '[class*="modal-module__modal"]:has([class*="updated-chat-input-module"]), [class*="modal-module__modal"]:has([class*="copilot-container-module"]), [class*="modal-module__modal"]:has([class*="spotter-chat-panel-module"])': {
+              'min-height': '780px !important',
+            },
           },
         },
       },
