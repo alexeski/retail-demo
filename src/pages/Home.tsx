@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from 'react'
 import { useTrackedPlans } from '../actionTracker'
 import { getAttentionAlerts, type AttentionAlert } from '../attention'
 import { firstName, useAuth } from '../auth'
@@ -70,7 +70,6 @@ export function Home() {
   const { user } = useAuth()
   const { ask } = useShuttle()
   const [now] = useState(() => new Date())
-  const [heroText, setHeroText] = useState('')
 
   const [kpis, setKpis] = useState<TodayKpis | null>(null)
   const [status, setStatus] = useState<{ loading: boolean; error?: boolean; at?: Date }>({ loading: true })
@@ -114,13 +113,6 @@ export function Home() {
     }
   }, [alertsAttempt])
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    if (!heroText.trim()) return
-    ask(heroText)
-    setHeroText('')
-  }
-
   // Plans launched this session lead the feed.
   const plans = useTrackedPlans()
   const feed = [
@@ -149,34 +141,7 @@ export function Home() {
           What should we <span className="highlight">pull together</span> today?
         </h1>
 
-        <form onSubmit={submit} className="ask-card">
-          <div className="ask-card-head mono-label">
-            <span className="shuttle-badge">
-              <span className="shuttle-pill" />
-              <strong>Shuttle</strong>
-            </span>
-            <span>Your stores' assistant</span>
-          </div>
-          <div className="ask-card-row">
-            <input
-              value={heroText}
-              onChange={(e) => setHeroText(e.target.value)}
-              placeholder="Ask Shuttle about any store, product or shift…"
-              className="ask-input"
-            />
-            <button type="submit" className="ask-btn">
-              Ask <span>→</span>
-            </button>
-          </div>
-        </form>
-
-        <div className="suggestions">
-          {SHUTTLE_SUGGESTIONS.map((q) => (
-            <button key={q} type="button" className="btn-chip" onClick={() => ask(q)}>
-              {q}
-            </button>
-          ))}
-        </div>
+        <AskPalette onAsk={ask} />
       </section>
 
       {/* TODAY STRIP */}
@@ -318,5 +283,93 @@ export function Home() {
       </section>
 
     </div>
+  )
+}
+
+/**
+ * The hero's Shuttle bar as a command palette: the question box with the starter
+ * questions as rows beneath it. Typing narrows the rows; arrow keys pick one and
+ * Enter asks it.
+ */
+function AskPalette({ onAsk }: { onAsk: (q: string) => void }) {
+  const [text, setText] = useState('')
+  const [active, setActive] = useState(-1)
+
+  const words = text.toLowerCase().split(/\s+/).filter(Boolean)
+  const rows = SHUTTLE_SUGGESTIONS.filter(({ q }) => words.every((w) => q.toLowerCase().includes(w)))
+
+  const ask = (q: string) => {
+    if (!q.trim()) return
+    onAsk(q)
+    setText('')
+    setActive(-1)
+  }
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    ask(active >= 0 && rows[active] ? rows[active].q : text)
+  }
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!rows.length) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActive((i) => (i + 1) % rows.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActive((i) => (i <= 0 ? rows.length - 1 : i - 1))
+    } else if (e.key === 'Escape') {
+      setActive(-1)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="ask-card">
+      <div className="ask-card-row">
+        <span className="shuttle-pill is-large" aria-hidden />
+        <input
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value)
+            setActive(-1)
+          }}
+          onKeyDown={onKeyDown}
+          placeholder="Ask Shuttle about any store, product or shift…"
+          className="ask-input"
+          role="combobox"
+          aria-label="Ask Shuttle"
+          aria-expanded={rows.length > 0}
+          aria-controls="ask-suggestions"
+          aria-activedescendant={active >= 0 ? `ask-suggestion-${active}` : undefined}
+          aria-autocomplete="list"
+        />
+        <button type="submit" className="ask-btn">
+          Ask <span>→</span>
+        </button>
+      </div>
+      {rows.length > 0 && (
+        <ul className="ask-suggestions" id="ask-suggestions" role="listbox" aria-label="Suggested questions">
+          {rows.map(({ q, topic }, i) => (
+            <li
+              key={q}
+              id={`ask-suggestion-${i}`}
+              role="option"
+              aria-selected={i === active}
+              className={i === active ? 'is-active' : undefined}
+              onMouseEnter={() => setActive(i)}
+              onMouseLeave={() => setActive(-1)}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => ask(q)}
+            >
+              <span className="ask-suggestion-icon" aria-hidden>
+                ↗
+              </span>
+              <span className="ask-suggestion-q">{q}</span>
+              <span className="ask-suggestion-meta">{i === active ? 'Enter ↵' : topic}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </form>
   )
 }

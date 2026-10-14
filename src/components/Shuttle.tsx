@@ -11,12 +11,13 @@ import { consumeQuestion, formatQuestions, limitReached, PLANS, usageStore, useU
 import './Shuttle.css'
 
 /** Questions the retail sales data can answer. */
-export const SHUTTLE_SUGGESTIONS = [
-  'Which regions and stores had the worst profit margins in the last 12 months?',
-  'Which region had the highest sales last month?',
-  'Compare sales and gross profit by region this year',
-  'Top 10 stores by sales per square foot',
-  'How has foot traffic trended over the last 6 months?',
+/** Starter questions (Home and the empty drawer), each with the topic Home labels it with. */
+export const SHUTTLE_SUGGESTIONS: { q: string; topic: string }[] = [
+  { q: 'Which regions and stores had the worst profit margins in the last 12 months?', topic: 'Profit' },
+  { q: 'Which region had the highest sales last month?', topic: 'Sales' },
+  { q: 'Compare sales and gross profit by region this year', topic: 'Regions' },
+  { q: 'Top 10 stores by sales per square foot', topic: 'Space' },
+  { q: 'How has foot traffic trended over the last 6 months?', topic: 'Traffic' },
 ]
 
 type LeadsState = { status: 'loading' } | ({ status: 'ready' } & StoreLeads)
@@ -279,9 +280,9 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
             <div className="drawer-empty">
               <p>Ask anything about sales, stores, products or customers. Shuttle works through your data and shows its reasoning as it goes.</p>
               <div className="msg-follow">
-                {SHUTTLE_SUGGESTIONS.map((t) => (
-                  <button key={t} type="button" onClick={() => ask(t)}>
-                    {t}
+                {SHUTTLE_SUGGESTIONS.map(({ q }) => (
+                  <button key={q} type="button" onClick={() => ask(q)}>
+                    {q}
                   </button>
                 ))}
               </div>
