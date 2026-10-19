@@ -36,6 +36,9 @@ const withTimeout = <T,>(p: Promise<T>, ms: number) =>
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+/** Schedule and Share in the page header: hidden for now, kept for later. */
+const SHOW_SCHEDULE_AND_SHARE = false
+
 type Embed = NonNullable<ReturnType<typeof useEmbedRef<typeof LiveboardEmbed>>['current']>
 
 const readFilters = (embed: Embed) => withTimeout(embed.trigger(HostEvent.GetFilters), 3000) as Promise<GetFiltersResult>
@@ -294,12 +297,16 @@ export function Insights() {
               <span aria-hidden>⚡</span> Act on {shortStoreName(pickedStore.name)}
             </button>
           )}
-          <button type="button" className="btn-outline" onClick={() => trigger(HostEvent.Schedule)} disabled={!rendered}>
-            Schedule
-          </button>
-          <button type="button" className="btn-outline" onClick={() => trigger(HostEvent.Share)} disabled={!rendered}>
-            Share
-          </button>
+          {SHOW_SCHEDULE_AND_SHARE && (
+            <>
+              <button type="button" className="btn-outline" onClick={() => trigger(HostEvent.Schedule)} disabled={!rendered}>
+                Schedule
+              </button>
+              <button type="button" className="btn-outline" onClick={() => trigger(HostEvent.Share)} disabled={!rendered}>
+                Share
+              </button>
+            </>
+          )}
           <button type="button" className="btn-primary" onClick={() => trigger(HostEvent.DownloadAsPdf)} disabled={!rendered}>
             Download PDF
           </button>
