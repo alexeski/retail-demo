@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { DashboardMosaic } from '../components/DashboardMosaic'
-import { deleteDashboard, formatEdited, listDashboards, tileCount, type Dashboard } from '../dashboards'
+import { cloneDashboard, deleteDashboard, formatEdited, listDashboards, listShared, tileCount, type Dashboard } from '../dashboards'
 import './Dashboards.css'
 
 /** The two ways to build, shared with the empty state. */
@@ -22,35 +22,46 @@ const BUILD_MODES = [
   },
 ] as const
 
+type Tab = 'mine' | 'shared'
+
 export function Dashboards() {
   const navigate = useNavigate()
-  const [dashboards, setDashboards] = useState<Dashboard[] | null>(null)
+  const [tab, setTab] = useState<Tab>('mine')
+  const [mine, setMine] = useState<Dashboard[] | null>(null)
+  const [shared, setShared] = useState<Dashboard[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [sharedError, setSharedError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   /** The dashboard whose delete is waiting for a second click. */
   const [confirming, setConfirming] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [cloning, setCloning] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     listDashboards()
-      .then((d) => !cancelled && setDashboards(d))
+      .then((d) => !cancelled && setMine(d))
       .catch((err: Error) => !cancelled && setError(err.message))
+    listShared()
+      .then((d) => !cancelled && setShared(d))
+      .catch((err: Error) => !cancelled && setSharedError(err.message))
     return () => {
       cancelled = true
     }
   }, [])
 
+  const list = tab === 'mine' ? mine : shared
+  const listError = tab === 'mine' ? error : sharedError
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return q ? dashboards?.filter((d) => `${d.name} ${d.description}`.toLowerCase().includes(q)) : dashboards
-  }, [dashboards, query])
+    return q ? list?.filter((d) => `${d.name} ${d.description} ${d.author}`.toLowerCase().includes(q)) : list
+  }, [list, query])
 
   const remove = async (d: Dashboard) => {
     setDeleting(d.id)
     try {
       await deleteDashboard(d.id)
-      setDashboards((list) => list?.filter((x) => x.id !== d.id) ?? null)
+      setMine((l) => l?.filter((x) => x.id !== d.id) ?? null)
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -59,19 +70,34 @@ export function Dashboards() {
     }
   }
 
+  /** Copies a shared dashboard into a new one of the user's, and opens it in Studio. */
+  const clone = async (d: Dashboard) => {
+    setCloning(d.id)
+    setSharedError(null)
+    try {
+      const copy = await cloneDashboard(d.id)
+      navigate(`/studio?mode=search&dashboard=${copy.id}`)
+    } catch (err) {
+      setSharedError((err as Error).message)
+      setCloning(null)
+    }
+  }
+
+  const count = (l: Dashboard[] | null) => (l ? ` · ${l.length}` : '')
+
   return (
     <div className="dashboards">
       <section className="dash-head">
         <div className="dash-title">
           <div className="eyebrow">
             <span className="tag">Dashboards</span>
-            <span>Yours · Retail Sales</span>
+            <span>Retail Sales</span>
           </div>
           <h1 className="display dash-h1">
             Build your <span className="highlight">own view</span>
           </h1>
           <p className="dash-lede">
-            Dashboards you build here are yours: only you see them in this list, and every chart reads the same Retail Sales data as the rest of
+            Build dashboards of your own, or start from one a colleague shared with you. Every chart reads the same Retail Sales data as the rest of
             Storeloom.
           </p>
         </div>
@@ -107,34 +133,46 @@ export function Dashboards() {
 
       <section className="dash-library">
         <div className="dash-library-head">
-          <div>
-            <h2 className="dash-h2">My dashboards</h2>
-            <span className="mono-label">
-              {dashboards ? `${dashboards.length} ${dashboards.length === 1 ? 'dashboard' : 'dashboards'} · created by you` : error ? '' : 'Loading…'}
-            </span>
+          <div className="dash-tabs" role="tablist" aria-label="Which dashboards">
+            <button type="button" role="tab" aria-selected={tab === 'mine'} className={tab === 'mine' ? 'dash-tab is-active' : 'dash-tab'} onClick={() => setTab('mine')}>
+              My dashboards<span className="dash-tab-count">{count(mine)}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'shared'}
+              className={tab === 'shared' ? 'dash-tab is-active' : 'dash-tab'}
+              onClick={() => setTab('shared')}
+            >
+              Shared with you<span className="dash-tab-count">{count(shared)}</span>
+            </button>
           </div>
-          {!!dashboards?.length && (
+          {!!list?.length && (
             <label className="dash-filter">
               <span className="mono-label">Find</span>
-              <input type="search" value={query} placeholder="Dashboard name" onChange={(e) => setQuery(e.target.value)} />
+              <input type="search" value={query} placeholder={tab === 'mine' ? 'Dashboard name' : 'Name or author'} onChange={(e) => setQuery(e.target.value)} />
             </label>
           )}
         </div>
+        <p className="dash-library-note mono-label">
+          {tab === 'mine'
+            ? 'Dashboards you created · open, edit in Studio or delete'
+            : 'Retail Sales dashboards others made that you can open · clone one to make it yours and edit it'}
+        </p>
 
-        {error && (
+        {listError && (
           <div className="dash-notice is-error" role="alert">
-            {error}
+            {listError}
             <button type="button" className="btn-outline" onClick={() => window.location.reload()}>
               Retry
             </button>
           </div>
         )}
 
-        {!dashboards && !error && (
+        {!list && !listError && (
           <div className="dash-grid" aria-busy>
             {[0, 1, 2].map((i) => (
               <div key={i} className="dash-card is-loading" aria-hidden>
-                <div className="dash-card-art" />
                 <div className="dash-card-body">
                   <span className="dash-skeleton is-wide" />
                   <span className="dash-skeleton" />
@@ -144,25 +182,26 @@ export function Dashboards() {
           </div>
         )}
 
-        {dashboards?.length === 0 && (
-          <div className="dash-empty">
-            <DashboardMosaic seed="storeloom" tiles={5} />
-            <div>
-              <strong>No dashboards yet.</strong>
-              <p>Start with Search to build chart by chart, or let Shuttle draft a whole dashboard from one sentence.</p>
+        {list?.length === 0 &&
+          (tab === 'mine' ? (
+            <div className="dash-empty">
+              <DashboardMosaic seed="storeloom" tiles={5} />
+              <div>
+                <strong>No dashboards yet.</strong>
+                <p>Start with Search to build chart by chart, let Shuttle draft a whole dashboard from one sentence, or clone one shared with you.</p>
+              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="dash-notice">Nobody has shared a Retail Sales dashboard with you yet.</div>
+          ))}
 
         {!!shown?.length && (
           <div className="dash-grid">
             {shown.map((d, i) => (
-              <article key={d.id} className="dash-card" style={{ '--i': i } as CSSProperties}>
+              <article key={d.id} className={d.owned ? 'dash-card' : 'dash-card is-shared'} style={{ '--i': i } as CSSProperties}>
                 <Link to={`/dashboards/${d.id}`} className="dash-card-open" aria-label={`Open ${d.name}`}>
-                  <div className="dash-card-art">
-                    <DashboardMosaic seed={d.id} tiles={d.tiles} />
-                  </div>
                   <div className="dash-card-body">
+                    {!d.owned && d.author && <span className="dash-card-author mono-label">By {d.author}</span>}
                     <h3 className="dash-card-name">{d.name}</h3>
                     {d.description && <p className="dash-card-desc">{d.description}</p>}
                     <span className="mono-label dash-card-meta">
@@ -171,20 +210,39 @@ export function Dashboards() {
                   </div>
                 </Link>
                 <div className="dash-card-actions">
-                  <button type="button" onClick={() => navigate(`/studio?mode=search&dashboard=${d.id}`)} title="Add or change charts with Search">
-                    ⌕ Search
-                  </button>
-                  <button type="button" onClick={() => navigate(`/studio?mode=ai&dashboard=${d.id}`)} title="Edit this dashboard with Shuttle">
-                    ✦ Shuttle
-                  </button>
-                  {confirming === d.id ? (
-                    <button type="button" className="is-danger" disabled={deleting === d.id} onClick={() => remove(d)} onBlur={() => setConfirming(null)} autoFocus>
-                      {deleting === d.id ? 'Deleting…' : 'Delete for good?'}
-                    </button>
+                  {d.owned ? (
+                    <>
+                      <button type="button" onClick={() => navigate(`/studio?mode=search&dashboard=${d.id}`)} title="Add or change charts with Search">
+                        ⌕ Search
+                      </button>
+                      <button type="button" onClick={() => navigate(`/studio?mode=ai&dashboard=${d.id}`)} title="Edit this dashboard with Shuttle">
+                        ✦ Shuttle
+                      </button>
+                      {confirming === d.id ? (
+                        <button type="button" className="is-danger" disabled={deleting === d.id} onClick={() => remove(d)} onBlur={() => setConfirming(null)} autoFocus>
+                          {deleting === d.id ? 'Deleting…' : 'Delete for good?'}
+                        </button>
+                      ) : (
+                        <button type="button" className="is-quiet" onClick={() => setConfirming(d.id)} aria-label={`Delete ${d.name}`} title="Delete">
+                          Delete
+                        </button>
+                      )}
+                    </>
                   ) : (
-                    <button type="button" className="is-quiet" onClick={() => setConfirming(d.id)} aria-label={`Delete ${d.name}`} title="Delete">
-                      Delete
-                    </button>
+                    <>
+                      <button type="button" onClick={() => navigate(`/dashboards/${d.id}`)}>
+                        Open
+                      </button>
+                      <button
+                        type="button"
+                        className="is-primary"
+                        onClick={() => void clone(d)}
+                        disabled={!!cloning}
+                        title="Make your own copy and edit it in Studio"
+                      >
+                        {cloning === d.id ? 'Cloning…' : '⧉ Clone & edit'}
+                      </button>
+                    </>
                   )}
                 </div>
               </article>
@@ -192,7 +250,7 @@ export function Dashboards() {
           </div>
         )}
 
-        {dashboards && !!dashboards.length && shown?.length === 0 && <div className="dash-notice">No dashboard matches “{query}”.</div>}
+        {list && !!list.length && shown?.length === 0 && <div className="dash-notice">No dashboard matches “{query}”.</div>}
       </section>
     </div>
   )

@@ -5,7 +5,7 @@ import { LiveboardEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react
 import { AskShuttleBar } from '../components/AskShuttleBar'
 import { useShuttle } from '../components/Shuttle'
 import { EditableTitle } from '../components/EditableTitle'
-import { formatEdited, getDashboard, renameDashboard, tileCount, type Dashboard } from '../dashboards'
+import { cloneDashboard, formatEdited, getDashboard, renameDashboard, tileCount, type Dashboard } from '../dashboards'
 import { chartMenu, EDIT_CHART, PINNED_CHART_HIDDEN_ACTIONS, pickedChartAction } from '../chartActions'
 import { WITH_LIVEBOARD_HEADER } from '../thoughtspot'
 import './Dashboards.css'
@@ -19,13 +19,18 @@ function questionsFor(d: Dashboard) {
   return questions.slice(0, 3)
 }
 
-/** One of the user's dashboards, embedded and fully interactive. */
+/**
+ * A dashboard, embedded and fully interactive: one of the user's own (rename, edit
+ * in Studio), or one shared with them (view, or clone it to edit a copy).
+ */
 export function DashboardView() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [rendered, setRendered] = useState(false)
+  const [cloning, setCloning] = useState(false)
+  const [cloneError, setCloneError] = useState<string | null>(null)
   const embedRef = useEmbedRef<typeof LiveboardEmbed>()
 
   useEffect(() => {
@@ -44,8 +49,10 @@ export function DashboardView() {
   // Stable for the SDK's React wrapper, which re-creates the embed on a new handler.
   const onRendered = useCallback(() => setRendered(true), [])
 
-  // Charts are edited in Studio, which keeps them linked; ThoughtSpot's own Edit is hidden.
-  const menu = useMemo(() => chartMenu(id, { edit: 'Edit in Studio' }), [id])
+  // Charts are edited in Studio, which keeps them linked; ThoughtSpot's own Edit is
+  // hidden. On a shared dashboard there's nothing to edit: clone it first.
+  const owned = !!dashboard?.owned
+  const menu = useMemo(() => (owned ? chartMenu(id, { edit: 'Edit in Studio' }) : []), [id, owned])
   // Read through a ref: a new handler would make the SDK's wrapper re-create the embed.
   const chartsRef = useRef<Dashboard['charts']>([])
   chartsRef.current = dashboard?.charts ?? []
@@ -58,6 +65,18 @@ export function DashboardView() {
     [id, navigate],
   )
 
+  const clone = async () => {
+    setCloning(true)
+    setCloneError(null)
+    try {
+      const copy = await cloneDashboard(id)
+      navigate(`/studio?mode=search&dashboard=${copy.id}`)
+    } catch (err) {
+      setCloneError((err as Error).message)
+      setCloning(false)
+    }
+  }
+
   const { ask, streaming } = useShuttle()
   const askShuttle = (question: string) =>
     dashboard &&
@@ -65,7 +84,7 @@ export function DashboardView() {
       scope: dashboard.name,
       tag: dashboard.name,
       preamble:
-        `I'm looking at my own dashboard "${dashboard.name}", built on the Retail Sales data` +
+        `I'm looking at ${dashboard.owned ? 'my own dashboard' : `${dashboard.author || 'a colleague'}'s dashboard`} "${dashboard.name}", built on the Retail Sales data` +
         (dashboard.charts.length ? `, with these charts: ${dashboard.charts.map((c) => c.name).join('; ')}.` : '.'),
     })
 
@@ -93,10 +112,16 @@ export function DashboardView() {
             ← My dashboards
           </Link>
           <div className="eyebrow">
-            <span className="tag">Dashboard</span>
-            <span>{dashboard ? `${tileCount(dashboard.tiles)} · ${formatEdited(dashboard.modified)}` : 'Loading…'}</span>
+            <span className="tag">{dashboard && !dashboard.owned ? 'Shared with you' : 'Dashboard'}</span>
+            <span>
+              {dashboard
+                ? [!dashboard.owned && dashboard.author && `By ${dashboard.author}`, tileCount(dashboard.tiles), formatEdited(dashboard.modified)].filter(Boolean).join(' · ')
+                : 'Loading…'}
+            </span>
           </div>
-          {dashboard ? (
+          {dashboard && !dashboard.owned ? (
+            <h1 className="display dash-h1 is-name">{dashboard.name}</h1>
+          ) : dashboard ? (
             <EditableTitle
               name={dashboard.name}
               className="display dash-h1 is-name"
@@ -117,21 +142,35 @@ export function DashboardView() {
           >
             <span aria-hidden>✦</span> Shuttle Highlights
           </button>
-          <button type="button" className="btn-outline" onClick={() => navigate(`/studio?mode=search&dashboard=${id}`)}>
-            ⌕ Edit with Search
-          </button>
-          <button type="button" className="btn-outline" onClick={() => navigate(`/studio?mode=ai&dashboard=${id}`)}>
-            ✦ Edit with Shuttle
-          </button>
+          {owned && (
+            <>
+              <button type="button" className="btn-outline" onClick={() => navigate(`/studio?mode=search&dashboard=${id}`)}>
+                ⌕ Edit with Search
+              </button>
+              <button type="button" className="btn-outline" onClick={() => navigate(`/studio?mode=ai&dashboard=${id}`)}>
+                ✦ Edit with Shuttle
+              </button>
+            </>
+          )}
           <button
             type="button"
-            className="btn-primary"
+            className={owned ? 'btn-primary' : 'btn-outline'}
             onClick={() => embedRef.current?.trigger(HostEvent.DownloadAsPdf)}
             disabled={!rendered || !dashboard?.tiles}
           >
             Download PDF
           </button>
+          {dashboard && !owned && (
+            <button type="button" className="btn-primary" onClick={() => void clone()} disabled={cloning} title="Make your own copy and edit it in Studio">
+              {cloning ? 'Cloning…' : '⧉ Clone & edit'}
+            </button>
+          )}
         </div>
+        {cloneError && (
+          <p className="dash-notice is-error dash-clone-error" role="alert">
+            {cloneError}
+          </p>
+        )}
       </section>
 
       {dashboard && !!dashboard.tiles && <AskShuttleBar scope={dashboard.name} questions={questionsFor(dashboard)} onAsk={askShuttle} busy={streaming} />}
@@ -141,8 +180,8 @@ export function DashboardView() {
           {dashboard && dashboard.tiles === 0 ? (
             <div className="dash-blank">
               <strong>This dashboard is empty.</strong>
-              <p>Add a first chart with Search, or ask Shuttle to draft the whole thing.</p>
-              <div className="dash-blank-actions">
+              <p>{owned ? 'Add a first chart with Search, or ask Shuttle to draft the whole thing.' : 'Nothing has been added to it yet.'}</p>
+              <div className="dash-blank-actions" hidden={!owned}>
                 <button type="button" className="btn-primary" onClick={() => navigate(`/studio?mode=search&dashboard=${id}`)}>
                   Add a chart with Search
                 </button>

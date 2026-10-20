@@ -13,6 +13,9 @@ export type Dashboard = {
   tiles: number
   /** Its charts and tables, in the dashboard's order. */
   charts: { id: string; name: string; created: number | null }[]
+  /** Who made it, and whether that's the signed-in user (only then can Studio edit it). */
+  author: string
+  owned: boolean
 }
 
 export class DashboardError extends Error {
@@ -21,7 +24,9 @@ export class DashboardError extends Error {
 
   constructor(status: number, code: string) {
     super(
-      code === 'not-a-chart'
+      code === 'other-model'
+        ? 'That dashboard isn’t built on Retail Sales, so Studio can’t edit a copy of it.'
+        : code === 'not-a-chart'
         ? 'That tile is a Shuttle insight, not a Search chart: edit it with Shuttle instead.'
         : status === 404
         ? 'That dashboard doesn’t exist, or it isn’t yours.'
@@ -50,6 +55,13 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const listDashboards = () => call<{ dashboards: Dashboard[] }>('').then((r) => r.dashboards)
+
+/** Others' dashboards on the Retail Sales model that the user can open. */
+export const listShared = () => call<{ dashboards: Dashboard[] }>('/shared').then((r) => r.dashboards)
+
+/** A copy of a dashboard as a new one of the user's (named "Copy of …" unless `name`). */
+export const cloneDashboard = (id: string, name?: string) =>
+  call<{ dashboard: Dashboard }>(`/${id}/clone`, { method: 'POST', body: JSON.stringify({ name }) }).then((r) => r.dashboard)
 
 export const getDashboard = (id: string) => call<{ dashboard: Dashboard }>(`/${id}`).then((r) => r.dashboard)
 

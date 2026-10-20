@@ -3,12 +3,16 @@ import { readSession, type Session } from './session.ts'
 import { ClusterIdleError, sessionUserRecord, ThoughtSpotError, tsRest } from './thoughtspot.ts'
 
 /**
- * The dashboard builder's API, mounted at /api/dashboards. Everything is scoped
- * to Liveboards the signed-in user created and still owns: the list only shows
- * those, and every change checks ownership here first.
+ * The dashboard builder's API, mounted at /api/dashboards. Changes are scoped to
+ * Liveboards the signed-in user created and still owns: every write checks
+ * ownership here first. Others' dashboards on the Retail Sales model can be
+ * viewed and cloned.
  *
  * - GET    /                     the user's dashboards, most recently changed first;
- * - GET    /:id                  one dashboard's header (404 unless the user owns it);
+ * - GET    /shared               others' dashboards on the Retail Sales model that the
+ *                                user can open;
+ * - GET    /:id                  one dashboard the user can open, mine or not;
+ * - POST   /:id/clone            copies a dashboard the user can open into a new one of theirs;
  * - PATCH  /:id                  renames it (and sets its description);
  * - DELETE /:id                  deletes it;
  * - POST   /:id/tiles/:vizId     replaces a tile's answer in place (the builder's live
@@ -28,6 +32,7 @@ type Header = {
   name: string
   description?: string
   author?: string
+  authorDisplayName?: string
   owner?: string
   created?: number
   modified?: number
@@ -49,9 +54,15 @@ export type Dashboard = {
   tiles: number
   /** Its charts and tables, in the Liveboard's order. */
   charts: { id: string; name: string; created: number | null }[]
+  /** Who made it, and whether that's the signed-in user (only then can Studio edit it). */
+  author: string
+  owned: boolean
 }
 
-const toDashboard = (hit: SearchHit): Dashboard => ({
+/** "Industry Demo - Retail Sales", as RETAIL_MODEL_ID in src/thoughtspot.ts. */
+const RETAIL_MODEL_ID = '11e40743-9285-42bd-856d-3f81a755c4f6'
+
+const toDashboard = (hit: SearchHit, userId: string): Dashboard => ({
   id: hit.metadata_id,
   name: hit.metadata_name,
   description: hit.metadata_header?.description ?? '',
@@ -59,6 +70,8 @@ const toDashboard = (hit: SearchHit): Dashboard => ({
   modified: hit.metadata_header?.modified ?? null,
   tiles: hit.visualization_headers?.length ?? 0,
   charts: (hit.visualization_headers ?? []).map((v) => ({ id: v.id, name: v.name ?? 'Untitled chart', created: v.created ?? null })),
+  author: hit.metadata_header?.authorDisplayName ?? '',
+  owned: ownedBy(hit, userId),
 })
 
 /**
@@ -76,6 +89,13 @@ class NotAChartError extends Error {}
 
 /** The Liveboard if the session's user owns it; NotOwnedError otherwise (also for unknown IDs). */
 async function ownedDashboard(session: Session, id: string): Promise<SearchHit> {
+  const { hit, me } = await readableDashboard(session, id)
+  if (!ownedBy(hit, me.id)) throw new NotOwnedError()
+  return hit
+}
+
+/** The Liveboard if the session's user can open it; NotOwnedError (a 404) otherwise. */
+async function readableDashboard(session: Session, id: string) {
   if (!GUID.test(id)) throw new NotOwnedError()
   const [me, hits] = await Promise.all([
     sessionUserRecord(session.token),
@@ -90,8 +110,60 @@ async function ownedDashboard(session: Session, id: string): Promise<SearchHit> 
     }),
   ])
   const hit = hits[0]
-  if (!hit || !ownedBy(hit, me.id)) throw new NotOwnedError()
-  return hit
+  if (!hit) throw new NotOwnedError()
+  return { hit, me }
+}
+
+/**
+ * Liveboards built on the Retail Sales model, from the model's dependents. Not
+ * every one is necessarily open to this user: callers look them up again.
+ */
+async function retailDashboards(session: Session) {
+  const res = await tsRest<{ dependent_objects?: Record<string, Record<string, { id: string; author?: string }[]>> }[]>(
+    session.token,
+    'POST',
+    '/metadata/search',
+    { metadata: [{ identifier: RETAIL_MODEL_ID }], include_dependent_objects: true, dependent_objects_record_size: 500, record_size: 1 },
+  )
+  return res[0]?.dependent_objects?.[RETAIL_MODEL_ID]?.PINBOARD_ANSWER_BOOK ?? []
+}
+
+/**
+ * Headers (with tiles) for `ids`, leaving out any the user can't open. One call
+ * when it can; if ThoughtSpot refuses the batch over one inaccessible ID, one by one.
+ */
+async function lookUp(session: Session, ids: string[]): Promise<SearchHit[]> {
+  if (!ids.length) return []
+  const search = (batch: string[]) =>
+    tsRest<SearchHit[]>(session.token, 'POST', '/metadata/search', {
+      metadata: batch.map((identifier) => ({ identifier, type: 'LIVEBOARD' })),
+      include_visualization_headers: true,
+      record_size: batch.length,
+    })
+  try {
+    return await search(ids)
+  } catch (err) {
+    if (!(err instanceof ThoughtSpotError) || err.status >= 500 || err.status === 401) throw err
+    const one = await Promise.all(ids.map((id) => search([id]).catch(() => [] as SearchHit[])))
+    return one.flat()
+  }
+}
+
+/** A copy of dashboard `id` (one the user can open), as a new dashboard of theirs. */
+async function cloneDashboard(session: Session, id: string, name: string) {
+  const tml = await exportTml(session, id)
+  // A copy needs GUIDs of its own: the dashboard's and its tiles' (ThoughtSpot
+  // would replace taken ones anyway, with a warning).
+  delete tml.guid
+  tml.liveboard.name = name
+  for (const v of tml.liveboard.visualizations ?? []) {
+    delete v.viz_guid
+    if (v.answer && isDraft(v.answer.description as string | undefined)) v.answer.description = ''
+  }
+  const response = await importTml(session, tml, true)
+  const newId = response.header?.id_guid
+  if (!newId) throw new ThoughtSpotError(502, 'The copy came back without an ID')
+  return newId
 }
 
 /** Sends the right status for a failed call, logged with `what` for the server output. */
@@ -292,16 +364,30 @@ export function dashboardsApi() {
           record_size: 200,
         }),
       ])
-      res.json({ dashboards: hits.filter((h) => ownedBy(h, me.id)).map(toDashboard) })
+      res.json({ dashboards: hits.filter((h) => ownedBy(h, me.id)).map((h) => toDashboard(h, me.id)) })
     } catch (err) {
       fail(res, 'Listing dashboards', err)
+    }
+  })
+
+  api.get('/shared', async (_req: Request, res: Response) => {
+    const session = res.locals.session as Session
+    try {
+      const [me, retail] = await Promise.all([sessionUserRecord(session.token), retailDashboards(session)])
+      const ids = [...new Set(retail.filter((d) => d.author !== me.id).map((d) => d.id))]
+      const hits = (await lookUp(session, ids)).filter((h) => !ownedBy(h, me.id))
+      hits.sort((a, b) => (b.metadata_header?.modified ?? 0) - (a.metadata_header?.modified ?? 0))
+      res.json({ dashboards: hits.map((h) => toDashboard(h, me.id)) })
+    } catch (err) {
+      fail(res, 'Listing shared dashboards', err)
     }
   })
 
   api.get('/:id', async (req: Request, res: Response) => {
     const session = res.locals.session as Session
     try {
-      res.json({ dashboard: toDashboard(await ownedDashboard(session, String(req.params.id))) })
+      const { hit, me } = await readableDashboard(session, String(req.params.id))
+      res.json({ dashboard: toDashboard(hit, me.id) })
     } catch (err) {
       fail(res, 'Reading a dashboard', err)
     }
@@ -331,9 +417,26 @@ export function dashboardsApi() {
     try {
       await ownedDashboard(session, id)
       await renameDashboard(session, id, trimmed, typeof description === 'string' ? description.trim().slice(0, 500) : undefined)
-      res.json({ dashboard: toDashboard(await ownedDashboard(session, id)) })
+      const { hit, me } = await readableDashboard(session, id)
+      res.json({ dashboard: toDashboard(hit, me.id) })
     } catch (err) {
       fail(res, `Renaming dashboard ${id}`, err)
+    }
+  })
+
+  api.post('/:id/clone', async (req: Request, res: Response) => {
+    const session = res.locals.session as Session
+    const id = String(req.params.id)
+    const { name } = (req.body ?? {}) as { name?: string }
+    try {
+      const { hit } = await readableDashboard(session, id)
+      // Studio only builds on Retail Sales: a copy of anything else couldn't be edited there.
+      if (!(await retailDashboards(session)).some((d) => d.id === id)) return res.status(422).json({ error: 'other-model' })
+      const newId = await cloneDashboard(session, id, (name?.trim() || `Copy of ${hit.metadata_name}`).slice(0, 100))
+      const copy = await readableDashboard(session, newId)
+      res.status(201).json({ dashboard: toDashboard(copy.hit, copy.me.id) })
+    } catch (err) {
+      fail(res, `Cloning dashboard ${id}`, err)
     }
   })
 

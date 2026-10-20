@@ -51,6 +51,11 @@
   flex-wrap: wrap;
 }
 
+.dash-clone-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 .dash-actions button:disabled {
   cursor: progress;
   opacity: 0.6;
@@ -250,6 +255,56 @@
   color: var(--muted);
 }
 
+.dash-library-note {
+  margin: -8px 0 22px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Mine | Shared with you */
+.dash-tabs {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0 !important;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.dash-tab {
+  padding: 10px 18px;
+  min-height: 46px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-stretch: 112%;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dash-tab + .dash-tab {
+  border-left: 2px solid var(--ink);
+}
+
+.dash-tab:hover:not(.is-active) {
+  background: var(--periwinkle);
+}
+
+.dash-tab.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.dash-tab-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
 .dash-h2 {
   margin: 0;
   font-weight: 800;
@@ -323,23 +378,50 @@
   color: var(--ink);
 }
 
-.dash-card-art {
-  aspect-ratio: 16 / 9;
-  border-bottom: 2px solid var(--ink);
-  background: var(--paper);
-  padding: 10px;
+/* A band across the top: accent for yours, periwinkle for shared ones. */
+.dash-card {
+  border-top-width: 8px;
+  border-top-color: var(--accent);
 }
 
-.dash-card.is-loading .dash-card-art {
-  background: repeating-linear-gradient(135deg, var(--sand) 0 1px, transparent 1px 11px);
+.dash-card.is-shared {
+  border-top-color: var(--periwinkle);
+}
+
+.dash-card.is-loading {
+  border-top-color: var(--sand);
+  min-height: 150px;
+}
+
+.dash-card-author {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.dash-card-actions .is-primary {
+  flex: 1.6;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.dash-card-actions .is-primary:hover:not(:disabled) {
+  background: var(--accent) !important;
+  color: var(--ink);
+}
+
+.dash-card-actions button:disabled {
+  cursor: progress;
+  opacity: 0.6;
 }
 
 .dash-card-body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 14px 16px 12px;
+  padding: 16px 16px 12px;
   flex: 1;
+  min-height: 120px;
 }
 
 .dash-card-name {

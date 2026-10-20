@@ -221,6 +221,14 @@
   color: var(--muted);
 }
 
+.studio-blocked .btn-primary {
+  margin-top: 16px;
+}
+
+.studio-blocked .pin-error {
+  margin: 12px 0 0;
+}
+
 /* ---------- Builders ---------- */
 .builder {
   padding: 22px var(--gutter) clamp(40px, 5vw, 72px);

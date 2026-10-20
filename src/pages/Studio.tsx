@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { SearchBuilder } from '../components/SearchBuilder'
 import { ShuttleBuilder } from '../components/ShuttleBuilder'
 import { EditableTitle } from '../components/EditableTitle'
-import { listDashboards, renameDashboard, tileCount, type Dashboard } from '../dashboards'
+import { cloneDashboard, listDashboards, renameDashboard, tileCount, type Dashboard } from '../dashboards'
 import './Dashboards.css'
 import './Studio.css'
 
@@ -56,6 +56,25 @@ export function Studio() {
   const foreign = !!dashboardId && !!dashboards && !current && !(dashboardId in created)
   // Builders wait for the list when opened on a dashboard, so a foreign one never loads.
   const checking = !!dashboardId && !dashboards && !listError && !(dashboardId in created)
+
+  const [cloning, setCloning] = useState(false)
+  const [cloneError, setCloneError] = useState<string | null>(null)
+  /** Copies the open (someone else's) dashboard into one of the user's, and switches to it. */
+  const cloneForeign = async () => {
+    if (!dashboardId) return
+    setCloning(true)
+    setCloneError(null)
+    try {
+      const copy = await cloneDashboard(dashboardId)
+      setCreated((c) => ({ ...c, [copy.id]: copy.name }))
+      go({ dashboard: copy.id })
+      refresh()
+    } catch (err) {
+      setCloneError((err as Error).message)
+    } finally {
+      setCloning(false)
+    }
+  }
 
   const leaveOk = () => !dirty || window.confirm('Shuttle’s latest changes aren’t saved. Leave without saving?')
 
@@ -189,7 +208,11 @@ export function Studio() {
       ) : foreign ? (
         <div className="studio-blocked">
           <strong>This dashboard isn’t one of yours.</strong>
-          <p>Studio only edits dashboards you created. Pick one of yours above, or start a new one.</p>
+          <p>Studio only edits dashboards you created. Clone this one to edit your own copy, pick one of yours above, or start a new one.</p>
+          <button type="button" className="btn-primary" onClick={() => void cloneForeign()} disabled={cloning}>
+            {cloning ? 'Cloning…' : '⧉ Clone & edit'}
+          </button>
+          {cloneError && <p className="pin-error">{cloneError}</p>}
         </div>
       ) : mode === 'search' ? (
         <SearchBuilder
