@@ -11,7 +11,7 @@ type Mode = 'search' | 'ai'
 
 const MODES: { mode: Mode; icon: string; label: string; sub: string }[] = [
   { mode: 'search', icon: '⌕', label: 'Search', sub: 'Chart by chart' },
-  { mode: 'ai', icon: '✦', label: 'Shuttle', sub: 'Describe it' },
+  { mode: 'ai', icon: '✦', label: 'ShuttleViz', sub: 'Describe it' },
 ]
 
 /**
@@ -27,7 +27,7 @@ export function Studio() {
   const [dashboards, setDashboards] = useState<Dashboard[] | null>(null)
   const [listError, setListError] = useState(false)
   const [newName, setNewName] = useState('')
-  /** Shuttle has unsaved changes on the dashboard. */
+  /** ShuttleViz has unsaved changes on the dashboard. */
   const [dirty, setDirty] = useState(false)
   /**
    * Dashboards created in this visit, by ID: ThoughtSpot's search index can take
@@ -35,7 +35,7 @@ export function Studio() {
    */
   const [created, setCreated] = useState<Record<string, string>>({})
   /**
-   * Bumped on a rename. Shuttle's edit-mode embed holds the dashboard as it was
+   * Bumped on a rename. ShuttleViz's edit-mode embed holds the dashboard as it was
    * loaded, and a later Save from it would bring the old name back, so it reloads.
    */
   const [renamedAt, setRenamedAt] = useState(0)
@@ -76,7 +76,7 @@ export function Studio() {
     }
   }
 
-  const leaveOk = () => !dirty || window.confirm('Shuttle’s latest changes aren’t saved. Leave without saving?')
+  const leaveOk = () => !dirty || window.confirm('ShuttleViz’s latest changes aren’t saved. Leave without saving?')
 
   const go = (next: { mode?: Mode; dashboard?: string | null }) => {
     if (!leaveOk()) return
@@ -105,7 +105,7 @@ export function Studio() {
   )
 
   const rename = async (name: string) => {
-    if (dirty) throw new Error('Save Shuttle’s changes first, then rename.')
+    if (dirty) throw new Error('Save ShuttleViz’s changes first, then rename.')
     const renamed = await renameDashboard(dashboardId!, name)
     setDashboards((list) => list?.map((d) => (d.id === renamed.id ? renamed : d)) ?? null)
     setCreated((c) => (renamed.id in c ? { ...c, [renamed.id]: renamed.name } : c))
@@ -194,7 +194,7 @@ export function Studio() {
           </label>
         )}
         <span className="studio-bar-note">
-          {listError ? 'Couldn’t load your dashboards' : dashboardId ? 'Changes go to this dashboard' : mode === 'search' ? 'Created on your first pin' : 'Created when Shuttle starts'}
+          {listError ? 'Couldn’t load your dashboards' : dashboardId ? 'Changes go to this dashboard' : mode === 'search' ? 'Created on your first pin' : 'Created when ShuttleViz starts'}
         </span>
         {dashboardId && !foreign && (
           <Link to={`/dashboards/${dashboardId}`} className="studio-open" onClick={(e) => !leaveOk() && e.preventDefault()}>

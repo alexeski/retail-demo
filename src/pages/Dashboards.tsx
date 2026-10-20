@@ -16,9 +16,9 @@ const BUILD_MODES = [
   {
     mode: 'ai',
     n: '02',
-    title: 'Build with Shuttle',
-    body: 'Describe the dashboard you need in plain words. Shuttle picks the charts, lays them out and refines them as you talk.',
-    cta: 'Start with Shuttle',
+    title: 'Build with ShuttleViz',
+    body: 'Describe the dashboard you need in plain words. ShuttleViz picks the charts, lays them out and refines them as you talk.',
+    cta: 'Start with ShuttleViz',
   },
 ] as const
 
@@ -188,7 +188,7 @@ export function Dashboards() {
               <DashboardMosaic seed="storeloom" tiles={5} />
               <div>
                 <strong>No dashboards yet.</strong>
-                <p>Start with Search to build chart by chart, let Shuttle draft a whole dashboard from one sentence, or clone one shared with you.</p>
+                <p>Start with Search to build chart by chart, let ShuttleViz draft a whole dashboard from one sentence, or clone one shared with you.</p>
               </div>
             </div>
           ) : (
@@ -215,8 +215,8 @@ export function Dashboards() {
                       <button type="button" onClick={() => navigate(`/studio?mode=search&dashboard=${d.id}`)} title="Add or change charts with Search">
                         ⌕ Search
                       </button>
-                      <button type="button" onClick={() => navigate(`/studio?mode=ai&dashboard=${d.id}`)} title="Edit this dashboard with Shuttle">
-                        ✦ Shuttle
+                      <button type="button" onClick={() => navigate(`/studio?mode=ai&dashboard=${d.id}`)} title="Edit this dashboard with ShuttleViz">
+                        ✦ ShuttleViz
                       </button>
                       {confirming === d.id ? (
                         <button type="button" className="is-danger" disabled={deleting === d.id} onClick={() => remove(d)} onBlur={() => setConfirming(null)} autoFocus>

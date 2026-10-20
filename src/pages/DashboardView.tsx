@@ -148,7 +148,7 @@ export function DashboardView() {
                 ⌕ Edit with Search
               </button>
               <button type="button" className="btn-outline" onClick={() => navigate(`/studio?mode=ai&dashboard=${id}`)}>
-                ✦ Edit with Shuttle
+                ✦ Edit with ShuttleViz
               </button>
             </>
           )}
@@ -180,13 +180,13 @@ export function DashboardView() {
           {dashboard && dashboard.tiles === 0 ? (
             <div className="dash-blank">
               <strong>This dashboard is empty.</strong>
-              <p>{owned ? 'Add a first chart with Search, or ask Shuttle to draft the whole thing.' : 'Nothing has been added to it yet.'}</p>
+              <p>{owned ? 'Add a first chart with Search, or ask ShuttleViz to draft the whole thing.' : 'Nothing has been added to it yet.'}</p>
               <div className="dash-blank-actions" hidden={!owned}>
                 <button type="button" className="btn-primary" onClick={() => navigate(`/studio?mode=search&dashboard=${id}`)}>
                   Add a chart with Search
                 </button>
                 <button type="button" className="btn-outline" onClick={() => navigate(`/studio?mode=ai&dashboard=${id}`)}>
-                  ✦ Draft it with Shuttle
+                  ✦ Draft it with ShuttleViz
                 </button>
               </div>
             </div>

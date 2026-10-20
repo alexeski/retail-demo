@@ -5,8 +5,8 @@ import type { SpotterVizConfig } from '@thoughtspot/visual-embed-sdk'
 import { HIDDEN_BRANDED_ACTIONS, RETAIL_MODEL_ID, RETAIL_MODEL_NAME, WITH_LIVEBOARD_HEADER } from '../thoughtspot'
 import { useFillHeight } from '../useFillHeight'
 
-// Studio's Shuttle mode: SpotterViz, ThoughtSpot's AI dashboard agent, branded as
-// Shuttle, in the dashboard's edit mode. Its own toolbar carries Save and
+// Studio's ShuttleViz mode: SpotterViz, ThoughtSpot's AI dashboard agent, branded
+// as ShuttleViz (Shuttle, the stores' assistant, is Spotter), in the dashboard's edit mode. Its own toolbar carries Save and
 // Cancel, and its panel the chat.
 //
 // The SDK has no setting for SpotterViz's data source: it works from the data
@@ -15,7 +15,7 @@ import { useFillHeight } from '../useFillHeight'
 // "Sales · last 12 months" tile, pinned from a hidden Search on that model. Every
 // prompt Studio sends also names the model.
 
-/** Appended to every prompt Studio sends, so Shuttle never reaches for another model. */
+/** Appended to every prompt Studio sends, so ShuttleViz never reaches for another model. */
 const MODEL_INSTRUCTION = `Use only the "${RETAIL_MODEL_NAME}" model.`
 const withModel = (prompt: string) => `${prompt.trim()} ${MODEL_INSTRUCTION}`
 
@@ -55,10 +55,10 @@ const SHUTTLE_BRIEFS = [
 ]
 
 const SPOTTER_VIZ: SpotterVizConfig = {
-  brandName: 'Shuttle',
+  brandName: 'ShuttleViz',
   // This cluster's welcome screen shows the headline but not brandName after it
   // (brandName still labels the toolbar button), so the name goes in the headline.
-  brandHeadline: 'Hi! I’m Shuttle',
+  brandHeadline: 'Hi! I’m ShuttleViz',
   description: 'Tell me what this dashboard should show. I’ll build the charts from your Retail Sales data, and refine them as we go.',
   inputChatPlaceholder: 'Describe a chart, or a change to one…',
   loaderHeadline: 'Weaving your dashboard…',
@@ -68,10 +68,10 @@ const SPOTTER_VIZ: SpotterVizConfig = {
     { label: 'Tip', text: 'Save when you like the result: changes stay a draft until then.' },
   ],
   liveboardBrandName: 'dashboard',
-  spotterBrandName: 'Shuttle',
-  insightTileBrandName: 'Shuttle insight',
-  insightTileViewPlanLabel: 'How Shuttle built this',
-  insightTileLoaderText: 'Shuttle is working…',
+  spotterBrandName: 'ShuttleViz',
+  insightTileBrandName: 'ShuttleViz insight',
+  insightTileViewPlanLabel: 'How ShuttleViz built this',
+  insightTileLoaderText: 'ShuttleViz is working…',
   customStarterPrompts: SHUTTLE_BRIEFS.map((b) => ({ id: b.id, displayText: b.summary, fullPrompt: withModel(b.prompt) })),
 }
 
@@ -190,13 +190,13 @@ function ShuttleBrief({ newName, onCreated }: { newName: string; onCreated: (id:
 
   return (
     <div className="builder is-shuttle">
-      <section className="brief" aria-label="Brief Shuttle">
+      <section className="brief" aria-label="Brief ShuttleViz">
         <header className="brief-head">
           <span className="shuttle-pill is-large" aria-hidden />
           <div>
             <h2 className="brief-h2">What should this dashboard show?</h2>
             <p>
-              Write it the way you’d brief an analyst. Shuttle drafts the charts from the Retail Sales data, then you refine them by chatting, and save
+              Write it the way you’d brief an analyst. ShuttleViz drafts the charts from the Retail Sales data, then you refine them by chatting, and save
               when it looks right.
             </p>
           </div>
@@ -216,7 +216,7 @@ function ShuttleBrief({ newName, onCreated }: { newName: string; onCreated: (id:
           <div className="brief-foot">
             <span className="mono-label">{creating ? 'Creating the dashboard…' : '⌘ + Enter to start'}</span>
             <button type="submit" className="btn-primary" disabled={!brief.trim() || creating}>
-              {creating ? 'Starting Shuttle…' : '✦ Build it with Shuttle'}
+              {creating ? 'Starting ShuttleViz…' : '✦ Build it with ShuttleViz'}
             </button>
           </div>
         </form>
@@ -255,7 +255,7 @@ function ShuttleBrief({ newName, onCreated }: { newName: string; onCreated: (id:
   )
 }
 
-/** An existing dashboard in edit mode, with the Shuttle (SpotterViz) panel open. */
+/** An existing dashboard in edit mode, with the ShuttleViz (SpotterViz) panel open. */
 function ShuttleCanvas({
   dashboardId,
   onChanged,
@@ -268,7 +268,7 @@ function ShuttleCanvas({
   const embedRef = useEmbedRef<typeof LiveboardEmbed>()
   // Down to the bottom of the window, below the frame's border and padding.
   const [canvasRef, canvasHeight] = useFillHeight<HTMLDivElement>(560, 40)
-  /** Shuttle has changed the dashboard since it was last saved. */
+  /** ShuttleViz has changed the dashboard since it was last saved. */
   const [dirty, setDirty] = useState(false)
 
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
@@ -301,7 +301,7 @@ function ShuttleCanvas({
     <div className="builder is-shuttle">
       <section className="dash-body is-flush">
         <div className="dash-frame">
-          {/* A fixed, viewport-tall frame (not full height): the Shuttle panel lives
+          {/* A fixed, viewport-tall frame (not full height): the ShuttleViz panel lives
               inside it, and its chat box has to stay on screen. */}
           <div className="shuttle-canvas" ref={canvasRef} style={{ height: canvasHeight }}>
             <LiveboardEmbed

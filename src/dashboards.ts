@@ -27,7 +27,7 @@ export class DashboardError extends Error {
       code === 'other-model'
         ? 'That dashboard isn’t built on Retail Sales, so Studio can’t edit a copy of it.'
         : code === 'not-a-chart'
-        ? 'That tile is a Shuttle insight, not a Search chart: edit it with Shuttle instead.'
+        ? 'That tile is a ShuttleViz insight, not a Search chart: edit it with ShuttleViz instead.'
         : status === 404
         ? 'That dashboard doesn’t exist, or it isn’t yours.'
         : status === 403
