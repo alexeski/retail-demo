@@ -4,13 +4,14 @@ import { HostEvent } from '@thoughtspot/visual-embed-sdk'
 import { LiveboardEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
 import { AskShuttleBar } from '../components/AskShuttleBar'
 import { useShuttle } from '../components/Shuttle'
-import { formatEdited, getDashboard, tileCount, type Dashboard } from '../dashboards'
+import { EditableTitle } from '../components/EditableTitle'
+import { formatEdited, getDashboard, renameDashboard, tileCount, type Dashboard } from '../dashboards'
 import { HIDDEN_BRANDED_ACTIONS, WITH_LIVEBOARD_HEADER } from '../thoughtspot'
 import './Dashboards.css'
 
 /** Three starter questions for Shuttle, from the dashboard's own tiles. */
 function questionsFor(d: Dashboard) {
-  const tiles = d.tileNames.slice(0, 2)
+  const tiles = d.charts.slice(0, 2).map((c) => c.name)
   const questions = tiles.map((t) => `What is driving the latest change in “${t}”?`)
   questions.push('Which regions and stores stand out on this dashboard, and why?')
   if (questions.length < 3) questions.push('What changed most versus the previous month?')
@@ -50,7 +51,7 @@ export function DashboardView() {
       tag: dashboard.name,
       preamble:
         `I'm looking at my own dashboard "${dashboard.name}", built on the Retail Sales data` +
-        (dashboard.tileNames.length ? `, with these charts: ${dashboard.tileNames.join('; ')}.` : '.'),
+        (dashboard.charts.length ? `, with these charts: ${dashboard.charts.map((c) => c.name).join('; ')}.` : '.'),
     })
 
   if (error) {
@@ -80,7 +81,15 @@ export function DashboardView() {
             <span className="tag">Dashboard</span>
             <span>{dashboard ? `${tileCount(dashboard.tiles)} · ${formatEdited(dashboard.modified)}` : 'Loading…'}</span>
           </div>
-          <h1 className="display dash-h1 is-name">{dashboard?.name ?? ' '}</h1>
+          {dashboard ? (
+            <EditableTitle
+              name={dashboard.name}
+              className="display dash-h1 is-name"
+              onRename={async (name) => setDashboard(await renameDashboard(id, name))}
+            />
+          ) : (
+            <h1 className="display dash-h1 is-name">{'\u00a0'}</h1>
+          )}
           {dashboard?.description && <p className="dash-lede">{dashboard.description}</p>}
         </div>
         <div className="dash-actions">

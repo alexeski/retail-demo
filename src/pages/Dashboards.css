@@ -57,6 +57,61 @@
   transform: none;
 }
 
+/* ---------- Rename in place ---------- */
+.title-edit {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.title-edit h1 {
+  min-width: 0;
+}
+
+.title-edit-btn {
+  flex: none;
+  margin-top: 0.15em;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+.title-edit:hover .title-edit-btn,
+.title-edit-btn:focus-visible {
+  opacity: 1;
+}
+
+.title-edit-btn:hover {
+  background: var(--periwinkle);
+}
+
+.title-edit.is-editing {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title-edit-input {
+  width: min(100%, 1100px);
+  border: none;
+  border-bottom: 3px solid var(--accent);
+  background: var(--card);
+  color: var(--ink);
+  padding: 0.05em 0.12em;
+  font-family: var(--font-sans);
+  outline: none;
+}
+
+.title-edit-hint {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 /* ---------- Two ways to build ---------- */
 .dash-modes {
   display: grid;

@@ -11,8 +11,8 @@ export type Dashboard = {
   modified: number | null
   /** Number of charts and tables on it. */
   tiles: number
-  /** Their titles, in the dashboard's order. */
-  tileNames: string[]
+  /** Its charts and tables, in the dashboard's order. */
+  charts: { id: string; name: string }[]
 }
 
 export class DashboardError extends Error {
@@ -52,6 +52,12 @@ export const listDashboards = () => call<{ dashboards: Dashboard[] }>('').then((
 export const getDashboard = (id: string) => call<{ dashboard: Dashboard }>(`/${id}`).then((r) => r.dashboard)
 
 export const deleteDashboard = (id: string) => call<void>(`/${id}`, { method: 'DELETE' })
+
+export const renameDashboard = (id: string, name: string) =>
+  call<{ dashboard: Dashboard }>(`/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }).then((r) => r.dashboard)
+
+/** Takes a chart off the dashboard. */
+export const removeTile = (id: string, vizId: string) => call<void>(`/${id}/tiles/${vizId}`, { method: 'DELETE' })
 
 /** Re-points a pinned tile at `answer` (Search's current TML), in place. */
 export const replaceTile = (id: string, vizId: string, answer: unknown, title: string) =>

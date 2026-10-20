@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { SearchBuilder } from '../components/SearchBuilder'
 import { ShuttleBuilder } from '../components/ShuttleBuilder'
-import { listDashboards, tileCount, type Dashboard } from '../dashboards'
+import { EditableTitle } from '../components/EditableTitle'
+import { listDashboards, renameDashboard, tileCount, type Dashboard } from '../dashboards'
 import './Dashboards.css'
 import './Studio.css'
 
@@ -33,6 +34,11 @@ export function Studio() {
    * a moment to list a new one, and it must not look foreign meanwhile.
    */
   const [created, setCreated] = useState<Record<string, string>>({})
+  /**
+   * Bumped on a rename. Shuttle's edit-mode embed holds the dashboard as it was
+   * loaded, and a later Save from it would bring the old name back, so it reloads.
+   */
+  const [renamedAt, setRenamedAt] = useState(0)
 
   const refresh = useCallback(() => {
     listDashboards()
@@ -79,6 +85,14 @@ export function Studio() {
     [setParams, refresh, newName],
   )
 
+  const rename = async (name: string) => {
+    if (dirty) throw new Error('Save Shuttle’s changes first, then rename.')
+    const renamed = await renameDashboard(dashboardId!, name)
+    setDashboards((list) => list?.map((d) => (d.id === renamed.id ? renamed : d)) ?? null)
+    setCreated((c) => (renamed.id in c ? { ...c, [renamed.id]: renamed.name } : c))
+    setRenamedAt(Date.now())
+  }
+
   const onDone = useCallback((id: string) => navigate(`/dashboards/${id}`), [navigate])
 
   return (
@@ -94,7 +108,11 @@ export function Studio() {
               <span aria-hidden>▣</span> Retail Sales model · fixed
             </span>
           </div>
-          <h1 className="display studio-h1">{title ?? (dashboardId ? ' ' : newName.trim() || 'New dashboard')}</h1>
+          {dashboardId && title && !foreign ? (
+            <EditableTitle name={title} className="display studio-h1" onRename={rename} />
+          ) : (
+            <h1 className="display studio-h1">{dashboardId ? '\u00a0' : newName.trim() || 'New dashboard'}</h1>
+          )}
         </div>
 
         <div className="studio-modes" role="tablist" aria-label="How to build">
@@ -163,7 +181,7 @@ export function Studio() {
       ) : mode === 'search' ? (
         <SearchBuilder dashboardId={dashboardId} newName={newName} onCreated={onCreated} onChanged={refresh} />
       ) : (
-        <ShuttleBuilder dashboardId={dashboardId} newName={newName} onCreated={onCreated} onChanged={refresh} onDirtyChange={setDirty} onDone={onDone} />
+        <ShuttleBuilder reloadKey={renamedAt} dashboardId={dashboardId} newName={newName} onCreated={onCreated} onChanged={refresh} onDirtyChange={setDirty} onDone={onDone} />
       )}
     </div>
   )

@@ -212,7 +212,8 @@
 
 .builder.is-search {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr);
+  /* Search gets the room: its column panel sits beside the chart. */
+  grid-template-columns: minmax(0, 1.9fr) minmax(340px, 1fr);
   gap: clamp(16px, 1.8vw, 24px);
   align-items: start;
 }
@@ -529,12 +530,23 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
   font-size: 14px;
 }
 
+.pin-session li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding-left: 2px;
+}
+
+.pin-session li + li {
+  border-top: 1px solid var(--sand);
+}
+
 .pin-session li::before {
-  content: '▪ ';
+  content: '▪';
   color: var(--muted-light);
 }
 
@@ -543,8 +555,69 @@
 }
 
 .pin-session li.is-linked::before {
-  content: '● ';
+  content: '●';
   color: var(--good);
+}
+
+.pin-chart-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pin-chart-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border: 1px solid var(--ink);
+  background: var(--good-soft);
+}
+
+.pin-chart-tag.is-new {
+  background: var(--periwinkle);
+}
+
+.pin-chart-remove {
+  flex: none;
+  min-width: 32px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pin-chart-remove:hover:not(:disabled) {
+  border-color: var(--ink);
+  background: var(--bad-soft);
+  color: var(--ink);
+}
+
+.pin-chart-remove.is-confirm {
+  border-color: var(--ink);
+  background: var(--accent);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pin-chart-remove:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.pin-session .pin-error {
+  margin: 10px 0 0;
 }
 
 /* ---------- Dashboard preview ---------- */

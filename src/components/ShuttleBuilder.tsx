@@ -68,6 +68,8 @@ type Phase = 'opening' | 'editing' | 'thinking' | 'draft' | 'saving' | 'saved' |
 
 type Props = {
   dashboardId: string | null
+  /** A change reloads the dashboard (after a rename made outside the embed). */
+  reloadKey: number
   newName: string
   onCreated: (id: string) => void
   onChanged: () => void
@@ -76,9 +78,9 @@ type Props = {
   onDone: (id: string) => void
 }
 
-export function ShuttleBuilder({ dashboardId, newName, onCreated, onChanged, onDirtyChange, onDone }: Props) {
+export function ShuttleBuilder({ dashboardId, reloadKey, newName, onCreated, onChanged, onDirtyChange, onDone }: Props) {
   return dashboardId ? (
-    <ShuttleCanvas key={dashboardId} dashboardId={dashboardId} onChanged={onChanged} onDirtyChange={onDirtyChange} onDone={onDone} />
+    <ShuttleCanvas key={`${dashboardId}:${reloadKey}`} dashboardId={dashboardId} onChanged={onChanged} onDirtyChange={onDirtyChange} onDone={onDone} />
   ) : (
     <ShuttleBrief newName={newName} onCreated={onCreated} />
   )

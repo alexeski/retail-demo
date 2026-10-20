@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Action, ContextType, HostEvent } from '@thoughtspot/visual-embed-sdk'
 import { LiveboardEmbed, SearchEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
-import { DashboardError, replaceTile, titleFromQuery } from '../dashboards'
+import { DashboardError, getDashboard, removeTile, replaceTile, titleFromQuery, type Dashboard } from '../dashboards'
 import { HIDDEN_BRANDED_ACTIONS, RETAIL_MODEL_ID } from '../thoughtspot'
 import { DashboardMosaic } from './DashboardMosaic'
 
@@ -15,8 +15,13 @@ import { DashboardMosaic } from './DashboardMosaic'
 // Accounts that can't import TML fall back to pinning a fresh copy and removing
 // the previous one from the dashboard.
 
-/** Search's own Pin is replaced by the pin panel; the data source can't change. */
-const SEARCH_HIDDEN_ACTIONS = [...HIDDEN_BRANDED_ACTIONS, Action.Pin]
+/**
+ * Search's own Pin is replaced by the pin panel. The data panel stays, so users
+ * can pick columns instead of typing, but without its "Choose sources" button:
+ * the model is fixed.
+ */
+const SEARCH_HIDDEN_ACTIONS = [...HIDDEN_BRANDED_ACTIONS, Action.Pin, Action.ChooseDataSources]
+const SEARCH_DISABLED_ACTIONS = [Action.ChooseDataSources]
 const SEARCH_FRAME = { height: '100%', width: '100%' }
 const PREVIEW_HIDDEN_ACTIONS = HIDDEN_BRANDED_ACTIONS
 /** Quiet time after the last edit before the linked tile is updated. */
@@ -66,9 +71,15 @@ export function SearchBuilder({ dashboardId, newName, onCreated, onChanged }: Pr
   const [sync, setSync] = useState<SyncState>({ kind: 'idle' })
   const [pinning, setPinning] = useState(false)
   const [pinError, setPinError] = useState<string | null>(null)
-  /** Tiles pinned in this visit, newest first. */
-  const [session, setSession] = useState<{ vizId: string; title: string }[]>([])
   const [previewKey, setPreviewKey] = useState(0)
+  /** The dashboard's charts, re-read after each change. */
+  const [charts, setCharts] = useState<Dashboard['charts'] | null>(null)
+  /** Tiles pinned in this visit, to mark them in the list. */
+  const [pinnedHere, setPinnedHere] = useState<string[]>([])
+  /** The chart whose removal waits for a second click, and the one being removed. */
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<string | null>(null)
+  const [removeError, setRemoveError] = useState<string | null>(null)
 
   // Refs mirror state for the SDK's event handlers, which must stay stable.
   const linkedRef = useRef(linked)
@@ -92,6 +103,20 @@ export function SearchBuilder({ dashboardId, newName, onCreated, onChanged }: Pr
   }, [dashboardId])
 
   useEffect(() => () => clearTimeout(timer.current), [])
+
+  useEffect(() => {
+    if (!dashboardId) {
+      setCharts(null)
+      return
+    }
+    let cancelled = false
+    getDashboard(dashboardId)
+      .then((d) => !cancelled && setCharts(d.charts))
+      .catch(() => !cancelled && setCharts(null))
+    return () => {
+      cancelled = true
+    }
+  }, [dashboardId, previewKey])
 
   const effectiveTitle = (title.trim() || suggested || 'Untitled chart').slice(0, 120)
 
@@ -135,14 +160,13 @@ export function SearchBuilder({ dashboardId, newName, onCreated, onChanged }: Pr
           const next = { ...link, vizId: res.vizId, title: tileTitle }
           linkedRef.current = next
           setLinked(next)
-          setSession((s) => s.map((t) => (t.vizId === link.vizId ? { vizId: res.vizId, title: tileTitle } : t)))
+          setPinnedHere((p) => [...p.filter((v) => v !== link.vizId), res.vizId])
         }
         syncedAnswer.current = key
         if (tileTitle !== link.title && how === 'in-place') {
           const next = { ...link, title: tileTitle }
           linkedRef.current = next
           setLinked(next)
-          setSession((s) => s.map((t) => (t.vizId === link.vizId ? { ...t, title: tileTitle } : t)))
         }
         setSync({ kind: 'synced', at: new Date(), how })
         setPreviewKey((k) => k + 1)
@@ -197,7 +221,7 @@ export function SearchBuilder({ dashboardId, newName, onCreated, onChanged }: Pr
       linkedRef.current = link
       setLinked(link)
       setTitle(tileTitle)
-      setSession((s) => [{ vizId: res.vizId, title: tileTitle }, ...s])
+      setPinnedHere((p) => [...p, res.vizId])
       setSync({ kind: 'synced', at: new Date(), how: 'in-place' })
       if (!dashboardId) onCreated(res.liveboardId)
       else setPreviewKey((k) => k + 1)
@@ -207,6 +231,34 @@ export function SearchBuilder({ dashboardId, newName, onCreated, onChanged }: Pr
       setPinError((err as Error).message || 'Pinning didn’t work. Try again.')
     } finally {
       setPinning(false)
+    }
+  }
+
+  /** Takes a chart off the dashboard; through TML, or the preview's own Remove without the privilege. */
+  const remove = async (vizId: string) => {
+    if (!dashboardId) return
+    setRemoving(vizId)
+    setRemoveError(null)
+    try {
+      try {
+        await removeTile(dashboardId, vizId)
+      } catch (err) {
+        if (!(err instanceof DashboardError) || (err.status !== 403 && err.status !== 400)) throw err
+        const preview = previewRef.current as PreviewRef | null
+        if (!preview) throw err
+        await preview.trigger(HostEvent.Remove, { vizId } as never, ContextType.Liveboard)
+      }
+      if (linkedRef.current?.vizId === vizId) unlink()
+      setPinnedHere((p) => p.filter((v) => v !== vizId))
+      setCharts((c) => c?.filter((x) => x.id !== vizId) ?? null)
+      setPreviewKey((k) => k + 1)
+      onChanged()
+    } catch (err) {
+      console.error('Removing the chart failed', err)
+      setRemoveError((err as Error).message || 'The chart couldn’t be removed.')
+    } finally {
+      setRemoving(null)
+      setConfirmRemove(null)
     }
   }
 
@@ -260,9 +312,11 @@ export function SearchBuilder({ dashboardId, newName, onCreated, onChanged }: Pr
             ref={searchRef}
             frameParams={SEARCH_FRAME}
             dataSource={RETAIL_MODEL_ID}
-            hideDataSources
             useLastSelectedSources={false}
+            collapseDataPanel={false}
             hiddenActions={SEARCH_HIDDEN_ACTIONS}
+            disabledActions={SEARCH_DISABLED_ACTIONS}
+            disabledActionReason="Studio always uses the Retail Sales model"
             onLoad={onLoad}
             onQueryChanged={onSearchChanged}
             onData={onSearchChanged}
@@ -335,16 +389,52 @@ export function SearchBuilder({ dashboardId, newName, onCreated, onChanged }: Pr
               {pinError}
             </p>
           )}
-          {session.length > 1 && (
+          {!!charts?.length && (
             <div className="pin-session">
-              <span className="mono-label">Pinned this visit · {session.length}</span>
+              <span className="mono-label">On this dashboard · {charts.length}</span>
               <ul>
-                {session.map((t) => (
-                  <li key={t.vizId} className={t.vizId === linked?.vizId ? 'is-linked' : undefined}>
-                    {t.title}
-                  </li>
-                ))}
+                {charts.map((c) => {
+                  const isLinked = c.id === linked?.vizId
+                  const isNew = !isLinked && pinnedHere.includes(c.id)
+                  return (
+                    <li key={c.id} className={isLinked ? 'is-linked' : undefined}>
+                      <span className="pin-chart-name" title={c.name}>
+                        {c.name}
+                      </span>
+                      {isLinked && <span className="pin-chart-tag">Live</span>}
+                      {isNew && <span className="pin-chart-tag is-new">New</span>}
+                      {confirmRemove === c.id ? (
+                        <button
+                          type="button"
+                          className="pin-chart-remove is-confirm"
+                          disabled={removing === c.id}
+                          onClick={() => void remove(c.id)}
+                          onBlur={() => removing !== c.id && setConfirmRemove(null)}
+                          autoFocus
+                        >
+                          {removing === c.id ? 'Removing…' : 'Remove?'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="pin-chart-remove"
+                          onClick={() => setConfirmRemove(c.id)}
+                          disabled={!!removing}
+                          aria-label={`Remove ${c.name} from the dashboard`}
+                          title="Remove from the dashboard"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
+              {removeError && (
+                <p className="pin-error" role="alert">
+                  {removeError}
+                </p>
+              )}
             </div>
           )}
         </section>

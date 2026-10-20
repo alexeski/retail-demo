@@ -22,13 +22,13 @@ Signed-in users can build their own dashboards (Liveboards) on the Retail Sales 
 - **`/dashboards`**: the user's own dashboards (created by them and still theirs, newest first), plus the two ways to start one. Each card opens the dashboard, opens it in Studio, or deletes it.
 - **`/dashboards/:id`**: one dashboard, embedded and fully interactive, with Shuttle Highlights, PDF download and Ask Shuttle questions taken from its tiles.
 - **`/studio?mode=search|ai&dashboard=<id>`**: the builder, for a new dashboard (no `dashboard`) or one of the user's own.
-  - **Search**: an embedded Search, the pin panel, and a live preview of the dashboard. The first pin creates the dashboard (`HostEvent.Pin` with `newLiveboardName`). A pinned tile stays *linked*: each later edit to the search (query, chart type) updates that same tile after a short pause, and the preview reloads. ThoughtSpot always pins a copy, so the link is Storeloom's: the server swaps the tile's answer for Search's current TML in place, keeping its position and size (`POST /api/dashboards/:id/tiles/:vizId`). If the account can't import TML, Studio pins a fresh copy and removes the previous one instead.
+  - **Search**: an embedded Search with its column panel (pick columns or type; the source can't be changed), the pin panel, and a live preview of the dashboard. The pin panel lists the dashboard's charts, each with a remove button. The first pin creates the dashboard (`HostEvent.Pin` with `newLiveboardName`). A pinned tile stays *linked*: each later edit to the search (query, chart type) updates that same tile after a short pause, and the preview reloads. ThoughtSpot always pins a copy, so the link is Storeloom's: the server swaps the tile's answer for Search's current TML in place, keeping its position and size (`POST /api/dashboards/:id/tiles/:vizId`). If the account can't import TML, Studio pins a fresh copy and removes the previous one instead.
   - **Shuttle**: SpotterViz, branded as Shuttle, in the dashboard's edit mode. A new dashboard starts from a brief: a hidden Search pins a "Sales · last 12 months" tile to create it, then the brief goes to Shuttle as the first message. Save and Done sit in the Studio bar.
 
-Server side (`server/dashboards.ts`), every route checks that the signed-in user owns the dashboard. ThoughtSpot needs:
+Dashboard titles rename in place (✎) on the dashboard page and in Studio. Server side (`server/dashboards.ts`), every route checks that the signed-in user is the dashboard's author (ThoughtSpot's `owner` header field is the object's own GUID); updating, removing a chart and renaming all round-trip the dashboard's TML. ThoughtSpot needs:
 
 - **SpotterViz** enabled on the cluster (Early Access: ask ThoughtSpot Support) for Shuttle mode.
-- For in-place tile updates, **Can download data** (TML export) and **Can manage data** (TML import). Without them the re-pin fallback applies.
+- For in-place tile updates, removing charts and renaming, **Can download data** (TML export) and **Can manage data** (TML import). Without them, updates and removals fall back to the embed's own Pin and Remove, and renaming isn't available.
 
 ## Demo controls (`/config`)
 
