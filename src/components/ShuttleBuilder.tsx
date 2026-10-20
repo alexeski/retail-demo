@@ -56,7 +56,9 @@ const SHUTTLE_BRIEFS = [
 
 const SPOTTER_VIZ: SpotterVizConfig = {
   brandName: 'Shuttle',
-  brandHeadline: 'Hi! I’m',
+  // This cluster's welcome screen shows the headline but not brandName after it
+  // (brandName still labels the toolbar button), so the name goes in the headline.
+  brandHeadline: 'Hi! I’m Shuttle',
   description: 'Tell me what this dashboard should show. I’ll build the charts from your Retail Sales data, and refine them as we go.',
   inputChatPlaceholder: 'Describe a chart, or a change to one…',
   loaderHeadline: 'Weaving your dashboard…',
