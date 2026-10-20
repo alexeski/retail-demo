@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { HostEvent } from '@thoughtspot/visual-embed-sdk'
 import { LiveboardEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
@@ -6,7 +6,8 @@ import { AskShuttleBar } from '../components/AskShuttleBar'
 import { useShuttle } from '../components/Shuttle'
 import { EditableTitle } from '../components/EditableTitle'
 import { formatEdited, getDashboard, renameDashboard, tileCount, type Dashboard } from '../dashboards'
-import { HIDDEN_BRANDED_ACTIONS, WITH_LIVEBOARD_HEADER } from '../thoughtspot'
+import { chartMenu, EDIT_CHART, PINNED_CHART_HIDDEN_ACTIONS, pickedChartAction } from '../chartActions'
+import { WITH_LIVEBOARD_HEADER } from '../thoughtspot'
 import './Dashboards.css'
 
 /** Three starter questions for Shuttle, from the dashboard's own tiles. */
@@ -42,6 +43,20 @@ export function DashboardView() {
 
   // Stable for the SDK's React wrapper, which re-creates the embed on a new handler.
   const onRendered = useCallback(() => setRendered(true), [])
+
+  // Charts are edited in Studio, which keeps them linked; ThoughtSpot's own Edit is hidden.
+  const menu = useMemo(() => chartMenu(id, { edit: 'Edit in Studio' }), [id])
+  // Read through a ref: a new handler would make the SDK's wrapper re-create the embed.
+  const chartsRef = useRef<Dashboard['charts']>([])
+  chartsRef.current = dashboard?.charts ?? []
+  const onChartAction = useCallback(
+    (payload: unknown) => {
+      const picked = pickedChartAction(payload, chartsRef.current)
+      if (picked?.action === EDIT_CHART) navigate(`/studio?mode=search&dashboard=${id}&edit=${picked.vizId}`)
+      else console.warn('Unrecognised chart action', payload)
+    },
+    [id, navigate],
+  )
 
   const { ask, streaming } = useShuttle()
   const askShuttle = (question: string) =>
@@ -143,7 +158,9 @@ export function DashboardView() {
                   key={id}
                   ref={embedRef}
                   liveboardId={id}
-                  hiddenActions={HIDDEN_BRANDED_ACTIONS}
+                  hiddenActions={PINNED_CHART_HIDDEN_ACTIONS}
+                  customActions={menu}
+                  onCustomAction={onChartAction}
                   updatedSpotterChatPrompt
                   // ThoughtSpot's own header carries this dashboard's filters and tabs;
                   // Storeloom shows the title above.

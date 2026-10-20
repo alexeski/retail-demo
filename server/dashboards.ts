@@ -13,7 +13,10 @@ import { ClusterIdleError, sessionUserRecord, ThoughtSpotError, tsRest } from '.
  * - DELETE /:id                  deletes it;
  * - POST   /:id/tiles/:vizId     replaces a tile's answer in place (the builder's live
  *                                link), keeping its position, size and title;
- * - DELETE /:id/tiles/:vizId     removes a tile.
+ * - DELETE /:id/tiles/:vizId     removes a tile;
+ * - POST   /:id/tiles/:vizId/draft  copies a tile into a draft Answer, so Search can
+ *                                open it with its chart settings for editing;
+ * - DELETE /drafts/:answerId     deletes a draft once editing ends.
  *
  * Changes to a dashboard round-trip its TML (export, edit, import), which needs
  * the "Can download data" and "Can manage data" privileges. Without them these
@@ -34,7 +37,7 @@ type SearchHit = {
   metadata_id: string
   metadata_name: string
   metadata_header?: Header
-  visualization_headers?: { id: string; name?: string }[]
+  visualization_headers?: { id: string; name?: string; created?: number }[]
 }
 
 export type Dashboard = {
@@ -45,7 +48,7 @@ export type Dashboard = {
   modified: number | null
   tiles: number
   /** Its charts and tables, in the Liveboard's order. */
-  charts: { id: string; name: string }[]
+  charts: { id: string; name: string; created: number | null }[]
 }
 
 const toDashboard = (hit: SearchHit): Dashboard => ({
@@ -55,7 +58,7 @@ const toDashboard = (hit: SearchHit): Dashboard => ({
   created: hit.metadata_header?.created ?? null,
   modified: hit.metadata_header?.modified ?? null,
   tiles: hit.visualization_headers?.length ?? 0,
-  charts: (hit.visualization_headers ?? []).map((v) => ({ id: v.id, name: v.name ?? 'Untitled chart' })),
+  charts: (hit.visualization_headers ?? []).map((v) => ({ id: v.id, name: v.name ?? 'Untitled chart', created: v.created ?? null })),
 })
 
 /**
@@ -67,6 +70,9 @@ const ownedBy = (hit: SearchHit, userId: string) => hit.metadata_header?.author 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 class NotOwnedError extends Error {}
+
+/** A tile that isn't a Search chart (a Shuttle insight, a note): Search can't open it. */
+class NotAChartError extends Error {}
 
 /** The Liveboard if the session's user owns it; NotOwnedError otherwise (also for unknown IDs). */
 async function ownedDashboard(session: Session, id: string): Promise<SearchHit> {
@@ -91,6 +97,7 @@ async function ownedDashboard(session: Session, id: string): Promise<SearchHit> 
 /** Sends the right status for a failed call, logged with `what` for the server output. */
 function fail(res: Response, what: string, err: unknown) {
   if (err instanceof NotOwnedError) return res.status(404).json({ error: 'not-found' })
+  if (err instanceof NotAChartError) return res.status(422).json({ error: 'not-a-chart' })
   if (err instanceof ClusterIdleError) return res.status(503).json({ error: 'cluster-idle' })
   if (err instanceof ThoughtSpotError) {
     if (err.status === 401) return res.status(401).json({ error: 'signed-out' })
@@ -112,15 +119,17 @@ type LiveboardTml = {
   liveboard: {
     name: string
     description?: string
-    visualizations?: { id: string; viz_guid?: string; answer: { name?: string } & Record<string, unknown> }[]
+    /** Search charts carry an `answer`; SpotterViz insight tiles (`ai_tile`) and notes don't. */
+    visualizations?: { id: string; viz_guid?: string; answer?: { name?: string } & Record<string, unknown> }[]
     layout?: { tiles?: TileRef[]; tabs?: { tiles?: TileRef[] }[] } & Record<string, unknown>
   } & Record<string, unknown>
 }
 
-type ImportResult = { response?: { status?: { status_code?: string; error_message?: string } } }[]
+type ImportResult = { response?: unknown }[]
 
-/** Exports dashboard `id` as TML, lets `edit` change it, and imports the result over the original. */
-async function editTml(session: Session, id: string, edit: (tml: LiveboardTml) => void) {
+type ImportResponse = { status?: { status_code?: string; error_message?: string }; header?: { id_guid?: string } }
+
+async function exportTml(session: Session, id: string) {
   const exported = await tsRest<{ edoc: string }[]>(session.token, 'POST', '/metadata/tml/export', {
     metadata: [{ identifier: id, type: 'LIVEBOARD' }],
     export_fqn: true,
@@ -128,13 +137,26 @@ async function editTml(session: Session, id: string, edit: (tml: LiveboardTml) =
   })
   const tml = JSON.parse(exported[0]?.edoc ?? '{}') as LiveboardTml
   if (!tml.liveboard) throw new ThoughtSpotError(502, `No TML came back for dashboard ${id}`)
-  edit(tml)
+  return tml
+}
+
+/** Imports one TML object; ThoughtSpot reports a rejected import with a 200 and an ERROR status. */
+async function importTml(session: Session, tml: unknown, createNew = false): Promise<ImportResponse> {
   const result = await tsRest<ImportResult>(session.token, 'POST', '/metadata/tml/import', {
     metadata_tmls: [JSON.stringify(tml)],
     import_policy: 'ALL_OR_NONE',
+    ...(createNew ? { create_new: true } : {}),
   })
-  const status = result[0]?.response?.status
-  if (status?.status_code === 'ERROR') throw new ThoughtSpotError(400, status.error_message ?? 'TML import rejected')
+  const response = (result[0]?.response ?? {}) as ImportResponse
+  if (response.status?.status_code === 'ERROR') throw new ThoughtSpotError(400, response.status.error_message ?? 'TML import rejected')
+  return response
+}
+
+/** Exports dashboard `id` as TML, lets `edit` change it, and imports the result over the original. */
+async function editTml(session: Session, id: string, edit: (tml: LiveboardTml) => void) {
+  const tml = await exportTml(session, id)
+  edit(tml)
+  await importTml(session, tml)
 }
 
 /** The tile with GUID `vizId`, or by title on releases whose export leaves `viz_guid` out. */
@@ -145,6 +167,13 @@ function findTile(tml: LiveboardTml, vizId: string, title?: string) {
   return tile
 }
 
+/** Like findTile, for a Search chart only. */
+function findChart(tml: LiveboardTml, vizId: string, title?: string) {
+  const tile = findTile(tml, vizId, title)
+  if (!tile.answer) throw new NotAChartError()
+  return tile as typeof tile & { answer: NonNullable<typeof tile.answer> }
+}
+
 /**
  * Re-points tile `vizId` at `answer` (the TML of the Search being edited).
  * Position, size and the tile's identity stay, so the dashboard reads as the
@@ -152,10 +181,15 @@ function findTile(tml: LiveboardTml, vizId: string, title?: string) {
  */
 const replaceTile = (session: Session, id: string, vizId: string, answer: Record<string, unknown>, title: string) =>
   editTml(session, id, (tml) => {
-    const tile = findTile(tml, vizId, title)
+    const tile = findChart(tml, vizId, title)
     // The answer TML from Search names its own GUID; on a Liveboard it has none.
-    const { guid: _guid, id: _id, ...rest } = answer
-    tile.answer = { ...rest, name: title }
+    // A tile opened for editing comes back with its draft's description, which
+    // is Studio's marker, not the tile's: keep the tile's own instead. Always
+    // written out: a description missing from the TML leaves the old one in place.
+    const { guid: _guid, id: _id, description, ...rest } = answer as Record<string, unknown> & { description?: string }
+    const own = tile.answer.description as string | undefined
+    const kept = (isDraft(description) ? own : description) ?? ''
+    tile.answer = { ...rest, name: title, description: isDraft(kept) ? '' : kept }
   })
 
 /** Takes tile `vizId` off the dashboard, with its place in the layout (and in any tab's). */
@@ -179,6 +213,55 @@ const renameDashboard = (session: Session, id: string, name: string, description
       else delete tml.liveboard.description
     }
   })
+
+// ---------------------------------------------------------------------------
+// Drafts: editing a tile that's already on a dashboard
+// ---------------------------------------------------------------------------
+
+// Search can only open a *saved* Answer with its chart settings, and a tile on a
+// Liveboard isn't one. So editing a tile copies it into a private draft Answer,
+// which Search opens; the live link then writes edits back to the tile. Drafts
+// are deleted when editing ends, and any left behind (a closed tab) are swept
+// the next time the user opens a tile.
+//
+// A draft keeps the tile's title, since Search shows it. Its description, also
+// shown, marks it as a draft: only Answers the user wrote with exactly this
+// description are ever deleted here.
+
+const DRAFT_DESCRIPTION = 'Editing in Studio · changes go straight to the dashboard'
+/** Drafts made before the description above (named "Studio draft · <title>"). */
+const LEGACY_DRAFT_DESCRIPTION = 'Storeloom Studio: a working copy of a dashboard tile. Deleted when editing ends.'
+const isDraft = (description?: string) => description === DRAFT_DESCRIPTION || description === LEGACY_DRAFT_DESCRIPTION
+const DRAFT_MAX_AGE_MS = 2 * 60 * 60 * 1000
+
+async function createDraft(session: Session, id: string, vizId: string) {
+  const tml = await exportTml(session, id)
+  const tile = findChart(tml, vizId)
+  const title = tile.answer.name || 'Untitled chart'
+  const response = await importTml(session, { answer: { ...tile.answer, name: title, description: DRAFT_DESCRIPTION } }, true)
+  const answerId = response.header?.id_guid
+  if (!answerId) throw new ThoughtSpotError(502, 'The draft Answer came back without an ID')
+  return { answerId, title }
+}
+
+/** The user's drafts: Answers they wrote with the draft description (and only those). */
+async function drafts(session: Session, userId: string, identifier?: string) {
+  const hits = await tsRest<SearchHit[]>(session.token, 'POST', '/metadata/search', {
+    metadata: [identifier ? { identifier, type: 'ANSWER' } : { type: 'ANSWER' }],
+    ...(identifier ? {} : { created_by_user_identifiers: [session.username], sort_options: { field_name: 'MODIFIED', order: 'DESC' } }),
+    record_size: identifier ? 1 : 200,
+  }).catch(() => [] as SearchHit[])
+  return hits.filter((h) => ownedBy(h, userId) && isDraft(h.metadata_header?.description))
+}
+
+const deleteAnswers = (session: Session, ids: string[]) =>
+  ids.length ? tsRest(session.token, 'POST', '/metadata/delete', { metadata: ids.map((identifier) => ({ identifier, type: 'ANSWER' })) }) : Promise.resolve()
+
+/** Best effort: drafts older than DRAFT_MAX_AGE_MS that a closed tab left behind. */
+async function sweepDrafts(session: Session, userId: string) {
+  const stale = (await drafts(session, userId)).filter((d) => (d.metadata_header?.modified ?? 0) < Date.now() - DRAFT_MAX_AGE_MS)
+  await deleteAnswers(session, stale.map((d) => d.metadata_id)).catch((err) => console.warn('Sweeping Studio drafts failed', err))
+}
 
 export function dashboardsApi() {
   const api = express.Router()
@@ -216,6 +299,21 @@ export function dashboardsApi() {
       res.json({ dashboard: toDashboard(await ownedDashboard(session, String(req.params.id))) })
     } catch (err) {
       fail(res, 'Reading a dashboard', err)
+    }
+  })
+
+  api.delete('/drafts/:answerId', async (req: Request, res: Response) => {
+    const session = res.locals.session as Session
+    const answerId = String(req.params.answerId)
+    if (!GUID.test(answerId)) return res.status(404).json({ error: 'not-found' })
+    try {
+      const me = await sessionUserRecord(session.token)
+      const [draft] = await drafts(session, me.id, answerId)
+      if (!draft) return res.status(404).json({ error: 'not-found' })
+      await deleteAnswers(session, [draft.metadata_id])
+      res.status(204).end()
+    } catch (err) {
+      fail(res, `Deleting draft ${answerId}`, err)
     }
   })
 
@@ -258,6 +356,20 @@ export function dashboardsApi() {
       res.status(204).end()
     } catch (err) {
       fail(res, `Updating tile ${vizId} on ${id}`, err)
+    }
+  })
+
+  api.post('/:id/tiles/:vizId/draft', async (req: Request, res: Response) => {
+    const session = res.locals.session as Session
+    const id = String(req.params.id)
+    const vizId = String(req.params.vizId)
+    try {
+      await ownedDashboard(session, id)
+      const draft = await createDraft(session, id, vizId)
+      res.json(draft)
+      void sessionUserRecord(session.token).then((me) => sweepDrafts(session, me.id)).catch(() => {})
+    } catch (err) {
+      fail(res, `Opening tile ${vizId} on ${id} for editing`, err)
     }
   })
 

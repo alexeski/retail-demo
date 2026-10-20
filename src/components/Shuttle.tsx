@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import { applyEvent, createConversation, finishTurn, newTurn, stopResponse, streamMessage, type Turn } from '../spotter'
 import { rebrand } from '../brand'
 import type { StoreSelection } from '../storeActions'
@@ -59,6 +60,11 @@ export function useShuttle() {
  */
 export function ShuttleProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
+  const inStudio = useLocation().pathname.startsWith('/studio')
+  // Studio has no launcher: close a conversation left open on the way in.
+  useEffect(() => {
+    if (inStudio) setIsOpen(false)
+  }, [inStudio])
   const [drawerText, setDrawerText] = useState('')
   const [items, setItems] = useState<ChatItem[]>([])
   const [streaming, setStreaming] = useState(false)
@@ -235,13 +241,15 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
     <ShuttleContext.Provider value={{ ask, open: () => setIsOpen(true), streaming }}>
       {children}
 
-      {/* Launcher, available on every signed-in page. */}
+      {/* Launcher, on every signed-in page but Studio, whose Search drawer and
+          SpotterViz panel would compete with it. */}
       <button
         type="button"
-        className={['shuttle-fab', isOpen && 'is-hidden', streaming && 'is-busy', unread && 'has-unread'].filter(Boolean).join(' ')}
+        className={['shuttle-fab', (isOpen || inStudio) && 'is-hidden', streaming && 'is-busy', unread && 'has-unread'].filter(Boolean).join(' ')}
         onClick={() => setIsOpen(true)}
         aria-label="Open Shuttle, your stores' assistant"
-        tabIndex={isOpen ? -1 : 0}
+        aria-hidden={inStudio}
+        tabIndex={isOpen || inStudio ? -1 : 0}
       >
         <span className="shuttle-fab-mark" aria-hidden>
           <span />

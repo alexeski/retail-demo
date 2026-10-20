@@ -24,6 +24,7 @@ export function Studio() {
   const [params, setParams] = useSearchParams()
   const mode: Mode = params.get('mode') === 'ai' ? 'ai' : 'search'
   const dashboardId = params.get('dashboard')
+  const editVizId = params.get('edit')
   const [dashboards, setDashboards] = useState<Dashboard[] | null>(null)
   const [listError, setListError] = useState(false)
   const [newName, setNewName] = useState('')
@@ -92,6 +93,20 @@ export function Studio() {
     setCreated((c) => (renamed.id in c ? { ...c, [renamed.id]: renamed.name } : c))
     setRenamedAt(Date.now())
   }
+
+  // ?edit=<vizId> opens a chart once; drop it so a reload doesn't reopen it.
+  const onEditOpened = useCallback(
+    () =>
+      setParams(
+        (p) => {
+          const next = new URLSearchParams(p)
+          next.delete('edit')
+          return next
+        },
+        { replace: true },
+      ),
+    [setParams],
+  )
 
   const onDone = useCallback((id: string) => navigate(`/dashboards/${id}`), [navigate])
 
@@ -179,7 +194,14 @@ export function Studio() {
           <p>Studio only edits dashboards you created. Pick one of yours above, or start a new one.</p>
         </div>
       ) : mode === 'search' ? (
-        <SearchBuilder dashboardId={dashboardId} newName={newName} onCreated={onCreated} onChanged={refresh} />
+        <SearchBuilder
+          dashboardId={dashboardId}
+          newName={newName}
+          editVizId={editVizId}
+          onCreated={onCreated}
+          onChanged={refresh}
+          onEditOpened={onEditOpened}
+        />
       ) : (
         <ShuttleBuilder reloadKey={renamedAt} dashboardId={dashboardId} newName={newName} onCreated={onCreated} onChanged={refresh} onDirtyChange={setDirty} onDone={onDone} />
       )}

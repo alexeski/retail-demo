@@ -3,6 +3,7 @@ import { Action, ContextType, HostEvent } from '@thoughtspot/visual-embed-sdk'
 import { LiveboardEmbed, SearchEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
 import type { SpotterVizConfig } from '@thoughtspot/visual-embed-sdk'
 import { HIDDEN_BRANDED_ACTIONS, RETAIL_MODEL_ID, WITH_LIVEBOARD_HEADER } from '../thoughtspot'
+import { useFillHeight } from '../useFillHeight'
 
 // Studio's Shuttle mode: SpotterViz, ThoughtSpot's AI dashboard agent, branded as
 // Shuttle. SpotterViz lives in a Liveboard's edit mode, so the dashboard has to
@@ -209,6 +210,8 @@ function ShuttleCanvas({
   onDone: (id: string) => void
 }) {
   const embedRef = useEmbedRef<typeof LiveboardEmbed>()
+  // Down to the bottom of the window, below the frame's border and padding.
+  const [canvasRef, canvasHeight] = useFillHeight<HTMLDivElement>(560, 40)
   const [phase, setPhase] = useState<Phase>('opening')
   const [prompt, setPrompt] = useState('')
   const [turns, setTurns] = useState(0)
@@ -331,7 +334,7 @@ function ShuttleCanvas({
         <div className="dash-frame">
           {/* A fixed, viewport-tall frame (not full height): the Shuttle panel lives
               inside it, and its chat box has to stay on screen. */}
-          <div className="shuttle-canvas">
+          <div className="shuttle-canvas" ref={canvasRef} style={{ height: canvasHeight }}>
             <LiveboardEmbed
               ref={embedRef}
               liveboardId={dashboardId}

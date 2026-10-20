@@ -12,7 +12,7 @@ export type Dashboard = {
   /** Number of charts and tables on it. */
   tiles: number
   /** Its charts and tables, in the dashboard's order. */
-  charts: { id: string; name: string }[]
+  charts: { id: string; name: string; created: number | null }[]
 }
 
 export class DashboardError extends Error {
@@ -21,7 +21,9 @@ export class DashboardError extends Error {
 
   constructor(status: number, code: string) {
     super(
-      status === 404
+      code === 'not-a-chart'
+        ? 'That tile is a Shuttle insight, not a Search chart: edit it with Shuttle instead.'
+        : status === 404
         ? 'That dashboard doesn’t exist, or it isn’t yours.'
         : status === 403
           ? 'Your account isn’t allowed to do that.'
@@ -58,6 +60,13 @@ export const renameDashboard = (id: string, name: string) =>
 
 /** Takes a chart off the dashboard. */
 export const removeTile = (id: string, vizId: string) => call<void>(`/${id}/tiles/${vizId}`, { method: 'DELETE' })
+
+/** Copies a tile into a draft Answer that Search can open for editing. */
+export const openDraft = (id: string, vizId: string) => call<{ answerId: string; title: string }>(`/${id}/tiles/${vizId}/draft`, { method: 'POST' })
+
+/** Deletes a draft once editing ends; `keepalive` lets it finish as the page unloads. */
+export const deleteDraft = (answerId: string, keepalive = false) =>
+  fetch(`/api/dashboards/drafts/${answerId}`, { method: 'DELETE', keepalive }).catch(() => {})
 
 /** Re-points a pinned tile at `answer` (Search's current TML), in place. */
 export const replaceTile = (id: string, vizId: string, answer: unknown, title: string) =>
