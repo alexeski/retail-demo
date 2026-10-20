@@ -1,17 +1,25 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Action, ContextType, HostEvent } from '@thoughtspot/visual-embed-sdk'
 import { LiveboardEmbed, SearchEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
 import type { SpotterVizConfig } from '@thoughtspot/visual-embed-sdk'
-import { HIDDEN_BRANDED_ACTIONS, RETAIL_MODEL_ID, WITH_LIVEBOARD_HEADER } from '../thoughtspot'
+import { HIDDEN_BRANDED_ACTIONS, RETAIL_MODEL_ID, RETAIL_MODEL_NAME, WITH_LIVEBOARD_HEADER } from '../thoughtspot'
 import { useFillHeight } from '../useFillHeight'
 
 // Studio's Shuttle mode: SpotterViz, ThoughtSpot's AI dashboard agent, branded as
-// Shuttle. SpotterViz lives in a Liveboard's edit mode, so the dashboard has to
-// exist first. A new one starts from a "Sales · last 12 months" tile pinned from
-// a hidden Search on the Retail Sales model: that creates the dashboard with no
-// extra privileges, and ties it to the same model SpotterViz then builds on.
+// Shuttle, in the dashboard's edit mode. Its own toolbar carries Save and
+// Cancel, and its panel the chat.
+//
+// The SDK has no setting for SpotterViz's data source: it works from the data
+// sources of the charts already on the dashboard. So Studio makes sure there is
+// always one on the Retail Sales model: a new (or empty) dashboard first gets a
+// "Sales · last 12 months" tile, pinned from a hidden Search on that model. Every
+// prompt Studio sends also names the model.
 
-/** Ready-made briefs: one click fills the brief, or sends it to Shuttle. */
+/** Appended to every prompt Studio sends, so Shuttle never reaches for another model. */
+const MODEL_INSTRUCTION = `Use only the "${RETAIL_MODEL_NAME}" model.`
+const withModel = (prompt: string) => `${prompt.trim()} ${MODEL_INSTRUCTION}`
+
+/** Ready-made briefs: one click fills the brief; they're also the panel's starter prompts. */
 const SHUTTLE_BRIEFS = [
   {
     id: 'exec',
@@ -54,7 +62,7 @@ const SPOTTER_VIZ: SpotterVizConfig = {
   insightTileBrandName: 'Shuttle insight',
   insightTileViewPlanLabel: 'How Shuttle built this',
   insightTileLoaderText: 'Shuttle is working…',
-  customStarterPrompts: SHUTTLE_BRIEFS.map((b) => ({ id: b.id, displayText: b.label, fullPrompt: b.prompt })),
+  customStarterPrompts: SHUTTLE_BRIEFS.map((b) => ({ id: b.id, displayText: b.label, fullPrompt: withModel(b.prompt) })),
 }
 
 /** SpotterViz is the point of this view: everything else stays as on Insights. */
@@ -65,10 +73,10 @@ const SEED_TITLE = 'Sales · last 12 months'
 const SEED_FRAME = { height: '600px', width: '900px' }
 const CANVAS_FRAME = { height: '100%', width: '100%' }
 
-type Phase = 'opening' | 'editing' | 'thinking' | 'draft' | 'saving' | 'saved' | 'error'
-
 type Props = {
   dashboardId: string | null
+  /** Charts on it, once known: an empty dashboard gets the starter tile first. */
+  tiles: number | null
   /** A change reloads the dashboard (after a rename made outside the embed). */
   reloadKey: number
   newName: string
@@ -76,14 +84,81 @@ type Props = {
   onChanged: () => void
   /** Unsaved SpotterViz work, so Studio can warn before leaving. */
   onDirtyChange: (dirty: boolean) => void
-  onDone: (id: string) => void
 }
 
-export function ShuttleBuilder({ dashboardId, reloadKey, newName, onCreated, onChanged, onDirtyChange, onDone }: Props) {
-  return dashboardId ? (
-    <ShuttleCanvas key={`${dashboardId}:${reloadKey}`} dashboardId={dashboardId} onChanged={onChanged} onDirtyChange={onDirtyChange} onDone={onDone} />
-  ) : (
-    <ShuttleBrief newName={newName} onCreated={onCreated} />
+export function ShuttleBuilder({ dashboardId, tiles, reloadKey, newName, onCreated, onChanged, onDirtyChange }: Props) {
+  /** Dashboards that got their starter tile in this visit (the list may lag behind). */
+  const [seeded, setSeeded] = useState<string[]>([])
+  if (!dashboardId) return <ShuttleBrief newName={newName} onCreated={onCreated} />
+  if (tiles === 0 && !seeded.includes(dashboardId)) {
+    return (
+      <StarterTile
+        target={{ liveboardId: dashboardId }}
+        onPinned={() => {
+          setSeeded((s) => [...s, dashboardId])
+          onChanged()
+        }}
+        onFailed={() => setSeeded((s) => [...s, dashboardId])}
+      >
+        <div className="studio-blocked mono-label">Setting this dashboard up on the Retail Sales model…</div>
+      </StarterTile>
+    )
+  }
+  return <ShuttleCanvas key={`${dashboardId}:${reloadKey}`} dashboardId={dashboardId} onChanged={onChanged} onDirtyChange={onDirtyChange} />
+}
+
+/**
+ * Pins the starter tile from a Search that runs off screen (it has to render for
+ * the pin to work): into a new dashboard (`newLiveboardName`) or an existing one.
+ */
+function StarterTile({
+  target,
+  onPinned,
+  onFailed,
+  children,
+}: {
+  target: { liveboardId: string } | { newLiveboardName: string }
+  onPinned: (liveboardId: string) => void
+  onFailed: (err: unknown) => void
+  children?: ReactNode
+}) {
+  const seedRef = useEmbedRef<typeof SearchEmbed>()
+  const pinnedOnce = useRef(false)
+  // Read at pin time; the handler itself must stay stable for the SDK's wrapper.
+  const latest = useRef({ target, onPinned, onFailed })
+  latest.current = { target, onPinned, onFailed }
+
+  const onSeedData = useCallback(async () => {
+    const seed = seedRef.current
+    if (!seed || pinnedOnce.current) return
+    pinnedOnce.current = true
+    const { target, onPinned, onFailed } = latest.current
+    try {
+      const res = (await seed.trigger(HostEvent.Pin, { newVizName: SEED_TITLE, ...target } as never, ContextType.Search)) as unknown
+      const r = ((res as { data?: unknown })?.data ?? res) as { liveboardId?: string }
+      if (!r?.liveboardId) throw new Error('No dashboard ID came back.')
+      onPinned(r.liveboardId)
+    } catch (err) {
+      console.error('Pinning the starter tile failed', err)
+      onFailed(err)
+    }
+  }, [seedRef])
+
+  return (
+    <>
+      {children}
+      <div className="seed-search" aria-hidden>
+        <SearchEmbed
+          ref={seedRef}
+          frameParams={SEED_FRAME}
+          dataSource={RETAIL_MODEL_ID}
+          hideDataSources
+          useLastSelectedSources={false}
+          searchOptions={SEED_SEARCH}
+          onData={onSeedData}
+        />
+      </div>
+    </>
   )
 }
 
@@ -95,39 +170,13 @@ function ShuttleBrief({ newName, onCreated }: { newName: string; onCreated: (id:
   const [brief, setBrief] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const seedRef = useEmbedRef<typeof SearchEmbed>()
-  const pinnedOnce = useRef(false)
-  const nameRef = useRef(newName)
-  nameRef.current = newName
-  const briefRef = useRef(brief)
-  briefRef.current = brief
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!brief.trim() || creating) return
-    pinnedOnce.current = false
     setError(null)
     setCreating(true)
   }
-
-  // The hidden Search has run the starter query: pin it into a new dashboard.
-  const onSeedData = useCallback(async () => {
-    const seed = seedRef.current
-    if (!seed || pinnedOnce.current) return
-    pinnedOnce.current = true
-    try {
-      const name = nameRef.current.trim() || 'Untitled dashboard'
-      const res = (await seed.trigger(HostEvent.Pin, { newVizName: SEED_TITLE, newLiveboardName: name } as never, ContextType.Search)) as unknown
-      const r = ((res as { data?: unknown })?.data ?? res) as { liveboardId?: string }
-      if (!r?.liveboardId) throw new Error('No dashboard ID came back.')
-      pendingBriefs.set(r.liveboardId, briefRef.current.trim())
-      onCreated(r.liveboardId)
-    } catch (err) {
-      console.error('Creating the dashboard failed', err)
-      setError('Storeloom couldn’t create the dashboard. Try again, or start it with Search.')
-      setCreating(false)
-    }
-  }, [seedRef, onCreated])
 
   return (
     <div className="builder is-shuttle">
@@ -180,18 +229,17 @@ function ShuttleBrief({ newName, onCreated }: { newName: string; onCreated: (id:
       </section>
 
       {creating && (
-        // Off-screen, but rendered: the Search has to run for the pin to work.
-        <div className="seed-search" aria-hidden>
-          <SearchEmbed
-            ref={seedRef}
-            frameParams={SEED_FRAME}
-            dataSource={RETAIL_MODEL_ID}
-            hideDataSources
-            useLastSelectedSources={false}
-            searchOptions={SEED_SEARCH}
-            onData={onSeedData}
-          />
-        </div>
+        <StarterTile
+          target={{ newLiveboardName: newName.trim() || 'Untitled dashboard' }}
+          onPinned={(id) => {
+            pendingBriefs.set(id, withModel(brief))
+            onCreated(id)
+          }}
+          onFailed={() => {
+            setError('Storeloom couldn’t create the dashboard. Try again, or start it with Search.')
+            setCreating(false)
+          }}
+        />
       )}
     </div>
   )
@@ -202,21 +250,16 @@ function ShuttleCanvas({
   dashboardId,
   onChanged,
   onDirtyChange,
-  onDone,
 }: {
   dashboardId: string
   onChanged: () => void
   onDirtyChange: (dirty: boolean) => void
-  onDone: (id: string) => void
 }) {
   const embedRef = useEmbedRef<typeof LiveboardEmbed>()
   // Down to the bottom of the window, below the frame's border and padding.
   const [canvasRef, canvasHeight] = useFillHeight<HTMLDivElement>(560, 40)
-  const [phase, setPhase] = useState<Phase>('opening')
-  const [prompt, setPrompt] = useState('')
-  const [turns, setTurns] = useState(0)
-  const [panelOpen, setPanelOpen] = useState(false)
-  const dirty = phase === 'draft' || phase === 'thinking'
+  /** Shuttle has changed the dashboard since it was last saved. */
+  const [dirty, setDirty] = useState(false)
 
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
   useEffect(() => () => onDirtyChange(false), [onDirtyChange])
@@ -230,8 +273,6 @@ function ShuttleCanvas({
   }, [embedRef])
 
   const onVizInit = useCallback(() => {
-    setPanelOpen(true)
-    setPhase((p) => (p === 'opening' ? 'editing' : p))
     // A brief from the new-dashboard form goes in as the first message.
     const brief = pendingBriefs.get(dashboardId)
     if (brief) {
@@ -240,96 +281,14 @@ function ShuttleCanvas({
     }
   }, [dashboardId, embedRef])
 
-  const onQuery = useCallback(() => {
-    setTurns((t) => t + 1)
-    setPhase('thinking')
-  }, [])
-  const onResponse = useCallback(() => setPhase('draft'), [])
-  const onVizError = useCallback(() => setPhase('error'), [])
-  const onVizClosed = useCallback(() => setPanelOpen(false), [])
+  const onResponse = useCallback(() => setDirty(true), [])
   const onSaved = useCallback(() => {
-    setPhase('saved')
+    setDirty(false)
     onChanged()
   }, [onChanged])
 
-  const send = (text: string) => {
-    if (!text.trim()) return
-    const embed = embedRef.current
-    if (!panelOpen) embed?.trigger(HostEvent.OpenSpotterVizPanel).catch(() => {})
-    embed?.trigger(HostEvent.SpotterVizSendUserMessage, { query: text.trim() } as never).catch(() => {})
-    setPrompt('')
-  }
-
-  const save = async () => {
-    setPhase('saving')
-    try {
-      await embedRef.current?.trigger(HostEvent.Save, {} as never, ContextType.Liveboard)
-      onSaved()
-    } catch (err) {
-      console.error('Saving the dashboard failed', err)
-      setPhase('error')
-    }
-  }
-
-  const status: Record<Phase, string> = {
-    opening: 'Opening the dashboard in edit mode…',
-    editing: 'Shuttle is ready · ask for charts on the right',
-    thinking: 'Shuttle is building…',
-    draft: `Draft · ${turns} ${turns === 1 ? 'request' : 'requests'} · not saved yet`,
-    saving: 'Saving…',
-    saved: 'Saved',
-    error: 'Something went wrong. Check the panel, then try again.',
-  }
-
   return (
     <div className="builder is-shuttle">
-      <section className="shuttle-bar" aria-label="Shuttle">
-        <div className={`pin-status is-${phase}`} aria-live="polite">
-          <span className="pin-status-dot" aria-hidden />
-          <span>{status[phase]}</span>
-        </div>
-        <form
-          className="shuttle-ask"
-          onSubmit={(e) => {
-            e.preventDefault()
-            send(prompt)
-          }}
-        >
-          <span className="shuttle-pill" aria-hidden />
-          <input value={prompt} placeholder="Ask Shuttle for a chart or a change…" onChange={(e) => setPrompt(e.target.value)} disabled={phase === 'opening'} />
-          <button type="submit" disabled={!prompt.trim() || phase === 'opening'} aria-label="Send to Shuttle">
-            →
-          </button>
-        </form>
-        <div className="shuttle-bar-actions">
-          {!panelOpen && phase !== 'opening' && (
-            <button type="button" className="btn-outline" onClick={() => embedRef.current?.trigger(HostEvent.OpenSpotterVizPanel).catch(() => {})}>
-              ✦ Open Shuttle
-            </button>
-          )}
-          <button type="button" className="btn-outline" onClick={() => void save()} disabled={phase === 'opening' || phase === 'saving' || phase === 'thinking'}>
-            {phase === 'saving' ? 'Saving…' : 'Save'}
-          </button>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => {
-              if (dirty && !window.confirm('Shuttle’s latest changes aren’t saved. Leave without saving?')) return
-              onDone(dashboardId)
-            }}
-          >
-            Done
-          </button>
-        </div>
-      </section>
-      <div className="shuttle-starters" aria-label="Quick requests">
-        {SHUTTLE_BRIEFS.map((b) => (
-          <button key={b.id} type="button" onClick={() => send(b.prompt)} disabled={phase === 'opening' || phase === 'thinking'} title={b.prompt}>
-            ✦ {b.label}
-          </button>
-        ))}
-      </div>
-
       <section className="dash-body is-flush">
         <div className="dash-frame">
           {/* A fixed, viewport-tall frame (not full height): the Shuttle panel lives
@@ -345,10 +304,7 @@ function ShuttleCanvas({
               frameParams={CANVAS_FRAME}
               onLiveboardRendered={onRendered}
               onSpotterVizInit={onVizInit}
-              onSpotterVizQueryTriggered={onQuery}
               onSpotterVizResponseComplete={onResponse}
-              onSpotterVizError={onVizError}
-              onSpotterVizClosed={onVizClosed}
               onSave={onSaved}
             />
           </div>

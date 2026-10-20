@@ -156,6 +156,11 @@ async function importTml(session: Session, tml: unknown, createNew = false): Pro
 async function editTml(session: Session, id: string, edit: (tml: LiveboardTml) => void) {
   const tml = await exportTml(session, id)
   edit(tml)
+  // An earlier build could write a draft's marker description onto a tile;
+  // any edit clears it. (Empty, not removed: a missing description changes nothing.)
+  for (const v of tml.liveboard.visualizations ?? []) {
+    if (v.answer && isDraft(v.answer.description as string | undefined)) v.answer.description = ''
+  }
   await importTml(session, tml)
 }
 

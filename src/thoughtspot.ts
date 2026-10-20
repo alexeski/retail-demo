@@ -18,6 +18,7 @@ export const REGION_LIVEBOARD_ID =
  * the KPIs use, and the only data source the dashboard builder offers.
  */
 export const RETAIL_MODEL_ID = '11e40743-9285-42bd-856d-3f81a755c4f6'
+export const RETAIL_MODEL_NAME = 'Industry Demo - Retail Sales'
 
 export type PlaceholderTile = { title: string; sub: string; kind: string; span: number; h: string }
 

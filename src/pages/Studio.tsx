@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { SearchBuilder } from '../components/SearchBuilder'
 import { ShuttleBuilder } from '../components/ShuttleBuilder'
 import { EditableTitle } from '../components/EditableTitle'
@@ -20,7 +20,6 @@ const MODES: { mode: Mode; icon: string; label: string; sub: string }[] = [
  * user's own dashboards are offered, and the data is always Retail Sales.
  */
 export function Studio() {
-  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const mode: Mode = params.get('mode') === 'ai' ? 'ai' : 'search'
   const dashboardId = params.get('dashboard')
@@ -108,7 +107,6 @@ export function Studio() {
     [setParams],
   )
 
-  const onDone = useCallback((id: string) => navigate(`/dashboards/${id}`), [navigate])
 
   return (
     <div className="studio">
@@ -203,7 +201,15 @@ export function Studio() {
           onEditOpened={onEditOpened}
         />
       ) : (
-        <ShuttleBuilder reloadKey={renamedAt} dashboardId={dashboardId} newName={newName} onCreated={onCreated} onChanged={refresh} onDirtyChange={setDirty} onDone={onDone} />
+        <ShuttleBuilder
+          reloadKey={renamedAt}
+          dashboardId={dashboardId}
+          tiles={current?.tiles ?? null}
+          newName={newName}
+          onCreated={onCreated}
+          onChanged={refresh}
+          onDirtyChange={setDirty}
+        />
       )}
     </div>
   )
