@@ -15,6 +15,21 @@ No ThoughtSpot browser session or third-party cookie is needed. Anyone who can r
 
 The Register (store code + PIN) sign-in signs in as `THOUGHTSPOT_REGISTER_USERNAME` when it is set.
 
+## Dashboards and Studio
+
+Signed-in users can build their own dashboards (Liveboards) on the Retail Sales model, the one the rest of the app uses. The model is fixed: Search hides its data-source picker, and Shuttle builds on dashboards that start from that model.
+
+- **`/dashboards`**: the user's own dashboards (created by them and still theirs, newest first), plus the two ways to start one. Each card opens the dashboard, opens it in Studio, or deletes it.
+- **`/dashboards/:id`**: one dashboard, embedded and fully interactive, with Shuttle Highlights, PDF download and Ask Shuttle questions taken from its tiles.
+- **`/studio?mode=search|ai&dashboard=<id>`**: the builder, for a new dashboard (no `dashboard`) or one of the user's own.
+  - **Search**: an embedded Search, the pin panel, and a live preview of the dashboard. The first pin creates the dashboard (`HostEvent.Pin` with `newLiveboardName`). A pinned tile stays *linked*: each later edit to the search (query, chart type) updates that same tile after a short pause, and the preview reloads. ThoughtSpot always pins a copy, so the link is Storeloom's: the server swaps the tile's answer for Search's current TML in place, keeping its position and size (`POST /api/dashboards/:id/tiles/:vizId`). If the account can't import TML, Studio pins a fresh copy and removes the previous one instead.
+  - **Shuttle**: SpotterViz, branded as Shuttle, in the dashboard's edit mode. A new dashboard starts from a brief: a hidden Search pins a "Sales · last 12 months" tile to create it, then the brief goes to Shuttle as the first message. Save and Done sit in the Studio bar.
+
+Server side (`server/dashboards.ts`), every route checks that the signed-in user owns the dashboard. ThoughtSpot needs:
+
+- **SpotterViz** enabled on the cluster (Early Access: ask ThoughtSpot Support) for Shuttle mode.
+- For in-place tile updates, **Can download data** (TML export) and **Can manage data** (TML import). Without them the re-pin fallback applies.
+
 ## Demo controls (`/config`)
 
 An unlinked page at `/config` (no sign-in needed) with presenter controls, saved in the browser's localStorage and applied live to any open tab:

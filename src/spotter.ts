@@ -1,13 +1,10 @@
 import { rebrand } from './brand'
-import { THOUGHTSPOT_HOST } from './thoughtspot'
+import { RETAIL_MODEL_ID, THOUGHTSPOT_HOST } from './thoughtspot'
 import { tsFetch } from './tsApi'
 
 // Headless Spotter via the Spotter Agent REST API (Spotter 3, ThoughtSpot 26.5.0.cl+).
 // Calls go through Storeloom's server (/api/ts), which adds the signed-in user's
 // trusted-auth token; the stream is relayed as it arrives.
-
-/** "Industry Demo - Retail Sales" worksheet. */
-const DATA_SOURCE_ID = '11e40743-9285-42bd-856d-3f81a755c4f6'
 
 async function post(path: string, body: unknown, init: RequestInit = {}) {
   const res = await tsFetch(path, {
@@ -40,7 +37,7 @@ export class SpotterError extends Error {
 
 export async function createConversation(): Promise<string> {
   const res = await post('/ai/agent/conversation/create', {
-    metadata_context: { type: 'DATA_SOURCE', data_source_context: { data_source_identifier: DATA_SOURCE_ID } },
+    metadata_context: { type: 'DATA_SOURCE', data_source_context: { data_source_identifier: RETAIL_MODEL_ID } },
     conversation_settings: {},
   })
   const body = (await res.json()) as { conversation_identifier?: string; conversation_id: string }

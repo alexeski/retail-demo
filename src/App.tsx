@@ -4,11 +4,14 @@ import { AuthProvider, RequireAuth } from './auth'
 import { AppBar } from './components/AppBar'
 import { Backdrop } from './components/Backdrop'
 import { ShuttleProvider } from './components/Shuttle'
+import { DashboardView } from './pages/DashboardView'
+import { Dashboards } from './pages/Dashboards'
 import { Home } from './pages/Home'
 import { Insights } from './pages/Insights'
 import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
 import { Config } from './pages/Config'
+import { Studio } from './pages/Studio'
 import { useHotkeyListener } from './hotkeys'
 import { initThoughtSpot } from './thoughtspot'
 
@@ -48,6 +51,9 @@ export default function App() {
             <Route element={<AppShell />}>
               <Route path="/home" element={<Home />} />
               <Route path="/insights" element={<Insights />} />
+              <Route path="/dashboards" element={<Dashboards />} />
+              <Route path="/dashboards/:id" element={<DashboardView />} />
+              <Route path="/studio" element={<Studio />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

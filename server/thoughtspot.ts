@@ -65,12 +65,25 @@ export type SessionUser = { name: string; displayName: string; email?: string }
 
 /** The user a token belongs to; throws ThoughtSpotError(401) once it is no longer valid. */
 export async function sessionUser(token: string): Promise<SessionUser> {
-  const res = await fetch(`${config().host}/api/rest/2.0/auth/session/user`, {
+  const u = await sessionUserRecord(token)
+  return { name: u.name, displayName: u.display_name || u.name, email: u.email ?? undefined }
+}
+
+/** The token's user as ThoughtSpot reports it, GUID included (kept server side). */
+export async function sessionUserRecord(token: string) {
+  return tsRest<{ id: string; name: string; display_name?: string; email?: string | null }>(token, 'GET', '/auth/session/user')
+}
+
+/** A REST v2 call as the token's user; throws ThoughtSpotError on a non-2xx answer. */
+export async function tsRest<T>(token: string, method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${config().host}/api/rest/2.0${path}`, {
+    method,
     headers: { ...JSON_HEADERS, Authorization: `Bearer ${token}` },
+    body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!res.ok) throw new ThoughtSpotError(res.status, (await res.text()).slice(0, 300))
-  const u = await json<{ name: string; display_name?: string; email?: string | null }>(res)
-  return { name: u.name, displayName: u.display_name || u.name, email: u.email ?? undefined }
+  if (res.status === 204) return undefined as T
+  return json<T>(res)
 }
 
 /** Best effort: ends the token's validity on sign-out. */

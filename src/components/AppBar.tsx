@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { initials, useAuth } from '../auth'
 import { Brand } from './Brand'
 
@@ -13,6 +13,7 @@ export function AppBar() {
   const { user, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const studioOpen = useLocation().pathname.startsWith('/studio')
 
   useEffect(() => {
     if (!menuOpen) return
@@ -42,6 +43,10 @@ export function AppBar() {
           ))}
           <NavLink to="/insights" className={navClass}>
             Insights
+          </NavLink>
+          {/* Active on the dashboards list, a dashboard, and Studio. */}
+          <NavLink to="/dashboards" className={({ isActive }) => navClass({ isActive: isActive || studioOpen })}>
+            Dashboards
           </NavLink>
         </nav>
       </div>

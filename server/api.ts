@@ -1,6 +1,7 @@
 import { Readable } from 'node:stream'
 import express, { type Request, type Response } from 'express'
 import { config } from './config.ts'
+import { dashboardsApi } from './dashboards.ts'
 import { clearSession, readSession, writeSession } from './session.ts'
 import { ClusterIdleError, mintToken, NotConfiguredError, revokeToken, sessionUser, ThoughtSpotError } from './thoughtspot.ts'
 
@@ -23,6 +24,7 @@ const noStore = (res: Response) => res.set('Cache-Control', 'no-store')
  * Vite dev server in development):
  * - POST /login, POST /logout, GET /session: trusted-auth sign-in;
  * - GET /thoughtspot/token: the token for the SDK's cookieless embeds;
+ * - /dashboards/*: the dashboard builder (the user's own Liveboards, server/dashboards.ts);
  * - /ts/*: ThoughtSpot REST v2 (Search Data, Spotter) as the signed-in user.
  */
 export function createApi() {
@@ -96,6 +98,8 @@ export function createApi() {
     if (!session) return res.status(401).json({ error: 'signed-out' })
     res.json({ token: session.token, expiresAt: session.expiresAt })
   })
+
+  api.use('/dashboards', dashboardsApi())
 
   api.use('/ts', async (req: Request, res: Response) => {
     const session = readSession(req)

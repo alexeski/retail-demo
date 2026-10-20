@@ -1,4 +1,5 @@
 import type { FilterUpdate } from './liveboardFilters'
+import { RETAIL_MODEL_ID } from './thoughtspot'
 import { tsFetch } from './tsApi'
 
 export const REGIONS = ['East', 'Midwest', 'South', 'Southwest', 'West'] as const
@@ -46,9 +47,6 @@ function compact(n: number) {
 // ThoughtSpot Search Data API
 // ---------------------------------------------------------------------------
 
-/** "Industry Demo - Retail Sales" worksheet, which the Insights Liveboards use. */
-const DATA_SOURCE_ID = '11e40743-9285-42bd-856d-3f81a755c4f6'
-
 /** The Liveboards' saved date filter, used when the user hasn't changed it. */
 const DEFAULT_PERIOD = "[Transaction Date].'last 12 months'"
 const LAST_30_DAYS = "[Transaction Date].'last 30 days'"
@@ -69,7 +67,7 @@ export async function searchTable(queryString: string, recordSize = 5000): Promi
     method: 'POST',
     body: JSON.stringify({
       query_string: queryString,
-      logical_table_identifier: DATA_SOURCE_ID,
+      logical_table_identifier: RETAIL_MODEL_ID,
       data_format: 'COMPACT',
       record_size: recordSize,
     }),
