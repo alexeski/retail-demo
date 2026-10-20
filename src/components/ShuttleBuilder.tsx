@@ -19,29 +19,37 @@ import { useFillHeight } from '../useFillHeight'
 const MODEL_INSTRUCTION = `Use only the "${RETAIL_MODEL_NAME}" model.`
 const withModel = (prompt: string) => `${prompt.trim()} ${MODEL_INSTRUCTION}`
 
-/** Ready-made briefs: one click fills the brief; they're also the panel's starter prompts. */
+/**
+ * Ready-made briefs: one click fills the brief; they're also the panel's starter
+ * prompts, where `summary` is the text on the button: what the dashboard will hold,
+ * in about 75 characters (the panel cuts suggestions off at two lines).
+ */
 const SHUTTLE_BRIEFS = [
   {
     id: 'exec',
     label: 'Exec overview',
+    summary: 'Executive overview: sales, profit & margin KPIs, monthly trend, regions',
     prompt:
       'Build an executive overview for the last 12 months: total sales, gross profit and gross margin as KPIs, the monthly sales trend, and sales by store region.',
   },
   {
     id: 'stores',
     label: 'Store operations',
+    summary: 'Store operations: foot traffic, transactions, sales per sq ft, bottom 10',
     prompt:
       'Build a store operations dashboard for last month: foot traffic and number of transactions by store, sales per square foot, and the 10 lowest-selling stores.',
   },
   {
     id: 'category',
     label: 'Category & brand',
+    summary: 'Category & brand: sales by department, top 10 brands and their margins',
     prompt:
       'Build a category and brand dashboard: monthly sales by department, the top 10 brands by sales with their gross margin, and average ticket size by department.',
   },
   {
     id: 'customers',
     label: 'Customers',
+    summary: 'Customers: spend by age group and income, new customers by month',
     prompt: 'Build a customer dashboard: sales and average ticket size by age group, sales by income band, and new customers by month.',
   },
 ]
@@ -62,7 +70,7 @@ const SPOTTER_VIZ: SpotterVizConfig = {
   insightTileBrandName: 'Shuttle insight',
   insightTileViewPlanLabel: 'How Shuttle built this',
   insightTileLoaderText: 'Shuttle is working…',
-  customStarterPrompts: SHUTTLE_BRIEFS.map((b) => ({ id: b.id, displayText: b.label, fullPrompt: withModel(b.prompt) })),
+  customStarterPrompts: SHUTTLE_BRIEFS.map((b) => ({ id: b.id, displayText: b.summary, fullPrompt: withModel(b.prompt) })),
 }
 
 /** SpotterViz is the point of this view: everything else stays as on Insights. */

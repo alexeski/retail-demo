@@ -110,10 +110,36 @@ const CSS_VARIABLES = {
   '--ts-var-liveboard-header-action-button-active-color': '#D7D1C8',
 }
 
+/** The Storeloom mark (src/components/Brand.tsx) as a CSS image, for the embeds' own logos. */
+const STORELOOM_MARK = `url("data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23"><rect width="10" height="10" fill="#17150f"/><rect x="13" width="10" height="10" fill="#e5502a"/><rect y="13" width="10" height="10" fill="#e5502a"/><rect x="13" y="13" width="10" height="10" fill="#17150f"/></svg>',
+)}")`
+
+/**
+ * Paints the Storeloom mark over a logo element, whatever ThoughtSpot renders it
+ * as: an <img> (pushed out of its box), an inline <svg> or a wrapper (its
+ * children hidden). The ThoughtSpot logo and SpotterViz's avatar come from the
+ * cluster's style settings, which change it for every user, so CSS instead.
+ */
+const markRules = (selector: string, size = '70%', tile?: string) => ({
+  [selector]: {
+    // On a dark surface (SpotterViz's panel) the ink squares need a paper tile behind them.
+    background: `${STORELOOM_MARK} center / ${size} no-repeat${tile ? `, ${tile}` : ''} !important`,
+    'object-position': '-9999px -9999px !important',
+    ...(tile ? { 'border-radius': '8px !important' } : {}),
+  },
+  [`${selector} > *`]: { visibility: 'hidden !important' },
+})
+
 // Selectors may need updating after a ThoughtSpot upgrade.
 const CSS_RULES = {
   // Vendor footer ("Powered by …") under embedded content.
   '[class*="embed-module__footerWrapper"]': { display: 'none !important' },
+  // ThoughtSpot's logo at the left of a dashboard's edit toolbar (edit and styling modes).
+  ...markRules('[class*="edit-header-module__headerLogo"]'),
+  // SpotterViz's avatar: on its welcome screen, and beside each of its replies.
+  ...markRules('[class*="spotter-viz-landing-content-module__iconPlaceholder"]', '58%', '#f4efe4'),
+  ...markRules('[class*="spotter-viz-message-item-module__agentIcon"]', '66%', '#f4efe4'),
   // The charts' Shuttle chat (a modal). In full-height embeds ThoughtSpot lets
   // its conversation grow instead of scrolling, so once it's taller than the
   // modal the whole modal scrolls, and the question bar (placed at the bottom
