@@ -3,7 +3,9 @@
 .lab-workspace {
   display: grid;
   grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-  gap: 16px;
+  gap: 20px;
+  /* Clear of Studio's black bar above, with room for the panels' shadows. */
+  margin-top: 18px;
   padding: 0 var(--gutter);
   min-height: 560px;
 }
@@ -15,7 +17,7 @@
   min-height: 0;
   border: 2px solid var(--ink);
   background: var(--card);
-  box-shadow: 6px 6px 0 var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
 }
 
 .lab-intro {
@@ -399,20 +401,40 @@
   min-width: 0;
   border: 2px solid var(--ink);
   background: color-mix(in srgb, var(--card) 70%, transparent);
+  box-shadow: 4px 4px 0 var(--ink);
 }
 
 .lab-stage-head {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 12px;
+  padding: 0 12px 0 0;
   border-bottom: 2px solid var(--ink);
   background: var(--card);
 }
 
+/* The view tabs sit flush in the panel's header, not as a floating box. */
 .lab-stage-head .dash-tabs {
-  border-bottom: 0;
+  border: 0;
+  border-right: 2px solid var(--ink);
+  box-shadow: none;
+  background: transparent;
+}
+
+.lab-stage-head .dash-tab {
+  min-height: 42px;
+  padding: 8px 16px;
+  font-size: 15px;
+}
+
+.lab-stage-head .dash-tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lab-stage-links {
+  align-self: center;
 }
 
 .lab-stage-links {
