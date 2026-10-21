@@ -430,5 +430,5 @@
    into view, that visible part is the whole screen under the filter bar. */
 .region-detail .insights-embed iframe {
   /* !important: the SDK sets an inline min-height on the iframe. */
-  min-height: max(480px, calc(100vh - 90px)) !important;
+  min-height: max(480px, calc(100vh / var(--app-zoom, 1) - 90px)) !important;
 }

@@ -24,7 +24,7 @@
 .up-dialog {
   position: relative;
   width: min(980px, 100%);
-  max-height: calc(100vh - 32px);
+  max-height: calc(100vh / var(--app-zoom, 1) - 32px);
   overflow-y: auto;
   background: var(--card);
   border: 2px solid var(--ink);
