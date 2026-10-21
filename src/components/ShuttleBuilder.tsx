@@ -24,7 +24,7 @@ const withModel = (prompt: string) => `${prompt.trim()} ${MODEL_INSTRUCTION}`
  * prompts, where `summary` is the text on the button: what the dashboard will hold,
  * in about 75 characters (the panel cuts suggestions off at two lines).
  */
-const SHUTTLE_BRIEFS = [
+export const SHUTTLE_BRIEFS = [
   {
     id: 'exec',
     label: 'Exec overview',

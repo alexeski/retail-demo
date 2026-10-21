@@ -5,8 +5,10 @@ import { LiveboardEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react
 import { rebrand } from '../brand'
 import { PINNED_CHART_HIDDEN_ACTIONS } from '../chartActions'
 import { DashboardMosaic } from '../components/DashboardMosaic'
+import { EditableTitle } from '../components/EditableTitle'
+import { SHUTTLE_BRIEFS } from '../components/ShuttleBuilder'
 import { Markdown } from '../components/SpotterTurn'
-import { getDashboard } from '../dashboards'
+import { getDashboard, listDashboards, renameDashboard, tileCount, type Dashboard } from '../dashboards'
 import { usePaths } from '../experience'
 import { HIDDEN_BRANDED_ACTIONS, RETAIL_MODEL_ID, WITH_LIVEBOARD_HEADER } from '../thoughtspot'
 import {
@@ -684,6 +686,39 @@ export function LabBuilder({ id }: { id: string }) {
     else startDesign(text)
   }
 
+  // The user's dashboards, for the Dashboard picker in the bar (as in Studio).
+  const [mine, setMine] = useState<Dashboard[] | null>(null)
+  useEffect(() => {
+    listDashboards()
+      .then(setMine)
+      .catch(() => setMine([]))
+  }, [version])
+  const owned = !!dashboardId && !!mine?.some((d) => d.id === dashboardId)
+
+  const rename = async (next: string) => {
+    if (busy) throw new Error('Wait for ShuttleViz to finish, then rename.')
+    if (editing) throw new Error('Save or cancel your edits first, then rename.')
+    const renamed = await renameDashboard(dashboardId!, next)
+    update((s) => ({ ...s, title: renamed.name }))
+    setMine((l) => l?.map((d) => (d.id === renamed.id ? renamed : d)) ?? null)
+    setVersion((v) => v + 1)
+  }
+
+  const pickDashboard = (next: string) => {
+    if (next === (dashboardId ?? '')) return
+    navigate(paths.shuttleViz(next || null), next ? undefined : { state: { fresh: true } })
+  }
+
+  /** Studio's brief screen, for a new dashboard: ShuttleViz starts from one description. */
+  const [brief, setBrief] = useState('')
+  const submitBrief = (e?: FormEvent) => {
+    e?.preventDefault()
+    if (!brief.trim() || busy) return
+    const text = brief.trim()
+    setBrief('')
+    startDesign(text)
+  }
+
   const started = entries.length > 0
   const seed = (entries.find((e) => e.kind === 'you') as { text?: string } | undefined)?.text ?? ''
   const placeholder =
@@ -712,12 +747,16 @@ export function LabBuilder({ id }: { id: string }) {
               via ThoughtSpot MCP
             </span>
           </div>
-          <h1 className="display studio-h1">{title || (dashboardId ? ' ' : 'New dashboard')}</h1>
+          {dashboardId && title && owned ? (
+            <EditableTitle name={title} className="display studio-h1" onRename={rename} />
+          ) : (
+            <h1 className="display studio-h1">{title || (dashboardId ? ' ' : name.trim() || 'New dashboard')}</h1>
+          )}
         </div>
         <div className="lab-head-actions">
-          {(started || dashboardId) && (
-            <button type="button" className="btn-outline" onClick={startOver} disabled={busy || editing}>
-              ＋ New dashboard
+          {id === 'new' && started && !dashboardId && (
+            <button type="button" className="btn-outline" onClick={startOver} disabled={busy}>
+              ↺ Start over
             </button>
           )}
           {/* As in Studio: switch to Search on the same dashboard. */}
@@ -751,270 +790,364 @@ export function LabBuilder({ id }: { id: string }) {
         </div>
       </section>
 
-      <div className={focus && dashboardId ? 'lab-workspace is-focus' : 'lab-workspace'} ref={stageRef} style={{ height: stageHeight } as CSSProperties}>
-        {/* ---- Conversation ---- */}
-        <section className="lab-talk" aria-label="Conversation with ShuttleViz">
-          {!started && !dashboardId && (
-            <div className="lab-intro">
-              <p className="lab-intro-lede">
-                Tell ShuttleViz what you need. It comes back with a plan and the data it will use, builds only once you approve, and keeps refining the
-                dashboard as you talk.
-              </p>
-              <div className="studio-modes lab-modes" role="tablist" aria-label="How to start">
-                {START_MODES.map((m) => (
+      {/* As in Studio: which dashboard, its name while it's new, and a way to open it. */}
+      <section className="studio-bar">
+        <label className="studio-target">
+          <span className="studio-bar-label">Dashboard</span>
+          <select value={dashboardId ?? ''} onChange={(e) => pickDashboard(e.target.value)} disabled={busy || editing || !mine}>
+            <option value="">＋ New dashboard</option>
+            {mine && mine.length > 0 && (
+              <optgroup label="Yours">
+                {mine.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} · {tileCount(d.tiles)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {dashboardId && mine && !owned && <option value={dashboardId}>{title || 'This dashboard'}</option>}
+          </select>
+        </label>
+        {!dashboardId && (
+          <label className="studio-name">
+            <span className="studio-bar-label">Name</span>
+            <input value={name} placeholder="Named from your brief" maxLength={100} onChange={(e) => setName(e.target.value)} disabled={started} />
+          </label>
+        )}
+        <span className="studio-bar-note">{dashboardId ? 'Changes go to this dashboard' : 'Created when you send the brief; built once you approve the plan'}</span>
+        {dashboardId && (
+          <Link to={paths.view(dashboardId)} className="studio-open">
+            Open dashboard <span aria-hidden>↗</span>
+          </Link>
+        )}
+      </section>
+
+      {id === 'new' && !started && mode === 'describe' ? (
+        <div className="builder is-shuttle">
+          <section className="brief" aria-label="Brief ShuttleViz">
+            <header className="brief-head">
+              <span className="shuttle-pill is-large" aria-hidden />
+              <div>
+                <h2 className="brief-h2">What should this dashboard show?</h2>
+                <p>
+                  Write it the way you’d brief an analyst. ShuttleViz comes back with a plan and the Retail Sales data it will use, builds and styles the
+                  dashboard once you approve, then keeps refining it as you talk. You can also edit it by hand at any point.
+                </p>
+              </div>
+            </header>
+            <form className="brief-form" onSubmit={submitBrief}>
+              <textarea
+                value={brief}
+                rows={4}
+                maxLength={1000}
+                placeholder="e.g. A weekly view for regional managers: sales vs last year by region, the top and bottom stores, and foot traffic trends."
+                onChange={(e) => setBrief(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitBrief(e)
+                }}
+              />
+              <div className="brief-foot">
+                <label className="pin-toggle lab-brief-style" title="Sends the Storeloom colours to ShuttleViz as hex codes">
+                  <input type="checkbox" checked={styled} onChange={(e) => setStyled(e.target.checked)} />
+                  <span className="pin-toggle-track" aria-hidden />
+                  <span>Storeloom style</span>
+                </label>
+                <span className="mono-label">⌘ + Enter to start</span>
+                <button type="submit" className="btn-primary" disabled={!brief.trim()}>
+                  ✦ Plan it with ShuttleViz
+                </button>
+              </div>
+            </form>
+            <div className="brief-starters">
+              <span className="mono-label">Or start from</span>
+              <div className="brief-starter-list">
+                {SHUTTLE_BRIEFS.map((b) => (
+                  <button key={b.id} type="button" className="brief-starter" onClick={() => setBrief(b.prompt)}>
+                    <strong>{b.label}</strong>
+                    <span>{b.prompt}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button type="button" className="lab-explore-instead" onClick={() => pickMode('explore')}>
+              <span className="studio-mode-icon" aria-hidden>
+                ⌕
+              </span>
+              <span>
+                <strong>Not sure yet? Explore first.</strong> Ask Shuttle questions about Retail Sales, keep the charts worth keeping, and turn them into a
+                dashboard.
+              </span>
+              <span className="mode-card-cta">
+                Explore <span aria-hidden>→</span>
+              </span>
+            </button>
+          </section>
+        </div>
+      ) : (
+        <div className={focus && dashboardId ? 'lab-workspace is-focus' : 'lab-workspace'} ref={stageRef} style={{ height: stageHeight } as CSSProperties}>
+          {/* ---- Conversation ---- */}
+          <section className="lab-talk" aria-label="Conversation with ShuttleViz">
+            {!started && !dashboardId && (
+              <div className="lab-intro">
+                <p className="lab-intro-lede">
+                  Tell ShuttleViz what you need. It comes back with a plan and the data it will use, builds only once you approve, and keeps refining the
+                  dashboard as you talk.
+                </p>
+                <div className="studio-modes lab-modes" role="tablist" aria-label="How to start">
+                  {START_MODES.map((m) => (
+                    <button
+                      key={m.mode}
+                      type="button"
+                      role="tab"
+                      aria-selected={mode === m.mode}
+                      className={mode === m.mode ? 'studio-mode is-active' : 'studio-mode'}
+                      onClick={() => pickMode(m.mode)}
+                    >
+                      <span className="studio-mode-icon" aria-hidden>
+                        {m.icon}
+                      </span>
+                      <span className="studio-mode-text">
+                        <strong>{m.label}</strong>
+                        <span>{m.sub}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!started && dashboardId && (
+              <div className="lab-intro">
+                <p className="lab-intro-lede">Tell ShuttleViz how to change this dashboard: layout, styling, new charts, notes, groups or tabs.</p>
+              </div>
+            )}
+
+            <ol className="lab-entries" ref={listRef}>
+              {entries.map((e) => {
+                switch (e.kind) {
+                  case 'you':
+                    return (
+                      <li key={e.id} className="lab-entry lab-you">
+                        <p>{e.text}</p>
+                        {e.note && <span className="mono-label lab-you-note">{e.note}</span>}
+                      </li>
+                    )
+                  case 'plan':
+                    return (
+                      <li key={e.id} className={e.open ? 'lab-entry lab-plan is-open' : 'lab-entry lab-plan'}>
+                        <span className="mono-label lab-from">ShuttleViz · {e.open ? 'waiting for you' : 'answered'}</span>
+                        <Markdown text={e.message} className="lab-md" />
+                        {e.open && (
+                          <div className="lab-plan-actions">
+                            {e.choices.map((c) => (
+                              <button key={c} type="button" className="btn-chip" onClick={() => reply(c)} disabled={busy}>
+                                {rebrand(c)}
+                              </button>
+                            ))}
+                            {e.choices.length === 0 && (
+                              <button type="button" className="btn-primary" onClick={() => reply('Looks good. Build it.')} disabled={busy}>
+                                ✓ Build it
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </li>
+                    )
+                  case 'work':
+                    return <WorkEntry key={e.id} entry={e} />
+                  case 'done':
+                    return (
+                      <li key={e.id} className="lab-entry lab-done">
+                        <span className="mono-label lab-from">ShuttleViz · {e.changed ? 'saved' : 'nothing changed'}</span>
+                        <Markdown text={e.message} className="lab-md" />
+                      </li>
+                    )
+                  case 'error':
+                    return (
+                      <li key={e.id} className="lab-entry lab-error" role="alert">
+                        {rebrand(e.message)}
+                      </li>
+                    )
+                  case 'manual':
+                    return (
+                      <li key={e.id} className="lab-entry lab-manual">
+                        <span aria-hidden>✎</span> You edited the dashboard by hand · saved
+                      </li>
+                    )
+                  case 'analysis':
+                    return (
+                      <li key={e.id} className="lab-entry lab-analysis">
+                        <span className="mono-label lab-from">
+                          {!e.done && <span className="sp-shuttle" aria-hidden />} Shuttle {e.done ? '' : `· ${rebrand(e.steps[e.steps.length - 1] ?? 'thinking')}`}
+                        </span>
+                        {e.answers.map((a) => (
+                          <AnswerTile key={a.id} answer={a} kept={kept.includes(a.id)} onToggle={dashboardId ? undefined : () => toggleKeep(a.id)} />
+                        ))}
+                        {e.text && <Markdown text={e.text} className="lab-md" />}
+                      </li>
+                    )
+                }
+              })}
+            </ol>
+
+            {!dashboardId && keptAnswers.length > 0 && !task && (
+              <div className="lab-tray">
+                <span>
+                  <strong>{keptAnswers.length}</strong> {keptAnswers.length === 1 ? 'chart' : 'charts'} kept
+                </span>
+                <button type="button" className="btn-primary" onClick={buildFromAnswers} disabled={busy}>
+                  Make it a dashboard →
+                </button>
+              </div>
+            )}
+
+            <form className={busy || editing ? 'lab-composer is-busy' : 'lab-composer'} onSubmit={submit}>
+              {editing && (
+                <p className="lab-editing-note" role="status">
+                  <strong>You’re editing by hand.</strong> Save or cancel in the toolbar above the dashboard to keep talking to ShuttleViz.
+                </p>
+              )}
+              {phase === 'refine' && !busy && !editing && (
+                <div className="lab-suggest">
+                  {REFINEMENTS.map((r) => (
+                    <button key={r} type="button" className="lab-suggestion" onClick={() => refine(r)}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {(phase === 'start' || phase === 'explore') && !started && (
+                <div className="lab-suggest">
+                  {EXAMPLES[mode].map((x) => (
+                    <button key={x} type="button" className="lab-suggestion" onClick={() => setDraft(x)}>
+                      {x.length > 90 ? `${x.slice(0, 88)}…` : x}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <textarea
+                value={draft}
+                rows={2}
+                placeholder={busy ? 'ShuttleViz is working…' : editing ? 'ShuttleViz waits while you edit…' : placeholder}
+                disabled={busy || editing}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) submit(e)
+                }}
+              />
+              <div className="lab-composer-row">
+                {((phase === 'start' && !started) || (phase === 'explore' && keptAnswers.length > 0)) && !task && (
+                  <>
+                    <label className="pin-toggle" title="Sends the Storeloom colours to ShuttleViz as hex codes">
+                      <input type="checkbox" checked={styled} onChange={(e) => setStyled(e.target.checked)} />
+                      <span className="pin-toggle-track" aria-hidden />
+                      <span>Storeloom style</span>
+                    </label>
+                  </>
+                )}
+                <button type="submit" className="btn-primary lab-send" disabled={busy || editing || !draft.trim()}>
+                  {phase === 'reply' ? 'Reply' : phase === 'refine' ? 'Change it' : phase === 'explore' ? 'Ask' : 'Brief it'} <span aria-hidden>→</span>
+                </button>
+              </div>
+            </form>
+          </section>
+
+          {/* ---- Stage ---- */}
+          <section className="lab-stage" aria-label="Dashboard">
+            <header className="lab-stage-head">
+              <div className="dash-tabs" role="tablist" aria-label="Show">
+                <button type="button" role="tab" aria-selected={view === 'dashboard'} className={view === 'dashboard' ? 'dash-tab is-active' : 'dash-tab'} onClick={() => setView('dashboard')}>
+                  Dashboard
+                </button>
+                {canGetData && dashboardId && (
                   <button
-                    key={m.mode}
                     type="button"
                     role="tab"
-                    aria-selected={mode === m.mode}
-                    className={mode === m.mode ? 'studio-mode is-active' : 'studio-mode'}
-                    onClick={() => pickMode(m.mode)}
+                    aria-selected={view === 'numbers'}
+                    className={view === 'numbers' ? 'dash-tab is-active' : 'dash-tab'}
+                    onClick={() => setView('numbers')}
+                    disabled={editing}
                   >
-                    <span className="studio-mode-icon" aria-hidden>
-                      {m.icon}
-                    </span>
-                    <span className="studio-mode-text">
-                      <strong>{m.label}</strong>
-                      <span>{m.sub}</span>
-                    </span>
+                    The numbers
                   </button>
-                ))}
+                )}
               </div>
-            </div>
-          )}
-
-          {!started && dashboardId && (
-            <div className="lab-intro">
-              <p className="lab-intro-lede">Tell ShuttleViz how to change this dashboard: layout, styling, new charts, notes, groups or tabs.</p>
-            </div>
-          )}
-
-          <ol className="lab-entries" ref={listRef}>
-            {entries.map((e) => {
-              switch (e.kind) {
-                case 'you':
-                  return (
-                    <li key={e.id} className="lab-entry lab-you">
-                      <p>{e.text}</p>
-                      {e.note && <span className="mono-label lab-you-note">{e.note}</span>}
-                    </li>
-                  )
-                case 'plan':
-                  return (
-                    <li key={e.id} className={e.open ? 'lab-entry lab-plan is-open' : 'lab-entry lab-plan'}>
-                      <span className="mono-label lab-from">ShuttleViz · {e.open ? 'waiting for you' : 'answered'}</span>
-                      <Markdown text={e.message} className="lab-md" />
-                      {e.open && (
-                        <div className="lab-plan-actions">
-                          {e.choices.map((c) => (
-                            <button key={c} type="button" className="btn-chip" onClick={() => reply(c)} disabled={busy}>
-                              {rebrand(c)}
-                            </button>
-                          ))}
-                          {e.choices.length === 0 && (
-                            <button type="button" className="btn-primary" onClick={() => reply('Looks good. Build it.')} disabled={busy}>
-                              ✓ Build it
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </li>
-                  )
-                case 'work':
-                  return <WorkEntry key={e.id} entry={e} />
-                case 'done':
-                  return (
-                    <li key={e.id} className="lab-entry lab-done">
-                      <span className="mono-label lab-from">ShuttleViz · {e.changed ? 'saved' : 'nothing changed'}</span>
-                      <Markdown text={e.message} className="lab-md" />
-                    </li>
-                  )
-                case 'error':
-                  return (
-                    <li key={e.id} className="lab-entry lab-error" role="alert">
-                      {rebrand(e.message)}
-                    </li>
-                  )
-                case 'manual':
-                  return (
-                    <li key={e.id} className="lab-entry lab-manual">
-                      <span aria-hidden>✎</span> You edited the dashboard by hand · saved
-                    </li>
-                  )
-                case 'analysis':
-                  return (
-                    <li key={e.id} className="lab-entry lab-analysis">
-                      <span className="mono-label lab-from">
-                        {!e.done && <span className="sp-shuttle" aria-hidden />} Shuttle {e.done ? '' : `· ${rebrand(e.steps[e.steps.length - 1] ?? 'thinking')}`}
-                      </span>
-                      {e.answers.map((a) => (
-                        <AnswerTile key={a.id} answer={a} kept={kept.includes(a.id)} onToggle={dashboardId ? undefined : () => toggleKeep(a.id)} />
-                      ))}
-                      {e.text && <Markdown text={e.text} className="lab-md" />}
-                    </li>
-                  )
-              }
-            })}
-          </ol>
-
-          {!dashboardId && keptAnswers.length > 0 && !task && (
-            <div className="lab-tray">
-              <span>
-                <strong>{keptAnswers.length}</strong> {keptAnswers.length === 1 ? 'chart' : 'charts'} kept
-              </span>
-              <button type="button" className="btn-primary" onClick={buildFromAnswers} disabled={busy}>
-                Make it a dashboard →
-              </button>
-            </div>
-          )}
-
-          <form className={busy || editing ? 'lab-composer is-busy' : 'lab-composer'} onSubmit={submit}>
-            {editing && (
-              <p className="lab-editing-note" role="status">
-                <strong>You’re editing by hand.</strong> Save or cancel in the toolbar above the dashboard to keep talking to ShuttleViz.
-              </p>
-            )}
-            {phase === 'refine' && !busy && !editing && (
-              <div className="lab-suggest">
-                {REFINEMENTS.map((r) => (
-                  <button key={r} type="button" className="lab-suggestion" onClick={() => refine(r)}>
-                    {r}
+              {dashboardId && (
+                <div className="lab-stage-links">
+                  {editing ? (
+                    <span className="mono-label lab-editing-badge">✎ Editing by hand</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="studio-open lab-edit-btn"
+                      disabled={!canEdit}
+                      onClick={() => {
+                        setView('dashboard')
+                        setEditing(true)
+                      }}
+                      title={
+                        canEdit
+                          ? 'Resize, move and add to the dashboard yourself, in the dashboard editor'
+                          : task
+                            ? 'Answer ShuttleViz first, then edit by hand'
+                            : 'Wait for ShuttleViz to finish, then edit by hand'
+                      }
+                    >
+                      ✎ Edit by hand
+                    </button>
+                  )}
+                  <button type="button" className="studio-open" onClick={() => setFocus((f) => !f)} aria-pressed={focus}>
+                    {focus ? '⤡ Show conversation' : '⤢ Full view'}
                   </button>
-                ))}
-              </div>
-            )}
-            {(phase === 'start' || phase === 'explore') && !started && (
-              <div className="lab-suggest">
-                {EXAMPLES[mode].map((x) => (
-                  <button key={x} type="button" className="lab-suggestion" onClick={() => setDraft(x)}>
-                    {x.length > 90 ? `${x.slice(0, 88)}…` : x}
-                  </button>
-                ))}
-              </div>
-            )}
-            <textarea
-              value={draft}
-              rows={2}
-              placeholder={busy ? 'ShuttleViz is working…' : editing ? 'ShuttleViz waits while you edit…' : placeholder}
-              disabled={busy || editing}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) submit(e)
-              }}
-            />
-            <div className="lab-composer-row">
-              {((phase === 'start' && !started) || (phase === 'explore' && keptAnswers.length > 0)) && !task && (
-                <>
-                  <input className="lab-name" value={name} placeholder="Dashboard name (optional)" maxLength={100} onChange={(e) => setName(e.target.value)} />
-                  <label className="pin-toggle" title="Sends the Storeloom colours to ShuttleViz as hex codes">
-                    <input type="checkbox" checked={styled} onChange={(e) => setStyled(e.target.checked)} />
-                    <span className="pin-toggle-track" aria-hidden />
-                    <span>Storeloom style</span>
-                  </label>
-                </>
+                </div>
               )}
-              <button type="submit" className="btn-primary lab-send" disabled={busy || editing || !draft.trim()}>
-                {phase === 'reply' ? 'Reply' : phase === 'refine' ? 'Change it' : phase === 'explore' ? 'Ask' : 'Brief it'} <span aria-hidden>→</span>
-              </button>
-            </div>
-          </form>
-        </section>
-
-        {/* ---- Stage ---- */}
-        <section className="lab-stage" aria-label="Dashboard">
-          <header className="lab-stage-head">
-            <div className="dash-tabs" role="tablist" aria-label="Show">
-              <button type="button" role="tab" aria-selected={view === 'dashboard'} className={view === 'dashboard' ? 'dash-tab is-active' : 'dash-tab'} onClick={() => setView('dashboard')}>
-                Dashboard
-              </button>
-              {canGetData && dashboardId && (
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={view === 'numbers'}
-                  className={view === 'numbers' ? 'dash-tab is-active' : 'dash-tab'}
-                  onClick={() => setView('numbers')}
-                  disabled={editing}
-                >
-                  The numbers
-                </button>
+            </header>
+            <div className="lab-stage-body">
+              {!dashboardId && keptAnswers.length > 0 && !entries.some((e) => e.kind === 'work' && !e.endedAt) ? (
+                <DraftBoard answers={keptAnswers} onRemove={toggleKeep} />
+              ) : !dashboardId ? (
+                <Loom seed={seed} weaving={entries.some((e) => e.kind === 'work' && !e.endedAt)} />
+              ) : view === 'numbers' ? (
+                <Numbers dashboardId={dashboardId} version={version} />
+              ) : (
+                <div className={busy ? 'lab-embed is-changing' : editing ? 'lab-embed is-editing' : 'lab-embed'}>
+                  {editing ? (
+                    // The editor: ThoughtSpot's edit toolbar (Save, Cancel, add, resize), but
+                    // no SpotterViz button: language goes through ShuttleViz's conversation.
+                    <LiveboardEmbed
+                      key={`${dashboardId}-${version}-edit`}
+                      ref={editorRef}
+                      liveboardId={dashboardId}
+                      hiddenActions={HIDDEN_BRANDED_ACTIONS}
+                      customizations={WITH_LIVEBOARD_HEADER}
+                      showLiveboardTitle={false}
+                      fullHeight
+                      minimumHeight={480}
+                      onLiveboardRendered={onEditorRendered}
+                      onSave={onHandSaved}
+                      onCancel={onHandCancelled}
+                    />
+                  ) : (
+                    <LiveboardEmbed
+                      key={`${dashboardId}-${version}`}
+                      liveboardId={dashboardId}
+                      hiddenActions={PINNED_CHART_HIDDEN_ACTIONS}
+                      hideLiveboardHeader
+                      fullHeight
+                      minimumHeight={480}
+                    />
+                  )}
+                  {busy && (
+                    <div className="lab-embed-veil">
+                      <span className="sp-shuttle" aria-hidden /> ShuttleViz is changing the dashboard
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-            {dashboardId && (
-              <div className="lab-stage-links">
-                {editing ? (
-                  <span className="mono-label lab-editing-badge">✎ Editing by hand</span>
-                ) : (
-                  <button
-                    type="button"
-                    className="studio-open lab-edit-btn"
-                    disabled={!canEdit}
-                    onClick={() => {
-                      setView('dashboard')
-                      setEditing(true)
-                    }}
-                    title={
-                      canEdit
-                        ? 'Resize, move and add to the dashboard yourself, in the dashboard editor'
-                        : task
-                          ? 'Answer ShuttleViz first, then edit by hand'
-                          : 'Wait for ShuttleViz to finish, then edit by hand'
-                    }
-                  >
-                    ✎ Edit by hand
-                  </button>
-                )}
-                <button type="button" className="studio-open" onClick={() => setFocus((f) => !f)} aria-pressed={focus}>
-                  {focus ? '⤡ Show conversation' : '⤢ Full view'}
-                </button>
-              </div>
-            )}
-          </header>
-          <div className="lab-stage-body">
-            {!dashboardId && keptAnswers.length > 0 && !entries.some((e) => e.kind === 'work' && !e.endedAt) ? (
-              <DraftBoard answers={keptAnswers} onRemove={toggleKeep} />
-            ) : !dashboardId ? (
-              <Loom seed={seed} weaving={entries.some((e) => e.kind === 'work' && !e.endedAt)} />
-            ) : view === 'numbers' ? (
-              <Numbers dashboardId={dashboardId} version={version} />
-            ) : (
-              <div className={busy ? 'lab-embed is-changing' : editing ? 'lab-embed is-editing' : 'lab-embed'}>
-                {editing ? (
-                  // The editor: ThoughtSpot's edit toolbar (Save, Cancel, add, resize), but
-                  // no SpotterViz button: language goes through ShuttleViz's conversation.
-                  <LiveboardEmbed
-                    key={`${dashboardId}-${version}-edit`}
-                    ref={editorRef}
-                    liveboardId={dashboardId}
-                    hiddenActions={HIDDEN_BRANDED_ACTIONS}
-                    customizations={WITH_LIVEBOARD_HEADER}
-                    showLiveboardTitle={false}
-                    fullHeight
-                    minimumHeight={480}
-                    onLiveboardRendered={onEditorRendered}
-                    onSave={onHandSaved}
-                    onCancel={onHandCancelled}
-                  />
-                ) : (
-                  <LiveboardEmbed
-                    key={`${dashboardId}-${version}`}
-                    liveboardId={dashboardId}
-                    hiddenActions={PINNED_CHART_HIDDEN_ACTIONS}
-                    hideLiveboardHeader
-                    fullHeight
-                    minimumHeight={480}
-                  />
-                )}
-                {busy && (
-                  <div className="lab-embed-veil">
-                    <span className="sp-shuttle" aria-hidden /> ShuttleViz is changing the dashboard
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
+          </section>
+        </div>
+      )}
     </div>
   )
 }

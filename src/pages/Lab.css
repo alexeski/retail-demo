@@ -736,3 +736,43 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* ---------- New dashboard: Studio's brief screen ---------- */
+.lab-brief-style {
+  flex: none;
+  margin-right: auto;
+}
+
+.lab-explore-instead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border: 1.5px dashed var(--ink);
+  background: var(--card);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.lab-explore-instead:hover {
+  border-style: solid;
+  background: var(--periwinkle);
+}
+
+.lab-explore-instead strong {
+  color: var(--ink);
+}
+
+.lab-explore-instead > span:nth-child(2) {
+  flex: 1 1 280px;
+}
+
+.lab-explore-instead .mode-card-cta {
+  border-top: 0;
+  padding-top: 0;
+}
