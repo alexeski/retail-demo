@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { actionTracker } from './actionTracker'
+import { forgetMcpSession } from './tsMcp'
 import { THOUGHTSPOT_HOST } from './thoughtspot'
 
 export type StoreloomUser = { name: string; displayName: string; email?: string }
@@ -80,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     writeStoredUser(null)
+    forgetMcpSession()
     actionTracker.reset()
     setUser(null)
   }, [])

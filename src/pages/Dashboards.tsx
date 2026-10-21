@@ -129,9 +129,9 @@ export function Dashboards() {
             </span>
           </Link>
         ))}
-        <Link to="/studio/brief" className="brief-strip">
+        <Link to="/studio/brief" className="bf-strip">
           <span className="tag">New · Brief</span>
-          <span className="brief-strip-text">
+          <span className="bf-strip-text">
             <strong>Talk it through with ShuttleViz.</strong> It proposes a plan, builds once you approve, and keeps refining as you talk. Or explore with
             Shuttle first and keep the charts worth keeping.
           </span>

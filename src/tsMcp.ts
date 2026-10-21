@@ -28,7 +28,33 @@ export class McpError extends Error {
 // Bearer token: a fresh one from the current ThoughtSpot session
 // ---------------------------------------------------------------------------
 
-let token: { value: string; expires: number } | null = null
+// The server keeps each conversation's state (designer tasks, Spotter sessions)
+// under a hash of the bearer token, and ThoughtSpot issues a new token on every
+// request. So one token serves the whole visit, kept for the tab in
+// sessionStorage so a reload can still follow a dashboard that's being built.
+const TOKEN_KEY = 'storeloom.tsMcpToken'
+
+type Token = { value: string; expires: number }
+
+let token: Token | null = (() => {
+  try {
+    return JSON.parse(sessionStorage.getItem(TOKEN_KEY) ?? 'null') as Token | null
+  } catch {
+    return null
+  }
+})()
+
+/** Drops the token and any conversation built on it (on sign-out). */
+export function forgetMcpSession() {
+  token = null
+  session = null
+  try {
+    sessionStorage.removeItem(TOKEN_KEY)
+    sessionStorage.removeItem('storeloom.brief')
+  } catch {
+    // Storage unavailable: nothing was kept.
+  }
+}
 
 async function bearer(): Promise<string> {
   // Valid for 24 h; renewed with five minutes to spare.
@@ -45,6 +71,11 @@ async function bearer(): Promise<string> {
   }
   const body = (await res.json()) as { token: string; expiration_time_in_millis: number }
   token = { value: body.token, expires: body.expiration_time_in_millis }
+  try {
+    sessionStorage.setItem(TOKEN_KEY, JSON.stringify(token))
+  } catch {
+    // Kept in memory only: a reload starts a new conversation.
+  }
   return token.value
 }
 

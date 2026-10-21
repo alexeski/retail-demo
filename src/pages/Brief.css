@@ -1,13 +1,13 @@
 /* Brief: a conversation with ShuttleViz on the left, the dashboard on the right. */
 
-.brief-via {
+.bf-via {
   font-size: 10px;
   padding: 3px 7px;
   border: 1.5px dashed var(--ink);
   background: var(--card);
 }
 
-.brief-workspace {
+.bf-workspace {
   display: grid;
   grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
   gap: 16px;
@@ -16,7 +16,7 @@
 }
 
 /* ---------- Conversation ---------- */
-.brief-talk {
+.bf-talk {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -25,30 +25,30 @@
   box-shadow: 6px 6px 0 var(--ink);
 }
 
-.brief-intro {
+.bf-intro {
   padding: 16px 16px 4px;
   display: grid;
   gap: 14px;
 }
 
-.brief-intro-lede {
+.bf-intro-lede {
   margin: 0;
   font-size: 15px;
   line-height: 1.45;
   color: var(--muted);
 }
 
-.brief-modes {
+.bf-modes {
   display: grid;
   grid-template-columns: 1fr;
 }
 
-.brief-modes .studio-mode + .studio-mode {
+.bf-modes .studio-mode + .studio-mode {
   border-left: 0;
   border-top: 0;
 }
 
-.brief-entries {
+.bf-entries {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -60,11 +60,11 @@
   gap: 12px;
 }
 
-.brief-entry {
+.bf-entry {
   animation: sp-in 0.3s ease-out both;
 }
 
-.brief-from {
+.bf-from {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -72,7 +72,7 @@
   color: var(--muted);
 }
 
-.brief-you {
+.bf-you {
   align-self: flex-end;
   max-width: 88%;
   padding: 10px 12px;
@@ -81,27 +81,27 @@
   border: 1.5px solid var(--ink);
 }
 
-.brief-you p {
+.bf-you p {
   margin: 0;
   font-size: 14px;
   line-height: 1.45;
   white-space: pre-wrap;
 }
 
-.brief-you-note {
+.bf-you-note {
   display: block;
   margin-top: 6px;
   font-size: 10px;
   color: var(--periwinkle);
 }
 
-.brief-md {
+.bf-md {
   font-size: 14px;
   line-height: 1.5;
 }
 
 /* The designer's plan: the moment the user decides. */
-.brief-plan {
+.bf-plan {
   display: grid;
   gap: 8px;
   padding: 12px 14px;
@@ -109,71 +109,71 @@
   background: var(--paper);
 }
 
-.brief-plan.is-open {
+.bf-plan.is-open {
   background: var(--card);
   border-width: 2px;
   box-shadow: 4px 4px 0 var(--accent);
 }
 
-.brief-plan:not(.is-open) {
+.bf-plan:not(.is-open) {
   opacity: 0.8;
 }
 
-.brief-plan-actions {
+.bf-plan-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   padding-top: 4px;
 }
 
-.brief-plan-actions .btn-chip {
+.bf-plan-actions .btn-chip {
   font-size: 13px;
   min-height: 36px;
   padding: 6px 12px;
   cursor: pointer;
 }
 
-.brief-plan-actions .btn-chip:hover {
+.bf-plan-actions .btn-chip:hover {
   background: var(--periwinkle);
 }
 
 /* Progress, as ShuttleViz reports it. */
-.brief-work {
+.bf-work {
   padding: 10px 12px;
   border: 1.5px dashed var(--ink);
   background: color-mix(in srgb, var(--periwinkle) 22%, var(--card));
 }
 
-.brief-work.is-failed {
+.bf-work.is-failed {
   background: var(--bad-soft);
 }
 
-.brief-work:not(.is-running):not(.is-failed) {
+.bf-work:not(.is-running):not(.is-failed) {
   border-style: solid;
   background: var(--card);
 }
 
-.brief-work-head {
+.bf-work-head {
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 14px;
 }
 
-.brief-work-icon {
+.bf-work-icon {
   width: 22px;
   display: inline-flex;
   justify-content: center;
   font-weight: 700;
 }
 
-.brief-work-time {
+.bf-work-time {
   margin-left: auto;
   font-size: 10px;
   color: var(--muted);
 }
 
-.brief-steps {
+.bf-steps {
   margin: 8px 0 0 32px;
   padding: 0;
   display: grid;
@@ -182,12 +182,12 @@
   color: var(--muted);
 }
 
-.brief-steps li.is-current {
+.bf-steps li.is-current {
   color: var(--ink);
   font-weight: 600;
 }
 
-.brief-done {
+.bf-done {
   display: grid;
   gap: 6px;
   padding: 12px 14px;
@@ -195,31 +195,31 @@
   background: var(--good-soft);
 }
 
-.brief-error {
+.bf-error {
   padding: 10px 12px;
   border: 1.5px solid var(--ink);
   background: var(--bad-soft);
   font-size: 14px;
 }
 
-.brief-analysis {
+.bf-analysis {
   display: grid;
   gap: 10px;
 }
 
 /* A chart from Shuttle, with the choice to keep it for the dashboard. */
-.brief-answer {
+.bf-answer {
   margin: 0;
   border: 1.5px solid var(--ink);
   background: var(--card);
   transition: box-shadow 0.15s;
 }
 
-.brief-answer.is-kept {
+.bf-answer.is-kept {
   box-shadow: 4px 4px 0 var(--accent);
 }
 
-.brief-answer figcaption {
+.bf-answer figcaption {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -227,17 +227,17 @@
   border-bottom: 1.5px solid var(--ink);
 }
 
-.brief-answer-title {
+.bf-answer-title {
   flex: 1;
   font-weight: 700;
   font-size: 14px;
 }
 
-.brief-answer .sp-answer-query {
+.bf-answer .sp-answer-query {
   margin: 6px 10px 0;
 }
 
-.brief-keep {
+.bf-keep {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -250,16 +250,16 @@
   background: var(--paper);
 }
 
-.brief-answer.is-kept .brief-keep {
+.bf-answer.is-kept .bf-keep {
   background: var(--accent);
 }
 
-.brief-keep input {
+.bf-keep input {
   accent-color: var(--ink);
   margin: 0;
 }
 
-.brief-answer-frame {
+.bf-answer-frame {
   height: 300px;
   resize: vertical;
   overflow: hidden;
@@ -267,13 +267,13 @@
   min-height: 220px;
 }
 
-.brief-answer-frame iframe {
+.bf-answer-frame iframe {
   display: block;
   width: 100%;
   border: 0;
 }
 
-.brief-tray {
+.bf-tray {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -284,13 +284,13 @@
   font-size: 14px;
 }
 
-.brief-tray .btn-primary {
+.bf-tray .btn-primary {
   height: 38px;
   font-size: 14px;
 }
 
 /* ---------- Composer ---------- */
-.brief-composer {
+.bf-composer {
   display: grid;
   gap: 8px;
   padding: 12px 16px 14px;
@@ -298,7 +298,7 @@
   background: var(--paper);
 }
 
-.brief-composer textarea {
+.bf-composer textarea {
   width: 100%;
   resize: none;
   font: inherit;
@@ -310,28 +310,28 @@
   color: var(--ink);
 }
 
-.brief-composer textarea:focus {
+.bf-composer textarea:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
-.brief-composer.is-busy textarea {
+.bf-composer.is-busy textarea {
   background: var(--sand);
 }
 
-.brief-composer-row {
+.bf-composer-row {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.brief-composer-row .pin-toggle {
+.bf-composer-row .pin-toggle {
   flex: none;
   font-size: 11px;
 }
 
-.brief-name {
+.bf-name {
   flex: 1 1 140px;
   min-width: 0;
   height: 38px;
@@ -342,25 +342,25 @@
   background: var(--card);
 }
 
-.brief-send {
+.bf-send {
   margin-left: auto;
   height: 40px;
 }
 
-.brief-send:disabled {
+.bf-send:disabled {
   opacity: 0.5;
   cursor: default;
   transform: none;
   box-shadow: 4px 4px 0 var(--ink);
 }
 
-.brief-suggest {
+.bf-suggest {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.brief-suggestion {
+.bf-suggestion {
   text-align: left;
   font-size: 12px;
   line-height: 1.3;
@@ -370,13 +370,13 @@
   cursor: pointer;
 }
 
-.brief-suggestion:hover {
+.bf-suggestion:hover {
   border-style: solid;
   background: var(--periwinkle);
 }
 
 /* ---------- Stage ---------- */
-.brief-stage {
+.bf-stage {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -385,7 +385,7 @@
   background: color-mix(in srgb, var(--card) 70%, transparent);
 }
 
-.brief-stage-head {
+.bf-stage-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -395,34 +395,34 @@
   background: var(--card);
 }
 
-.brief-stage-head .dash-tabs {
+.bf-stage-head .dash-tabs {
   border-bottom: 0;
 }
 
-.brief-stage-links {
+.bf-stage-links {
   display: flex;
   gap: 16px;
 }
 
-.brief-stage-body {
+.bf-stage-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   position: relative;
 }
 
-.brief-embed {
+.bf-embed {
   position: relative;
   min-height: 100%;
 }
 
-.brief-embed.is-changing > :first-child {
+.bf-embed.is-changing > :first-child {
   filter: saturate(0.4);
   opacity: 0.55;
   transition: opacity 0.3s;
 }
 
-.brief-embed-veil {
+.bf-embed-veil {
   position: sticky;
   bottom: 16px;
   margin: -64px auto 16px;
@@ -439,7 +439,7 @@
 }
 
 /* The loom: an empty dashboard frame that weaves itself while ShuttleViz works. */
-.brief-loom {
+.bf-loom {
   height: 100%;
   min-height: 480px;
   display: grid;
@@ -448,17 +448,17 @@
   padding: clamp(20px, 3vw, 40px);
 }
 
-.brief-loom .mosaic-block {
+.bf-loom .mosaic-block {
   --tone: transparent !important;
   border-style: dashed;
   border-color: color-mix(in srgb, var(--ink) 45%, transparent);
 }
 
-.brief-loom .mosaic-block::after {
+.bf-loom .mosaic-block::after {
   opacity: 0.15;
 }
 
-.brief-loom.is-weaving .mosaic-block {
+.bf-loom.is-weaving .mosaic-block {
   border-style: solid;
   border-color: var(--ink);
   background:
@@ -468,18 +468,18 @@
   background-size: 240px 100%, 100% 240px, auto;
   animation:
     sl-warp 6s linear infinite,
-    brief-weave 2.4s ease-in-out infinite;
+    bf-weave 2.4s ease-in-out infinite;
 }
 
-.brief-loom.is-weaving .mosaic-block:nth-child(2n) {
+.bf-loom.is-weaving .mosaic-block:nth-child(2n) {
   animation-delay: 0s, 0.4s;
 }
 
-.brief-loom.is-weaving .mosaic-block:nth-child(3n) {
+.bf-loom.is-weaving .mosaic-block:nth-child(3n) {
   animation-delay: 0s, 0.8s;
 }
 
-@keyframes brief-weave {
+@keyframes bf-weave {
   0%,
   100% {
     box-shadow: inset 0 0 0 0 var(--periwinkle);
@@ -489,7 +489,7 @@
   }
 }
 
-.brief-loom-note {
+.bf-loom-note {
   margin: 0;
   display: flex;
   align-items: center;
@@ -503,29 +503,29 @@
 }
 
 /* get_data: the rows behind each chart. */
-.brief-numbers {
+.bf-numbers {
   padding: 16px;
   display: grid;
   gap: 16px;
 }
 
-.brief-numbers-note,
-.brief-numbers-loading {
+.bf-numbers-note,
+.bf-numbers-loading {
   margin: 0;
   font-size: 11px;
   color: var(--muted);
 }
 
-.brief-numbers-loading {
+.bf-numbers-loading {
   padding: 24px 16px;
 }
 
-.brief-table {
+.bf-table {
   border: 1.5px solid var(--ink);
   background: var(--card);
 }
 
-.brief-table header {
+.bf-table header {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -533,42 +533,42 @@
   border-bottom: 1.5px solid var(--ink);
 }
 
-.brief-table header strong {
+.bf-table header strong {
   flex: 1;
   font-size: 14px;
 }
 
-.brief-table header .mono-label {
+.bf-table header .mono-label {
   font-size: 10px;
   color: var(--muted);
 }
 
-.brief-table header .btn-outline {
+.bf-table header .btn-outline {
   height: 30px;
   padding: 0 10px;
   font-size: 10px;
 }
 
-.brief-table-scroll {
+.bf-table-scroll {
   max-height: 280px;
   overflow: auto;
 }
 
-.brief-table table {
+.bf-table table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
 
-.brief-table th,
-.brief-table td {
+.bf-table th,
+.bf-table td {
   padding: 6px 10px;
   border-bottom: 1px solid var(--sand);
   text-align: left;
   white-space: nowrap;
 }
 
-.brief-table th {
+.bf-table th {
   position: sticky;
   top: 0;
   background: var(--sand);
@@ -577,28 +577,28 @@
   font-weight: 600;
 }
 
-.brief-table td.is-num {
+.bf-table td.is-num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 900px) {
-  .brief-workspace {
+  .bf-workspace {
     grid-template-columns: 1fr;
     height: auto !important;
   }
 
-  .brief-talk {
+  .bf-talk {
     max-height: 80vh;
   }
 
-  .brief-stage {
+  .bf-stage {
     min-height: 520px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .brief-loom.is-weaving .mosaic-block {
+  .bf-loom.is-weaving .mosaic-block {
     animation: none;
   }
 }

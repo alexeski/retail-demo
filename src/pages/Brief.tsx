@@ -95,12 +95,23 @@ const STORE_KEY = 'storeloom.brief'
 const EMPTY: Saved = { entries: [], dashboardId: null, title: '', task: null, running: null, analysisId: null, kept: [] }
 
 function load(): Saved {
+  let saved: Saved
   try {
     const raw = sessionStorage.getItem(STORE_KEY)
-    return raw ? { ...EMPTY, ...(JSON.parse(raw) as Saved) } : EMPTY
+    saved = raw ? { ...EMPTY, ...(JSON.parse(raw) as Saved) } : EMPTY
   } catch {
     return EMPTY
   }
+  // Work that was under way when the page went away. With a running task, the
+  // page resumes it under a new entry; without one (the first request, before
+  // the designer gave it an ID) there's nothing to follow, so say so.
+  const entries = saved.entries.map((e): Entry => {
+    if (e.kind === 'work' && !e.endedAt)
+      return { ...e, endedAt: Date.now(), failed: !saved.running, steps: saved.running ? e.steps : [...e.steps, 'Interrupted: the page was left before ShuttleViz replied.'] }
+    if (e.kind === 'analysis' && !e.done) return { ...e, done: true }
+    return e
+  })
+  return { ...saved, entries }
 }
 
 function save(s: Saved) {
@@ -140,16 +151,16 @@ function WorkEntry({ entry }: { entry: Extract<Entry, { kind: 'work' }> }) {
   const elapsed = useElapsed(entry.startedAt, entry.endedAt)
   const running = !entry.endedAt
   return (
-    <li className={running ? 'brief-entry brief-work is-running' : entry.failed ? 'brief-entry brief-work is-failed' : 'brief-entry brief-work'}>
-      <div className="brief-work-head">
-        <span className="brief-work-icon" aria-hidden>
+    <li className={running ? 'bf-entry bf-work is-running' : entry.failed ? 'bf-entry bf-work is-failed' : 'bf-entry bf-work'}>
+      <div className="bf-work-head">
+        <span className="bf-work-icon" aria-hidden>
           {running ? <span className="sp-shuttle" /> : entry.failed ? '!' : '✓'}
         </span>
         <strong>{entry.label}</strong>
-        <span className="mono-label brief-work-time">{elapsed}</span>
+        <span className="mono-label bf-work-time">{elapsed}</span>
       </div>
       {entry.steps.length > 0 && (
-        <ol className="brief-steps">
+        <ol className="bf-steps">
           {entry.steps.map((s, i) => (
             <li key={i} className={running && i === entry.steps.length - 1 ? 'is-current' : undefined}>
               {rebrand(s)}
@@ -163,11 +174,11 @@ function WorkEntry({ entry }: { entry: Extract<Entry, { kind: 'work' }> }) {
 
 function AnswerTile({ answer, kept, onToggle }: { answer: Answer; kept: boolean; onToggle?: () => void }) {
   return (
-    <figure className={kept ? 'brief-answer is-kept' : 'brief-answer'}>
+    <figure className={kept ? 'bf-answer is-kept' : 'bf-answer'}>
       <figcaption>
-        <span className="brief-answer-title">{rebrand(answer.title)}</span>
+        <span className="bf-answer-title">{rebrand(answer.title)}</span>
         {onToggle && (
-          <label className="brief-keep">
+          <label className="bf-keep">
             <input type="checkbox" checked={kept} onChange={onToggle} />
             <span>{kept ? 'Kept' : 'Keep'}</span>
           </label>
@@ -175,7 +186,7 @@ function AnswerTile({ answer, kept, onToggle }: { answer: Answer; kept: boolean;
       </figcaption>
       {answer.query && <code className="sp-answer-query">{answer.query}</code>}
       {answer.url && (
-        <div className="brief-answer-frame">
+        <div className="bf-answer-frame">
           <div className="sp-answer-clip">
             <iframe src={answer.url} title={answer.title} loading="lazy" />
           </div>
@@ -191,9 +202,9 @@ function AnswerTile({ answer, kept, onToggle }: { answer: Answer; kept: boolean;
 
 function Loom({ seed, weaving }: { seed: string; weaving: boolean }) {
   return (
-    <div className={weaving ? 'brief-loom is-weaving' : 'brief-loom'}>
+    <div className={weaving ? 'bf-loom is-weaving' : 'bf-loom'}>
       <DashboardMosaic seed={seed || 'brief'} tiles={7} />
-      <p className="brief-loom-note">
+      <p className="bf-loom-note">
         {weaving ? (
           <>
             <span className="sp-shuttle" aria-hidden /> ShuttleViz is weaving your dashboard
@@ -226,12 +237,12 @@ function Numbers({ dashboardId, version }: { dashboardId: string; version: numbe
     [v.columns, ...v.data_rows].map((row) => row.map((c) => (c == null ? '' : /[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : String(c))).join(',')).join('\n')
 
   if (error) return <div className="dash-notice is-error">{error}</div>
-  if (!data) return <div className="brief-numbers-loading mono-label">Reading the saved charts…</div>
+  if (!data) return <div className="bf-numbers-loading mono-label">Reading the saved charts…</div>
   return (
-    <div className="brief-numbers">
-      <p className="mono-label brief-numbers-note">The rows behind each chart, read live from the saved dashboard · up to 25 per chart</p>
+    <div className="bf-numbers">
+      <p className="mono-label bf-numbers-note">The rows behind each chart, read live from the saved dashboard · up to 25 per chart</p>
       {data.map((v, i) => (
-        <section key={v.viz_id ?? i} className="brief-table">
+        <section key={v.viz_id ?? i} className="bf-table">
           <header>
             <strong>{rebrand(v.viz_name ?? `Chart ${i + 1}`)}</strong>
             <span className="mono-label">
@@ -242,7 +253,7 @@ function Numbers({ dashboardId, version }: { dashboardId: string; version: numbe
               Copy CSV
             </button>
           </header>
-          <div className="brief-table-scroll">
+          <div className="bf-table-scroll">
             <table>
               <thead>
                 <tr>
@@ -390,6 +401,8 @@ export function Brief() {
     if (!task || !text.trim()) return
     closePlans()
     push({ id: uid(), kind: 'you', text })
+    // The task is known, so a reload from here on can pick it up again.
+    update((s) => ({ ...s, task: null, running: task }))
     const instructions = text.trim()
     if (task.kind === 'create') void drive(() => createDashboard({ task_id: task.id, instructions }), 'create', 'Building your dashboard')
     else void drive(() => modifyDashboard({ dashboard_id: dashboardId!, task_id: task.id, instructions }), 'modify', 'Changing your dashboard')
@@ -514,7 +527,7 @@ export function Brief() {
             : 'What do you need to see? “A weekly review of sales and margin by region”…'
 
   return (
-    <div className="studio brief">
+    <div className="studio bf-page">
       <section className="studio-head">
         <div className="dash-title">
           <Link to="/dashboards" className="dash-back mono-label">
@@ -525,7 +538,7 @@ export function Brief() {
             <span className="studio-model" title="ShuttleViz and Shuttle read the Retail Sales model here.">
               <span aria-hidden>▣</span> Retail Sales model · fixed
             </span>
-            <span className="brief-via" title="Every step runs on ThoughtSpot’s Spotter MCP Server: SpotterViz, Spotter and get_data">
+            <span className="bf-via" title="Every step runs on ThoughtSpot’s Spotter MCP Server: SpotterViz, Spotter and get_data">
               via ThoughtSpot MCP
             </span>
           </div>
@@ -538,16 +551,16 @@ export function Brief() {
         )}
       </section>
 
-      <div className="brief-workspace" ref={stageRef} style={{ height: stageHeight } as CSSProperties}>
+      <div className="bf-workspace" ref={stageRef} style={{ height: stageHeight } as CSSProperties}>
         {/* ---- Conversation ---- */}
-        <section className="brief-talk" aria-label="Conversation with ShuttleViz">
+        <section className="bf-talk" aria-label="Conversation with ShuttleViz">
           {!started && !dashboardId && (
-            <div className="brief-intro">
-              <p className="brief-intro-lede">
+            <div className="bf-intro">
+              <p className="bf-intro-lede">
                 Tell ShuttleViz what you need. It comes back with a plan and the data it will use, builds only once you approve, and keeps refining the
                 dashboard as you talk.
               </p>
-              <div className="studio-modes brief-modes" role="tablist" aria-label="How to start">
+              <div className="studio-modes bf-modes" role="tablist" aria-label="How to start">
                 {START_MODES.map((m) => (
                   <button
                     key={m.mode}
@@ -571,28 +584,28 @@ export function Brief() {
           )}
 
           {!started && dashboardId && (
-            <div className="brief-intro">
-              <p className="brief-intro-lede">Tell ShuttleViz how to change this dashboard: layout, styling, new charts, notes, groups or tabs.</p>
+            <div className="bf-intro">
+              <p className="bf-intro-lede">Tell ShuttleViz how to change this dashboard: layout, styling, new charts, notes, groups or tabs.</p>
             </div>
           )}
 
-          <ol className="brief-entries" ref={listRef}>
+          <ol className="bf-entries" ref={listRef}>
             {entries.map((e) => {
               switch (e.kind) {
                 case 'you':
                   return (
-                    <li key={e.id} className="brief-entry brief-you">
+                    <li key={e.id} className="bf-entry bf-you">
                       <p>{e.text}</p>
-                      {e.note && <span className="mono-label brief-you-note">{e.note}</span>}
+                      {e.note && <span className="mono-label bf-you-note">{e.note}</span>}
                     </li>
                   )
                 case 'plan':
                   return (
-                    <li key={e.id} className={e.open ? 'brief-entry brief-plan is-open' : 'brief-entry brief-plan'}>
-                      <span className="mono-label brief-from">ShuttleViz · {e.open ? 'waiting for you' : 'answered'}</span>
-                      <Markdown text={e.message} className="brief-md" />
+                    <li key={e.id} className={e.open ? 'bf-entry bf-plan is-open' : 'bf-entry bf-plan'}>
+                      <span className="mono-label bf-from">ShuttleViz · {e.open ? 'waiting for you' : 'answered'}</span>
+                      <Markdown text={e.message} className="bf-md" />
                       {e.open && (
-                        <div className="brief-plan-actions">
+                        <div className="bf-plan-actions">
                           {e.choices.map((c) => (
                             <button key={c} type="button" className="btn-chip" onClick={() => reply(c)} disabled={busy}>
                               {rebrand(c)}
@@ -611,24 +624,24 @@ export function Brief() {
                   return <WorkEntry key={e.id} entry={e} />
                 case 'done':
                   return (
-                    <li key={e.id} className="brief-entry brief-done">
-                      <span className="mono-label brief-from">ShuttleViz · {e.changed ? 'saved' : 'nothing changed'}</span>
-                      <Markdown text={e.message} className="brief-md" />
+                    <li key={e.id} className="bf-entry bf-done">
+                      <span className="mono-label bf-from">ShuttleViz · {e.changed ? 'saved' : 'nothing changed'}</span>
+                      <Markdown text={e.message} className="bf-md" />
                     </li>
                   )
                 case 'error':
                   return (
-                    <li key={e.id} className="brief-entry brief-error" role="alert">
+                    <li key={e.id} className="bf-entry bf-error" role="alert">
                       {rebrand(e.message)}
                     </li>
                   )
                 case 'analysis':
                   return (
-                    <li key={e.id} className="brief-entry brief-analysis">
-                      <span className="mono-label brief-from">
+                    <li key={e.id} className="bf-entry bf-analysis">
+                      <span className="mono-label bf-from">
                         {!e.done && <span className="sp-shuttle" aria-hidden />} Shuttle {e.done ? '' : `· ${rebrand(e.steps[e.steps.length - 1] ?? 'thinking')}`}
                       </span>
-                      {e.text && <Markdown text={e.text} className="brief-md" />}
+                      {e.text && <Markdown text={e.text} className="bf-md" />}
                       {e.answers.map((a) => (
                         <AnswerTile key={a.id} answer={a} kept={kept.includes(a.id)} onToggle={dashboardId ? undefined : () => toggleKeep(a.id)} />
                       ))}
@@ -639,7 +652,7 @@ export function Brief() {
           </ol>
 
           {!dashboardId && keptAnswers.length > 0 && !task && (
-            <div className="brief-tray">
+            <div className="bf-tray">
               <span>
                 <strong>{keptAnswers.length}</strong> {keptAnswers.length === 1 ? 'chart' : 'charts'} kept
               </span>
@@ -649,20 +662,20 @@ export function Brief() {
             </div>
           )}
 
-          <form className={busy ? 'brief-composer is-busy' : 'brief-composer'} onSubmit={submit}>
+          <form className={busy ? 'bf-composer is-busy' : 'bf-composer'} onSubmit={submit}>
             {phase === 'refine' && !busy && (
-              <div className="brief-suggest">
+              <div className="bf-suggest">
                 {REFINEMENTS.map((r) => (
-                  <button key={r} type="button" className="brief-suggestion" onClick={() => refine(r)}>
+                  <button key={r} type="button" className="bf-suggestion" onClick={() => refine(r)}>
                     {r}
                   </button>
                 ))}
               </div>
             )}
             {(phase === 'start' || phase === 'explore') && !started && (
-              <div className="brief-suggest">
+              <div className="bf-suggest">
                 {EXAMPLES[mode].map((x) => (
-                  <button key={x} type="button" className="brief-suggestion" onClick={() => setDraft(x)}>
+                  <button key={x} type="button" className="bf-suggestion" onClick={() => setDraft(x)}>
                     {x.length > 90 ? `${x.slice(0, 88)}…` : x}
                   </button>
                 ))}
@@ -678,10 +691,10 @@ export function Brief() {
                 if (e.key === 'Enter' && !e.shiftKey) submit(e)
               }}
             />
-            <div className="brief-composer-row">
-              {(phase === 'start' || (phase === 'explore' && keptAnswers.length > 0)) && !task && (
+            <div className="bf-composer-row">
+              {((phase === 'start' && !started) || (phase === 'explore' && keptAnswers.length > 0)) && !task && (
                 <>
-                  <input className="brief-name" value={name} placeholder="Dashboard name (optional)" maxLength={100} onChange={(e) => setName(e.target.value)} />
+                  <input className="bf-name" value={name} placeholder="Dashboard name (optional)" maxLength={100} onChange={(e) => setName(e.target.value)} />
                   <label className="pin-toggle" title="Sends the Storeloom colours to ShuttleViz as hex codes">
                     <input type="checkbox" checked={styled} onChange={(e) => setStyled(e.target.checked)} />
                     <span className="pin-toggle-track" aria-hidden />
@@ -689,7 +702,7 @@ export function Brief() {
                   </label>
                 </>
               )}
-              <button type="submit" className="btn-primary brief-send" disabled={busy || !draft.trim()}>
+              <button type="submit" className="btn-primary bf-send" disabled={busy || !draft.trim()}>
                 {phase === 'reply' ? 'Reply' : phase === 'refine' ? 'Change it' : phase === 'explore' ? 'Ask' : 'Brief it'} <span aria-hidden>→</span>
               </button>
             </div>
@@ -697,8 +710,8 @@ export function Brief() {
         </section>
 
         {/* ---- Stage ---- */}
-        <section className="brief-stage" aria-label="Dashboard">
-          <header className="brief-stage-head">
+        <section className="bf-stage" aria-label="Dashboard">
+          <header className="bf-stage-head">
             <div className="dash-tabs" role="tablist" aria-label="Show">
               <button type="button" role="tab" aria-selected={view === 'dashboard'} className={view === 'dashboard' ? 'dash-tab is-active' : 'dash-tab'} onClick={() => setView('dashboard')}>
                 Dashboard
@@ -710,7 +723,7 @@ export function Brief() {
               )}
             </div>
             {dashboardId && (
-              <div className="brief-stage-links">
+              <div className="bf-stage-links">
                 <Link to={`/studio?mode=search&dashboard=${dashboardId}`} className="studio-open">
                   ⌕ Edit in Studio
                 </Link>
@@ -720,13 +733,13 @@ export function Brief() {
               </div>
             )}
           </header>
-          <div className="brief-stage-body">
+          <div className="bf-stage-body">
             {!dashboardId ? (
               <Loom seed={seed} weaving={entries.some((e) => e.kind === 'work' && !e.endedAt)} />
             ) : view === 'numbers' ? (
               <Numbers dashboardId={dashboardId} version={version} />
             ) : (
-              <div className={busy ? 'brief-embed is-changing' : 'brief-embed'}>
+              <div className={busy ? 'bf-embed is-changing' : 'bf-embed'}>
                 <LiveboardEmbed
                   key={`${dashboardId}-${version}`}
                   liveboardId={dashboardId}
@@ -736,7 +749,7 @@ export function Brief() {
                   minimumHeight={480}
                 />
                 {busy && (
-                  <div className="brief-embed-veil">
+                  <div className="bf-embed-veil">
                     <span className="sp-shuttle" aria-hidden /> ShuttleViz is changing the dashboard
                   </div>
                 )}
