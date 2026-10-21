@@ -129,16 +129,6 @@ export function Dashboards() {
             </span>
           </Link>
         ))}
-        <Link to="/studio/brief" className="bf-strip">
-          <span className="tag">New · Brief</span>
-          <span className="bf-strip-text">
-            <strong>Talk it through with ShuttleViz.</strong> It proposes a plan, builds once you approve, and keeps refining as you talk. Or explore with
-            Shuttle first and keep the charts worth keeping.
-          </span>
-          <span className="mode-card-cta">
-            Start a brief <span aria-hidden>→</span>
-          </span>
-        </Link>
       </section>
 
       <section className="dash-library">
@@ -227,15 +217,6 @@ export function Dashboards() {
                       </button>
                       <button type="button" onClick={() => navigate(`/studio?mode=ai&dashboard=${d.id}`)} title="Edit this dashboard with ShuttleViz">
                         ✦ ShuttleViz
-                      </button>
-                      <button
-                        type="button"
-                        className="is-icon"
-                        onClick={() => navigate(`/studio/brief?dashboard=${d.id}`)}
-                        aria-label={`Brief ShuttleViz on ${d.name}`}
-                        title="Brief: tell ShuttleViz what to change, in a conversation"
-                      >
-                        ✎
                       </button>
                       {confirming === d.id ? (
                         <button type="button" className="is-danger" disabled={deleting === d.id} onClick={() => remove(d)} onBlur={() => setConfirming(null)} autoFocus>

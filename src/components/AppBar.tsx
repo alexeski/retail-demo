@@ -49,6 +49,9 @@ export function AppBar() {
           <NavLink to="/dashboards" className={({ isActive }) => navClass({ isActive: isActive || studioOpen })}>
             Dashboards
           </NavLink>
+          <NavLink to="/lab" className={navClass}>
+            Dashboard Lab <span className="appnav-beta">Beta</span>
+          </NavLink>
         </nav>
       </div>
       {user && (

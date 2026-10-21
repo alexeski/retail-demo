@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { LiveboardEmbed } from '@thoughtspot/visual-embed-sdk/react'
 import { rebrand } from '../brand'
 import { PINNED_CHART_HIDDEN_ACTIONS } from '../chartActions'
@@ -20,24 +20,25 @@ import {
   type DesignResult,
   type VizData,
 } from '../tsMcp'
+import { LAB_STORE_PREFIX } from '../tsMcp'
 import { useFillHeight } from '../useFillHeight'
 import '../components/SpotterTurn.css'
 import './Dashboards.css'
 import './Studio.css'
-import './Brief.css'
+import './Lab.css'
 
-// Brief: a conversation with ShuttleViz (SpotterViz) over ThoughtSpot's Spotter
-// MCP Server. The user briefs it, it answers with a plan, the user approves or
-// changes it, it builds and styles the dashboard, and then the conversation
-// keeps going to refine it. Three ways in: describe it, explore with Shuttle
-// first and keep the charts worth keeping, or paste a dashboard from another tool.
+// Dashboard Lab's builder: a conversation with Shuttle over ThoughtSpot's
+// Spotter MCP Server (SpotterViz designs, Spotter analyses). The user briefs it,
+// it answers with a plan, the user approves or changes it, it builds and styles
+// the dashboard, and the conversation keeps going to refine it. Two ways in:
+// describe it, or explore first and keep the charts worth keeping. Separate
+// from Studio and its embedded ShuttleViz, so the two can be compared.
 
-type StartMode = 'describe' | 'explore' | 'rebuild'
+type StartMode = 'describe' | 'explore'
 
 const START_MODES: { mode: StartMode; icon: string; label: string; sub: string }[] = [
   { mode: 'describe', icon: '✦', label: 'Describe it', sub: 'One sentence is enough' },
   { mode: 'explore', icon: '⌕', label: 'Explore first', sub: 'Ask, then keep the best charts' },
-  { mode: 'rebuild', icon: '⧉', label: 'Rebuild one', sub: 'From Tableau, Power BI, a slide…' },
 ]
 
 const EXAMPLES: Record<StartMode, string[]> = {
@@ -50,9 +51,6 @@ const EXAMPLES: Record<StartMode, string[]> = {
     'How did sales trend over the last 12 months?',
     'Which regions grew fastest this quarter?',
     'Top 10 brands by gross margin',
-  ],
-  rebuild: [
-    'Tableau workbook "Store Pulse": 4 KPI tiles (Sales, Gross Profit, Margin %, Transactions), a monthly sales line by region, a map of sales by state, and a table of the 20 lowest-margin stores. Filters: region, store type.',
   ],
 }
 
@@ -96,32 +94,47 @@ type Saved = {
   kept: string[]
 }
 
-const STORE_KEY = 'storeloom.brief'
+/**
+ * One saved conversation per route: `new` while a dashboard is being made, then
+ * the dashboard's ID (`/lab/<id>`). Kept for the tab, so a reload picks up where
+ * it was.
+ */
+const storeKey = (key: string) => `${LAB_STORE_PREFIX}${key}`
 const EMPTY: Saved = { entries: [], dashboardId: null, title: '', task: null, running: null, analysisId: null, kept: [] }
 
-function load(): Saved {
+/** Clears the saved new-dashboard conversation, for a fresh start. */
+export function forgetNewLabConversation() {
+  try {
+    sessionStorage.removeItem(storeKey('new'))
+  } catch {
+    // Nothing was kept.
+  }
+}
+
+function load(key: string): Saved {
+  const blank = key === 'new' ? EMPTY : { ...EMPTY, dashboardId: key }
   let saved: Saved
   try {
-    const raw = sessionStorage.getItem(STORE_KEY)
-    saved = raw ? { ...EMPTY, ...(JSON.parse(raw) as Saved) } : EMPTY
+    const raw = sessionStorage.getItem(storeKey(key))
+    saved = raw ? { ...blank, ...(JSON.parse(raw) as Saved) } : blank
   } catch {
-    return EMPTY
+    return blank
   }
   // Work that was under way when the page went away. With a running task, the
   // page resumes it under a new entry; without one (the first request, before
   // the designer gave it an ID) there's nothing to follow, so say so.
   const entries = saved.entries.map((e): Entry => {
     if (e.kind === 'work' && !e.endedAt && !saved.running)
-      return { ...e, endedAt: Date.now(), failed: true, steps: [...e.steps, 'Interrupted: the page was left before ShuttleViz replied.'] }
+      return { ...e, endedAt: Date.now(), failed: true, steps: [...e.steps, 'Interrupted: the page was left before Shuttle replied.'] }
     if (e.kind === 'analysis' && !e.done) return { ...e, done: true }
     return e
   })
   return { ...saved, entries }
 }
 
-function save(s: Saved) {
+function save(key: string, s: Saved) {
   try {
-    sessionStorage.setItem(STORE_KEY, JSON.stringify(s))
+    sessionStorage.setItem(storeKey(key), JSON.stringify(s))
   } catch {
     // Private mode or full storage: the conversation just won't survive a reload.
   }
@@ -152,13 +165,13 @@ function useElapsed(start: number, end?: number) {
 // Conversation entries
 // ---------------------------------------------------------------------------
 
-/** ShuttleViz reports a step as "Its tool\nWhat it's doing": the tool as a label, the rest as a note. */
+/** Shuttle reports a step as "Its tool\nWhat it's doing": the tool as a label, the rest as a note. */
 function StepText({ text }: { text: string }) {
   const [label, ...rest] = text.split('\n')
   return (
     <>
-      <span className="bf-step-label">{label}</span>
-      {rest.length > 0 && <span className="bf-step-note">{rest.join(' ')}</span>}
+      <span className="lab-step-label">{label}</span>
+      {rest.length > 0 && <span className="lab-step-note">{rest.join(' ')}</span>}
     </>
   )
 }
@@ -167,16 +180,16 @@ function WorkEntry({ entry }: { entry: Extract<Entry, { kind: 'work' }> }) {
   const elapsed = useElapsed(entry.startedAt, entry.endedAt)
   const running = !entry.endedAt
   return (
-    <li className={running ? 'bf-entry bf-work is-running' : entry.failed ? 'bf-entry bf-work is-failed' : 'bf-entry bf-work'}>
-      <div className="bf-work-head">
-        <span className="bf-work-icon" aria-hidden>
+    <li className={running ? 'lab-entry lab-work is-running' : entry.failed ? 'lab-entry lab-work is-failed' : 'lab-entry lab-work'}>
+      <div className="lab-work-head">
+        <span className="lab-work-icon" aria-hidden>
           {running ? <span className="sp-shuttle" /> : entry.failed ? '!' : '✓'}
         </span>
         <strong>{entry.label}</strong>
-        <span className="mono-label bf-work-time">{elapsed}</span>
+        <span className="mono-label lab-work-time">{elapsed}</span>
       </div>
       {entry.steps.length > 0 && (
-        <ol className="bf-steps">
+        <ol className="lab-steps">
           {entry.steps.map((s, i) => (
             <li key={i} className={running && i === entry.steps.length - 1 ? 'is-current' : undefined}>
               <StepText text={rebrand(s)} />
@@ -190,11 +203,11 @@ function WorkEntry({ entry }: { entry: Extract<Entry, { kind: 'work' }> }) {
 
 function AnswerTile({ answer, kept, onToggle }: { answer: Answer; kept: boolean; onToggle?: () => void }) {
   return (
-    <figure className={kept ? 'bf-answer is-kept' : 'bf-answer'}>
+    <figure className={kept ? 'lab-answer is-kept' : 'lab-answer'}>
       <figcaption>
-        <span className="bf-answer-title">{rebrand(answer.title)}</span>
+        <span className="lab-answer-title">{rebrand(answer.title)}</span>
         {onToggle && (
-          <label className="bf-keep">
+          <label className="lab-keep">
             <input type="checkbox" checked={kept} onChange={onToggle} />
             <span>{kept ? 'Kept' : 'Keep'}</span>
           </label>
@@ -202,7 +215,7 @@ function AnswerTile({ answer, kept, onToggle }: { answer: Answer; kept: boolean;
       </figcaption>
       {answer.query && <code className="sp-answer-query">{answer.query}</code>}
       {answer.url && (
-        <div className="bf-answer-frame">
+        <div className="lab-answer-frame">
           <div className="sp-answer-clip">
             <iframe src={answer.url} title={answer.title} loading="lazy" />
           </div>
@@ -218,12 +231,12 @@ function AnswerTile({ answer, kept, onToggle }: { answer: Answer; kept: boolean;
 
 function Loom({ seed, weaving }: { seed: string; weaving: boolean }) {
   return (
-    <div className={weaving ? 'bf-loom is-weaving' : 'bf-loom'}>
+    <div className={weaving ? 'lab-loom is-weaving' : 'lab-loom'}>
       <DashboardMosaic seed={seed || 'brief'} tiles={7} />
-      <p className="bf-loom-note">
+      <p className="lab-loom-note">
         {weaving ? (
           <>
-            <span className="sp-shuttle" aria-hidden /> ShuttleViz is weaving your dashboard
+            <span className="sp-shuttle" aria-hidden /> Shuttle is weaving your dashboard
           </>
         ) : (
           'Your dashboard takes shape here.'
@@ -258,21 +271,21 @@ function columnFormat(name: string, values: Cell[]): (v: Cell) => string {
 /** While exploring: the charts kept so far, laid out as the dashboard-to-be. */
 function DraftBoard({ answers, onRemove }: { answers: Answer[]; onRemove: (id: string) => void }) {
   return (
-    <div className="bf-draft">
-      <p className="mono-label bf-numbers-note">
-        Draft · {answers.length} {answers.length === 1 ? 'chart' : 'charts'} kept · ShuttleViz lays them out and styles them when you make it a dashboard
+    <div className="lab-draft">
+      <p className="mono-label lab-numbers-note">
+        Draft · {answers.length} {answers.length === 1 ? 'chart' : 'charts'} kept · Shuttle lays them out and styles them when you make it a dashboard
       </p>
-      <div className="bf-draft-grid">
+      <div className="lab-draft-grid">
         {answers.map((a) => (
-          <figure key={a.id} className="bf-answer is-kept">
+          <figure key={a.id} className="lab-answer is-kept">
             <figcaption>
-              <span className="bf-answer-title">{rebrand(a.title)}</span>
-              <button type="button" className="bf-draft-remove" aria-label={`Remove ${a.title}`} title="Don’t keep this chart" onClick={() => onRemove(a.id)}>
+              <span className="lab-answer-title">{rebrand(a.title)}</span>
+              <button type="button" className="lab-draft-remove" aria-label={`Remove ${a.title}`} title="Don’t keep this chart" onClick={() => onRemove(a.id)}>
                 ×
               </button>
             </figcaption>
             {a.url && (
-              <div className="bf-answer-frame">
+              <div className="lab-answer-frame">
                 <div className="sp-answer-clip">
                   <iframe src={a.url} title={a.title} loading="lazy" />
                 </div>
@@ -307,12 +320,12 @@ function Numbers({ dashboardId, version }: { dashboardId: string; version: numbe
   const formats = useMemo(() => data?.map((v) => v.columns.map((name, c) => columnFormat(name, v.data_rows.map((row) => row[c] ?? null)))) ?? [], [data])
 
   if (error) return <div className="dash-notice is-error">{error}</div>
-  if (!data) return <div className="bf-numbers-loading mono-label">Reading the saved charts…</div>
+  if (!data) return <div className="lab-numbers-loading mono-label">Reading the saved charts…</div>
   return (
-    <div className="bf-numbers">
-      <p className="mono-label bf-numbers-note">The rows behind each chart, read live from the saved dashboard · up to 25 per chart</p>
+    <div className="lab-numbers">
+      <p className="mono-label lab-numbers-note">The rows behind each chart, read live from the saved dashboard · up to 25 per chart</p>
       {data.map((v, i) => (
-        <section key={v.viz_id ?? i} className="bf-table">
+        <section key={v.viz_id ?? i} className="lab-table">
           <header>
             <strong>{rebrand(v.viz_name ?? `Chart ${i + 1}`)}</strong>
             <span className="mono-label">
@@ -323,7 +336,7 @@ function Numbers({ dashboardId, version }: { dashboardId: string; version: numbe
               Copy CSV
             </button>
           </header>
-          <div className="bf-table-scroll">
+          <div className="lab-table-scroll">
             <table>
               <thead>
                 <tr>
@@ -355,21 +368,26 @@ function Numbers({ dashboardId, version }: { dashboardId: string; version: numbe
 // The page
 // ---------------------------------------------------------------------------
 
-export function Brief() {
-  const [params, setParams] = useSearchParams()
-  const fromUrl = params.get('dashboard')
-  const [state, setState] = useState<Saved>(() => {
-    const saved = load()
-    // Opened on a dashboard (from My dashboards): a fresh conversation about it.
-    return fromUrl && fromUrl !== saved.dashboardId ? { ...EMPTY, dashboardId: fromUrl } : saved
-  })
+/** The route: each conversation (`new`, or a dashboard's ID) is its own instance. */
+export function LabBuilderRoute() {
+  const { id = 'new' } = useParams()
+  return <LabBuilder key={id} id={id} />
+}
+
+/** `/lab/new` starts a dashboard; `/lab/<id>` continues one. Rendered with `key={id}`, so each gets its own conversation. */
+export function LabBuilder({ id }: { id: string }) {
+  const navigate = useNavigate()
+  const [state, setState] = useState<Saved>(() => load(id))
   const { entries, dashboardId, title, task, kept } = state
-  const [mode, setMode] = useState<StartMode>('describe')
+  const [params] = useSearchParams()
+  const [mode, setMode] = useState<StartMode>(() => (params.get('mode') === 'explore' ? 'explore' : 'describe'))
   const [draft, setDraft] = useState('')
   const [name, setName] = useState('')
   const [styled, setStyled] = useState(true)
   const [busy, setBusy] = useState(false)
   const [view, setView] = useState<'dashboard' | 'numbers'>('dashboard')
+  /** The dashboard across the whole workspace, conversation folded away. */
+  const [focus, setFocus] = useState(false)
   /** Bumped when the designer changes the dashboard, so the embed reloads. */
   const [version, setVersion] = useState(0)
   const [canGetData, setCanGetData] = useState(false)
@@ -378,7 +396,16 @@ export function Brief() {
   const stateRef = useRef(state)
   stateRef.current = state
 
-  useEffect(() => save(state), [state])
+  useEffect(() => {
+    // A new dashboard that now exists moves to its own address, conversation and all.
+    if (id === 'new' && state.dashboardId) {
+      save(state.dashboardId, state)
+      forgetNewLabConversation()
+      if (!busy) navigate(`/lab/${state.dashboardId}`, { replace: true })
+      return
+    }
+    save(id, state)
+  }, [id, state, busy, navigate])
 
   const update = useCallback((fn: (s: Saved) => Saved) => setState((s) => fn(s)), [])
   const push = useCallback((entry: Entry) => update((s) => ({ ...s, entries: [...s.entries, entry] })), [update])
@@ -423,7 +450,7 @@ export function Brief() {
       try {
         let r = await first()
         while (r.status === 'in_progress') {
-          if (!r.task_id) throw new Error('ShuttleViz is working but didn’t say on what. Check My dashboards in a few minutes.')
+          if (!r.task_id) throw new Error('Shuttle is working but didn’t say on what. Check Dashboard Lab in a few minutes.')
           const running = { id: r.task_id, kind }
           update((s) => (s.running?.id === running.id ? s : { ...s, running }))
           addStep(r.message)
@@ -431,7 +458,7 @@ export function Brief() {
         }
         patch(workId, (e) => (e.kind === 'work' ? { ...e, endedAt: Date.now(), failed: r.status === 'failed' } : e))
         if (r.status === 'needs_input') {
-          push({ id: uid(), kind: 'plan', message: r.message ?? 'ShuttleViz has a question.', choices: r.choices ?? [], open: true })
+          push({ id: uid(), kind: 'plan', message: r.message ?? 'Shuttle has a question.', choices: r.choices ?? [], open: true })
           update((s) => ({ ...s, running: null, task: r.task_id ? { id: r.task_id, kind } : s.task }))
         } else if (r.status === 'completed') {
           const id = dashboardIdOf(r) ?? stateRef.current.dashboardId
@@ -441,7 +468,7 @@ export function Brief() {
           setView('dashboard')
         } else {
           update((s) => ({ ...s, running: null, task: null }))
-          push({ id: uid(), kind: 'error', message: r.message ?? 'ShuttleViz couldn’t finish. Nothing was saved.' })
+          push({ id: uid(), kind: 'error', message: r.message ?? 'Shuttle couldn’t finish. Nothing was saved.' })
         }
       } catch (err) {
         patch(workId, (e) => (e.kind === 'work' ? { ...e, endedAt: Date.now(), failed: true } : e))
@@ -461,7 +488,7 @@ export function Brief() {
     if (resumed.current || !running) return
     resumed.current = true
     const open = stateRef.current.entries.findLast((e) => e.kind === 'work' && !e.endedAt)
-    void drive(() => dashboardStatus(running.id), running.kind, 'Picking up where ShuttleViz left off', open?.id)
+    void drive(() => dashboardStatus(running.id), running.kind, 'Picking up where Shuttle left off', open?.id)
   }, [drive])
 
   /** Closes the open plan: the user answered it. */
@@ -485,10 +512,10 @@ export function Brief() {
   }
 
   const startDesign = (text: string) => {
-    const brief = mode === 'rebuild' ? `Recreate this dashboard from another tool:\n\n${text}` : text
+    const brief = text
     const dashboardTitle = name.trim() || titleFrom(text)
     update((s) => ({ ...s, title: dashboardTitle }))
-    push({ id: uid(), kind: 'you', text, note: [mode === 'rebuild' ? 'Rebuild' : null, styled ? 'Storeloom style' : null].filter(Boolean).join(' · ') || undefined })
+    push({ id: uid(), kind: 'you', text, note: styled ? 'Storeloom style' : undefined })
     void drive(
       () =>
         createDashboard({
@@ -497,7 +524,7 @@ export function Brief() {
           data_source_id: RETAIL_MODEL_ID,
         }),
       'create',
-      'Planning with ShuttleViz',
+      'Planning with Shuttle',
     )
   }
 
@@ -572,12 +599,20 @@ export function Brief() {
     )
   }
 
-  const reset = () => {
-    setState(EMPTY)
+  const startOver = () => {
+    forgetNewLabConversation()
+    if (id === 'new') {
+      setState(EMPTY)
+      setDraft('')
+      setName('')
+    } else navigate('/lab/new')
+  }
+
+  const pickMode = (m: StartMode) => {
+    if (m === mode) return
+    setMode(m)
+    // Each mode has its own examples: what was typed for one doesn't carry over.
     setDraft('')
-    setName('')
-    setView('dashboard')
-    if (fromUrl) setParams({}, { replace: true })
   }
 
   const phase: 'start' | 'explore' | 'reply' | 'refine' = task ? 'reply' : dashboardId ? 'refine' : mode === 'explore' ? 'explore' : 'start'
@@ -602,45 +637,43 @@ export function Brief() {
         ? 'What should change? “Make the KPIs bigger”, “Add a tab for regions”…'
         : phase === 'explore'
           ? 'Ask Shuttle a question about Retail Sales…'
-          : mode === 'rebuild'
-            ? 'Paste or describe the dashboard: its charts, KPIs, filters and layout…'
-            : 'What do you need to see? “A weekly review of sales and margin by region”…'
+          : 'What do you need to see? “A weekly review of sales and margin by region”…'
 
   return (
-    <div className="studio bf-page">
+    <div className="studio lab-page">
       <section className="studio-head">
         <div className="dash-title">
-          <Link to="/dashboards" className="dash-back mono-label">
-            ← My dashboards
+          <Link to="/lab" className="dash-back mono-label">
+            ← Dashboard Lab
           </Link>
           <div className="eyebrow">
-            <span className="tag">Brief</span>
-            <span className="studio-model" title="ShuttleViz and Shuttle read the Retail Sales model here.">
+            <span className="tag">Dashboard Lab</span>
+            <span className="studio-model" title="Shuttle reads the Retail Sales model here.">
               <span aria-hidden>▣</span> Retail Sales model · fixed
             </span>
-            <span className="bf-via" title="Every step runs on ThoughtSpot’s Spotter MCP Server: SpotterViz, Spotter and get_data">
+            <span className="lab-via" title="Every step runs on ThoughtSpot’s Spotter MCP Server: SpotterViz, Spotter and get_data">
               via ThoughtSpot MCP
             </span>
           </div>
-          <h1 className="display studio-h1">{title || (dashboardId ? ' ' : 'Brief ShuttleViz')}</h1>
+          <h1 className="display studio-h1">{title || (dashboardId ? ' ' : 'New dashboard')}</h1>
         </div>
-        {started && (
-          <button type="button" className="btn-outline" onClick={reset} disabled={busy}>
-            ＋ New brief
+        {(started || dashboardId) && (
+          <button type="button" className="btn-outline" onClick={startOver} disabled={busy}>
+            ＋ New dashboard
           </button>
         )}
       </section>
 
-      <div className="bf-workspace" ref={stageRef} style={{ height: stageHeight } as CSSProperties}>
+      <div className={focus && dashboardId ? 'lab-workspace is-focus' : 'lab-workspace'} ref={stageRef} style={{ height: stageHeight } as CSSProperties}>
         {/* ---- Conversation ---- */}
-        <section className="bf-talk" aria-label="Conversation with ShuttleViz">
+        <section className="lab-talk" aria-label="Conversation with Shuttle">
           {!started && !dashboardId && (
-            <div className="bf-intro">
-              <p className="bf-intro-lede">
-                Tell ShuttleViz what you need. It comes back with a plan and the data it will use, builds only once you approve, and keeps refining the
+            <div className="lab-intro">
+              <p className="lab-intro-lede">
+                Tell Shuttle what you need. It comes back with a plan and the data it will use, builds only once you approve, and keeps refining the
                 dashboard as you talk.
               </p>
-              <div className="studio-modes bf-modes" role="tablist" aria-label="How to start">
+              <div className="studio-modes lab-modes" role="tablist" aria-label="How to start">
                 {START_MODES.map((m) => (
                   <button
                     key={m.mode}
@@ -648,7 +681,7 @@ export function Brief() {
                     role="tab"
                     aria-selected={mode === m.mode}
                     className={mode === m.mode ? 'studio-mode is-active' : 'studio-mode'}
-                    onClick={() => setMode(m.mode)}
+                    onClick={() => pickMode(m.mode)}
                   >
                     <span className="studio-mode-icon" aria-hidden>
                       {m.icon}
@@ -664,28 +697,28 @@ export function Brief() {
           )}
 
           {!started && dashboardId && (
-            <div className="bf-intro">
-              <p className="bf-intro-lede">Tell ShuttleViz how to change this dashboard: layout, styling, new charts, notes, groups or tabs.</p>
+            <div className="lab-intro">
+              <p className="lab-intro-lede">Tell Shuttle how to change this dashboard: layout, styling, new charts, notes, groups or tabs.</p>
             </div>
           )}
 
-          <ol className="bf-entries" ref={listRef}>
+          <ol className="lab-entries" ref={listRef}>
             {entries.map((e) => {
               switch (e.kind) {
                 case 'you':
                   return (
-                    <li key={e.id} className="bf-entry bf-you">
+                    <li key={e.id} className="lab-entry lab-you">
                       <p>{e.text}</p>
-                      {e.note && <span className="mono-label bf-you-note">{e.note}</span>}
+                      {e.note && <span className="mono-label lab-you-note">{e.note}</span>}
                     </li>
                   )
                 case 'plan':
                   return (
-                    <li key={e.id} className={e.open ? 'bf-entry bf-plan is-open' : 'bf-entry bf-plan'}>
-                      <span className="mono-label bf-from">ShuttleViz · {e.open ? 'waiting for you' : 'answered'}</span>
-                      <Markdown text={e.message} className="bf-md" />
+                    <li key={e.id} className={e.open ? 'lab-entry lab-plan is-open' : 'lab-entry lab-plan'}>
+                      <span className="mono-label lab-from">Shuttle · {e.open ? 'waiting for you' : 'answered'}</span>
+                      <Markdown text={e.message} className="lab-md" />
                       {e.open && (
-                        <div className="bf-plan-actions">
+                        <div className="lab-plan-actions">
                           {e.choices.map((c) => (
                             <button key={c} type="button" className="btn-chip" onClick={() => reply(c)} disabled={busy}>
                               {rebrand(c)}
@@ -704,27 +737,27 @@ export function Brief() {
                   return <WorkEntry key={e.id} entry={e} />
                 case 'done':
                   return (
-                    <li key={e.id} className="bf-entry bf-done">
-                      <span className="mono-label bf-from">ShuttleViz · {e.changed ? 'saved' : 'nothing changed'}</span>
-                      <Markdown text={e.message} className="bf-md" />
+                    <li key={e.id} className="lab-entry lab-done">
+                      <span className="mono-label lab-from">Shuttle · {e.changed ? 'saved' : 'nothing changed'}</span>
+                      <Markdown text={e.message} className="lab-md" />
                     </li>
                   )
                 case 'error':
                   return (
-                    <li key={e.id} className="bf-entry bf-error" role="alert">
+                    <li key={e.id} className="lab-entry lab-error" role="alert">
                       {rebrand(e.message)}
                     </li>
                   )
                 case 'analysis':
                   return (
-                    <li key={e.id} className="bf-entry bf-analysis">
-                      <span className="mono-label bf-from">
+                    <li key={e.id} className="lab-entry lab-analysis">
+                      <span className="mono-label lab-from">
                         {!e.done && <span className="sp-shuttle" aria-hidden />} Shuttle {e.done ? '' : `· ${rebrand(e.steps[e.steps.length - 1] ?? 'thinking')}`}
                       </span>
                       {e.answers.map((a) => (
                         <AnswerTile key={a.id} answer={a} kept={kept.includes(a.id)} onToggle={dashboardId ? undefined : () => toggleKeep(a.id)} />
                       ))}
-                      {e.text && <Markdown text={e.text} className="bf-md" />}
+                      {e.text && <Markdown text={e.text} className="lab-md" />}
                     </li>
                   )
               }
@@ -732,7 +765,7 @@ export function Brief() {
           </ol>
 
           {!dashboardId && keptAnswers.length > 0 && !task && (
-            <div className="bf-tray">
+            <div className="lab-tray">
               <span>
                 <strong>{keptAnswers.length}</strong> {keptAnswers.length === 1 ? 'chart' : 'charts'} kept
               </span>
@@ -742,20 +775,20 @@ export function Brief() {
             </div>
           )}
 
-          <form className={busy ? 'bf-composer is-busy' : 'bf-composer'} onSubmit={submit}>
+          <form className={busy ? 'lab-composer is-busy' : 'lab-composer'} onSubmit={submit}>
             {phase === 'refine' && !busy && (
-              <div className="bf-suggest">
+              <div className="lab-suggest">
                 {REFINEMENTS.map((r) => (
-                  <button key={r} type="button" className="bf-suggestion" onClick={() => refine(r)}>
+                  <button key={r} type="button" className="lab-suggestion" onClick={() => refine(r)}>
                     {r}
                   </button>
                 ))}
               </div>
             )}
             {(phase === 'start' || phase === 'explore') && !started && (
-              <div className="bf-suggest">
+              <div className="lab-suggest">
                 {EXAMPLES[mode].map((x) => (
-                  <button key={x} type="button" className="bf-suggestion" onClick={() => setDraft(x)}>
+                  <button key={x} type="button" className="lab-suggestion" onClick={() => setDraft(x)}>
                     {x.length > 90 ? `${x.slice(0, 88)}…` : x}
                   </button>
                 ))}
@@ -763,26 +796,26 @@ export function Brief() {
             )}
             <textarea
               value={draft}
-              rows={mode === 'rebuild' && phase === 'start' ? 5 : 2}
-              placeholder={busy ? 'ShuttleViz is working…' : placeholder}
+              rows={2}
+              placeholder={busy ? 'Shuttle is working…' : placeholder}
               disabled={busy}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) submit(e)
               }}
             />
-            <div className="bf-composer-row">
+            <div className="lab-composer-row">
               {((phase === 'start' && !started) || (phase === 'explore' && keptAnswers.length > 0)) && !task && (
                 <>
-                  <input className="bf-name" value={name} placeholder="Dashboard name (optional)" maxLength={100} onChange={(e) => setName(e.target.value)} />
-                  <label className="pin-toggle" title="Sends the Storeloom colours to ShuttleViz as hex codes">
+                  <input className="lab-name" value={name} placeholder="Dashboard name (optional)" maxLength={100} onChange={(e) => setName(e.target.value)} />
+                  <label className="pin-toggle" title="Sends the Storeloom colours to Shuttle as hex codes">
                     <input type="checkbox" checked={styled} onChange={(e) => setStyled(e.target.checked)} />
                     <span className="pin-toggle-track" aria-hidden />
                     <span>Storeloom style</span>
                   </label>
                 </>
               )}
-              <button type="submit" className="btn-primary bf-send" disabled={busy || !draft.trim()}>
+              <button type="submit" className="btn-primary lab-send" disabled={busy || !draft.trim()}>
                 {phase === 'reply' ? 'Reply' : phase === 'refine' ? 'Change it' : phase === 'explore' ? 'Ask' : 'Brief it'} <span aria-hidden>→</span>
               </button>
             </div>
@@ -790,8 +823,8 @@ export function Brief() {
         </section>
 
         {/* ---- Stage ---- */}
-        <section className="bf-stage" aria-label="Dashboard">
-          <header className="bf-stage-head">
+        <section className="lab-stage" aria-label="Dashboard">
+          <header className="lab-stage-head">
             <div className="dash-tabs" role="tablist" aria-label="Show">
               <button type="button" role="tab" aria-selected={view === 'dashboard'} className={view === 'dashboard' ? 'dash-tab is-active' : 'dash-tab'} onClick={() => setView('dashboard')}>
                 Dashboard
@@ -803,17 +836,14 @@ export function Brief() {
               )}
             </div>
             {dashboardId && (
-              <div className="bf-stage-links">
-                <Link to={`/studio?mode=search&dashboard=${dashboardId}`} className="studio-open">
-                  ⌕ Edit in Studio
-                </Link>
-                <Link to={`/dashboards/${dashboardId}`} className="studio-open">
-                  Open dashboard <span aria-hidden>↗</span>
-                </Link>
+              <div className="lab-stage-links">
+                <button type="button" className="studio-open" onClick={() => setFocus((f) => !f)} aria-pressed={focus}>
+                  {focus ? '⤡ Show conversation' : '⤢ Full view'}
+                </button>
               </div>
             )}
           </header>
-          <div className="bf-stage-body">
+          <div className="lab-stage-body">
             {!dashboardId && keptAnswers.length > 0 && !entries.some((e) => e.kind === 'work' && !e.endedAt) ? (
               <DraftBoard answers={keptAnswers} onRemove={toggleKeep} />
             ) : !dashboardId ? (
@@ -821,7 +851,7 @@ export function Brief() {
             ) : view === 'numbers' ? (
               <Numbers dashboardId={dashboardId} version={version} />
             ) : (
-              <div className={busy ? 'bf-embed is-changing' : 'bf-embed'}>
+              <div className={busy ? 'lab-embed is-changing' : 'lab-embed'}>
                 <LiveboardEmbed
                   key={`${dashboardId}-${version}`}
                   liveboardId={dashboardId}
@@ -831,8 +861,8 @@ export function Brief() {
                   minimumHeight={480}
                 />
                 {busy && (
-                  <div className="bf-embed-veil">
-                    <span className="sp-shuttle" aria-hidden /> ShuttleViz is changing the dashboard
+                  <div className="lab-embed-veil">
+                    <span className="sp-shuttle" aria-hidden /> Shuttle is changing the dashboard
                   </div>
                 )}
               </div>

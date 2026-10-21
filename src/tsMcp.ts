@@ -34,6 +34,9 @@ export class McpError extends Error {
 // sessionStorage so a reload can still follow a dashboard that's being built.
 const TOKEN_KEY = 'storeloom.tsMcpToken'
 
+/** Dashboard Lab keeps each conversation for the tab under this prefix. */
+export const LAB_STORE_PREFIX = 'storeloom.lab.'
+
 type Token = { value: string; expires: number }
 
 let token: Token | null = (() => {
@@ -50,7 +53,7 @@ export function forgetMcpSession() {
   session = null
   try {
     sessionStorage.removeItem(TOKEN_KEY)
-    sessionStorage.removeItem('storeloom.brief')
+    for (const key of Object.keys(sessionStorage)) if (key.startsWith(LAB_STORE_PREFIX)) sessionStorage.removeItem(key)
   } catch {
     // Storage unavailable: nothing was kept.
   }

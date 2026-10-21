@@ -1,13 +1,13 @@
 /* Brief: a conversation with ShuttleViz on the left, the dashboard on the right. */
 
-.bf-via {
+.lab-via {
   font-size: 10px;
   padding: 3px 7px;
   border: 1.5px dashed var(--ink);
   background: var(--card);
 }
 
-.bf-workspace {
+.lab-workspace {
   display: grid;
   grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
   gap: 16px;
@@ -16,7 +16,7 @@
 }
 
 /* ---------- Conversation ---------- */
-.bf-talk {
+.lab-talk {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -25,30 +25,30 @@
   box-shadow: 6px 6px 0 var(--ink);
 }
 
-.bf-intro {
+.lab-intro {
   padding: 16px 16px 4px;
   display: grid;
   gap: 14px;
 }
 
-.bf-intro-lede {
+.lab-intro-lede {
   margin: 0;
   font-size: 15px;
   line-height: 1.45;
   color: var(--muted);
 }
 
-.bf-modes {
+.lab-modes {
   display: grid;
   grid-template-columns: 1fr;
 }
 
-.bf-modes .studio-mode + .studio-mode {
+.lab-modes .studio-mode + .studio-mode {
   border-left: 0;
   border-top: 0;
 }
 
-.bf-entries {
+.lab-entries {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -60,11 +60,11 @@
   gap: 12px;
 }
 
-.bf-entry {
+.lab-entry {
   animation: sp-in 0.3s ease-out both;
 }
 
-.bf-from {
+.lab-from {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -72,7 +72,7 @@
   color: var(--muted);
 }
 
-.bf-you {
+.lab-you {
   align-self: flex-end;
   max-width: 88%;
   padding: 10px 12px;
@@ -81,27 +81,27 @@
   border: 1.5px solid var(--ink);
 }
 
-.bf-you p {
+.lab-you p {
   margin: 0;
   font-size: 14px;
   line-height: 1.45;
   white-space: pre-wrap;
 }
 
-.bf-you-note {
+.lab-you-note {
   display: block;
   margin-top: 6px;
   font-size: 10px;
   color: var(--periwinkle);
 }
 
-.bf-md {
+.lab-md {
   font-size: 14px;
   line-height: 1.5;
 }
 
 /* The designer's plan: the moment the user decides. */
-.bf-plan {
+.lab-plan {
   display: grid;
   gap: 8px;
   padding: 12px 14px;
@@ -109,71 +109,71 @@
   background: var(--paper);
 }
 
-.bf-plan.is-open {
+.lab-plan.is-open {
   background: var(--card);
   border-width: 2px;
   box-shadow: 4px 4px 0 var(--accent);
 }
 
-.bf-plan:not(.is-open) {
+.lab-plan:not(.is-open) {
   opacity: 0.8;
 }
 
-.bf-plan-actions {
+.lab-plan-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   padding-top: 4px;
 }
 
-.bf-plan-actions .btn-chip {
+.lab-plan-actions .btn-chip {
   font-size: 13px;
   min-height: 36px;
   padding: 6px 12px;
   cursor: pointer;
 }
 
-.bf-plan-actions .btn-chip:hover {
+.lab-plan-actions .btn-chip:hover {
   background: var(--periwinkle);
 }
 
 /* Progress, as ShuttleViz reports it. */
-.bf-work {
+.lab-work {
   padding: 10px 12px;
   border: 1.5px dashed var(--ink);
   background: color-mix(in srgb, var(--periwinkle) 22%, var(--card));
 }
 
-.bf-work.is-failed {
+.lab-work.is-failed {
   background: var(--bad-soft);
 }
 
-.bf-work:not(.is-running):not(.is-failed) {
+.lab-work:not(.is-running):not(.is-failed) {
   border-style: solid;
   background: var(--card);
 }
 
-.bf-work-head {
+.lab-work-head {
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 14px;
 }
 
-.bf-work-icon {
+.lab-work-icon {
   width: 22px;
   display: inline-flex;
   justify-content: center;
   font-weight: 700;
 }
 
-.bf-work-time {
+.lab-work-time {
   margin-left: auto;
   font-size: 10px;
   color: var(--muted);
 }
 
-.bf-steps {
+.lab-steps {
   margin: 8px 0 0 32px;
   padding: 0;
   display: grid;
@@ -182,17 +182,17 @@
   color: var(--muted);
 }
 
-.bf-steps li {
+.lab-steps li {
   display: grid;
   gap: 1px;
 }
 
-.bf-step-label {
+.lab-step-label {
   font-weight: 600;
   color: var(--ink);
 }
 
-.bf-step-note {
+.lab-step-note {
   font-size: 12px;
   line-height: 1.35;
   display: -webkit-box;
@@ -201,16 +201,16 @@
   overflow: hidden;
 }
 
-.bf-steps li:not(.is-current) .bf-step-label {
+.lab-steps li:not(.is-current) .lab-step-label {
   color: var(--muted);
   font-weight: 500;
 }
 
-.bf-steps li.is-current .bf-step-note {
+.lab-steps li.is-current .lab-step-note {
   color: var(--ink);
 }
 
-.bf-done {
+.lab-done {
   display: grid;
   gap: 6px;
   padding: 12px 14px;
@@ -218,31 +218,31 @@
   background: var(--good-soft);
 }
 
-.bf-error {
+.lab-error {
   padding: 10px 12px;
   border: 1.5px solid var(--ink);
   background: var(--bad-soft);
   font-size: 14px;
 }
 
-.bf-analysis {
+.lab-analysis {
   display: grid;
   gap: 10px;
 }
 
 /* A chart from Shuttle, with the choice to keep it for the dashboard. */
-.bf-answer {
+.lab-answer {
   margin: 0;
   border: 1.5px solid var(--ink);
   background: var(--card);
   transition: box-shadow 0.15s;
 }
 
-.bf-answer.is-kept {
+.lab-answer.is-kept {
   box-shadow: 4px 4px 0 var(--accent);
 }
 
-.bf-answer figcaption {
+.lab-answer figcaption {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -250,17 +250,17 @@
   border-bottom: 1.5px solid var(--ink);
 }
 
-.bf-answer-title {
+.lab-answer-title {
   flex: 1;
   font-weight: 700;
   font-size: 14px;
 }
 
-.bf-answer .sp-answer-query {
+.lab-answer .sp-answer-query {
   margin: 6px 10px 0;
 }
 
-.bf-keep {
+.lab-keep {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -273,16 +273,16 @@
   background: var(--paper);
 }
 
-.bf-answer.is-kept .bf-keep {
+.lab-answer.is-kept .lab-keep {
   background: var(--accent);
 }
 
-.bf-keep input {
+.lab-keep input {
   accent-color: var(--ink);
   margin: 0;
 }
 
-.bf-answer-frame {
+.lab-answer-frame {
   height: 300px;
   resize: vertical;
   overflow: hidden;
@@ -290,13 +290,13 @@
   min-height: 220px;
 }
 
-.bf-answer-frame iframe {
+.lab-answer-frame iframe {
   display: block;
   width: 100%;
   border: 0;
 }
 
-.bf-tray {
+.lab-tray {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -307,13 +307,13 @@
   font-size: 14px;
 }
 
-.bf-tray .btn-primary {
+.lab-tray .btn-primary {
   height: 38px;
   font-size: 14px;
 }
 
 /* ---------- Composer ---------- */
-.bf-composer {
+.lab-composer {
   display: grid;
   gap: 8px;
   padding: 12px 16px 14px;
@@ -321,7 +321,7 @@
   background: var(--paper);
 }
 
-.bf-composer textarea {
+.lab-composer textarea {
   width: 100%;
   resize: none;
   font: inherit;
@@ -333,28 +333,28 @@
   color: var(--ink);
 }
 
-.bf-composer textarea:focus {
+.lab-composer textarea:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
-.bf-composer.is-busy textarea {
+.lab-composer.is-busy textarea {
   background: var(--sand);
 }
 
-.bf-composer-row {
+.lab-composer-row {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.bf-composer-row .pin-toggle {
+.lab-composer-row .pin-toggle {
   flex: none;
   font-size: 11px;
 }
 
-.bf-name {
+.lab-name {
   flex: 1 1 140px;
   min-width: 0;
   height: 38px;
@@ -365,25 +365,25 @@
   background: var(--card);
 }
 
-.bf-send {
+.lab-send {
   margin-left: auto;
   height: 40px;
 }
 
-.bf-send:disabled {
+.lab-send:disabled {
   opacity: 0.5;
   cursor: default;
   transform: none;
   box-shadow: 4px 4px 0 var(--ink);
 }
 
-.bf-suggest {
+.lab-suggest {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.bf-suggestion {
+.lab-suggestion {
   text-align: left;
   font-size: 12px;
   line-height: 1.3;
@@ -393,13 +393,13 @@
   cursor: pointer;
 }
 
-.bf-suggestion:hover {
+.lab-suggestion:hover {
   border-style: solid;
   background: var(--periwinkle);
 }
 
 /* ---------- Stage ---------- */
-.bf-stage {
+.lab-stage {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -408,7 +408,7 @@
   background: color-mix(in srgb, var(--card) 70%, transparent);
 }
 
-.bf-stage-head {
+.lab-stage-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -418,17 +418,17 @@
   background: var(--card);
 }
 
-.bf-stage-head .dash-tabs {
+.lab-stage-head .dash-tabs {
   border-bottom: 0;
 }
 
-.bf-stage-links {
+.lab-stage-links {
   display: flex;
   gap: 8px;
 }
 
 /* Studio's link style is for its dark bar; here it sits on a light header. */
-.bf-stage-links .studio-open {
+.lab-stage-links .studio-open {
   margin-left: 0;
   color: var(--ink);
   border-color: var(--ink);
@@ -436,25 +436,25 @@
   font-size: 11px;
 }
 
-.bf-stage-body {
+.lab-stage-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   position: relative;
 }
 
-.bf-embed {
+.lab-embed {
   position: relative;
   min-height: 100%;
 }
 
-.bf-embed.is-changing > :first-child {
+.lab-embed.is-changing > :first-child {
   filter: saturate(0.4);
   opacity: 0.55;
   transition: opacity 0.3s;
 }
 
-.bf-embed-veil {
+.lab-embed-veil {
   position: sticky;
   bottom: 16px;
   margin: -64px auto 16px;
@@ -471,7 +471,7 @@
 }
 
 /* The loom: an empty dashboard frame that weaves itself while ShuttleViz works. */
-.bf-loom {
+.lab-loom {
   height: 100%;
   min-height: 480px;
   display: grid;
@@ -480,17 +480,17 @@
   padding: clamp(20px, 3vw, 40px);
 }
 
-.bf-loom .mosaic-block {
+.lab-loom .mosaic-block {
   --tone: transparent !important;
   border-style: dashed;
   border-color: color-mix(in srgb, var(--ink) 45%, transparent);
 }
 
-.bf-loom .mosaic-block::after {
+.lab-loom .mosaic-block::after {
   opacity: 0.15;
 }
 
-.bf-loom.is-weaving .mosaic-block {
+.lab-loom.is-weaving .mosaic-block {
   border-style: solid;
   border-color: var(--ink);
   background:
@@ -500,18 +500,18 @@
   background-size: 240px 100%, 100% 240px, auto;
   animation:
     sl-warp 6s linear infinite,
-    bf-weave 2.4s ease-in-out infinite;
+    lab-weave 2.4s ease-in-out infinite;
 }
 
-.bf-loom.is-weaving .mosaic-block:nth-child(2n) {
+.lab-loom.is-weaving .mosaic-block:nth-child(2n) {
   animation-delay: 0s, 0.4s;
 }
 
-.bf-loom.is-weaving .mosaic-block:nth-child(3n) {
+.lab-loom.is-weaving .mosaic-block:nth-child(3n) {
   animation-delay: 0s, 0.8s;
 }
 
-@keyframes bf-weave {
+@keyframes lab-weave {
   0%,
   100% {
     box-shadow: inset 0 0 0 0 var(--periwinkle);
@@ -521,7 +521,7 @@
   }
 }
 
-.bf-loom-note {
+.lab-loom-note {
   margin: 0;
   display: flex;
   align-items: center;
@@ -535,29 +535,29 @@
 }
 
 /* get_data: the rows behind each chart. */
-.bf-numbers {
+.lab-numbers {
   padding: 16px;
   display: grid;
   gap: 16px;
 }
 
-.bf-numbers-note,
-.bf-numbers-loading {
+.lab-numbers-note,
+.lab-numbers-loading {
   margin: 0;
   font-size: 11px;
   color: var(--muted);
 }
 
-.bf-numbers-loading {
+.lab-numbers-loading {
   padding: 24px 16px;
 }
 
-.bf-table {
+.lab-table {
   border: 1.5px solid var(--ink);
   background: var(--card);
 }
 
-.bf-table header {
+.lab-table header {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -565,42 +565,42 @@
   border-bottom: 1.5px solid var(--ink);
 }
 
-.bf-table header strong {
+.lab-table header strong {
   flex: 1;
   font-size: 14px;
 }
 
-.bf-table header .mono-label {
+.lab-table header .mono-label {
   font-size: 10px;
   color: var(--muted);
 }
 
-.bf-table header .btn-outline {
+.lab-table header .btn-outline {
   height: 30px;
   padding: 0 10px;
   font-size: 10px;
 }
 
-.bf-table-scroll {
+.lab-table-scroll {
   max-height: 280px;
   overflow: auto;
 }
 
-.bf-table table {
+.lab-table table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
 
-.bf-table th,
-.bf-table td {
+.lab-table th,
+.lab-table td {
   padding: 6px 10px;
   border-bottom: 1px solid var(--sand);
   text-align: left;
   white-space: nowrap;
 }
 
-.bf-table th {
+.lab-table th {
   position: sticky;
   top: 0;
   background: var(--sand);
@@ -609,46 +609,46 @@
   font-weight: 600;
 }
 
-.bf-table td.is-num {
+.lab-table td.is-num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 900px) {
-  .bf-workspace {
+  .lab-workspace {
     grid-template-columns: 1fr;
     height: auto !important;
   }
 
-  .bf-talk {
+  .lab-talk {
     max-height: 80vh;
   }
 
-  .bf-stage {
+  .lab-stage {
     min-height: 520px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bf-loom.is-weaving .mosaic-block {
+  .lab-loom.is-weaving .mosaic-block {
     animation: none;
   }
 }
 
 /* Explore first: the kept charts, as the dashboard-to-be. */
-.bf-draft {
+.lab-draft {
   padding: 16px;
   display: grid;
   gap: 12px;
 }
 
-.bf-draft-grid {
+.lab-draft-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
 }
 
-.bf-draft-remove {
+.lab-draft-remove {
   width: 28px;
   height: 28px;
   border: 1.5px solid var(--ink);
@@ -658,17 +658,137 @@
   cursor: pointer;
 }
 
-.bf-draft-remove:hover {
+.lab-draft-remove:hover {
   background: var(--accent);
 }
 
-.bf-draft .bf-answer-frame {
+.lab-draft .lab-answer-frame {
   height: 380px;
 }
 
-.bf-answer-title {
+.lab-answer-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Full view: the dashboard takes the whole workspace. */
+.lab-workspace.is-focus {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.lab-workspace.is-focus .lab-talk {
+  display: none;
+}
+
+.lab-stage-links button.studio-open {
+  background: var(--card);
+  cursor: pointer;
+}
+
+/* ---------- Dashboard Lab home ---------- */
+.lab-beta {
+  padding: 4px 8px;
+  border: 1.5px solid var(--ink);
+  background: var(--accent);
+}
+
+.lab-start {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.lab-start-art {
+  flex-direction: column;
+  align-items: stretch !important;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.mode-card.lab-start.is-describe .lab-start-art {
+  background: repeating-linear-gradient(0deg, rgba(229, 80, 42, 0.09) 0 1px, transparent 1px 20px), var(--periwinkle);
+}
+
+.lab-start-bubble {
+  align-self: flex-end;
+  max-width: 90%;
+  padding: 8px 12px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.lab-start-reply {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lab-resume {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lab-resume:hover {
+  background: var(--periwinkle);
+}
+
+.lab-resume > span:nth-child(2) {
+  flex: 1 1 280px;
+  color: var(--muted);
+}
+
+.lab-resume .mode-card-cta {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.lab-library-h {
+  margin: 0;
+  font-weight: 800;
+  font-stretch: 112%;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.lab-card-open {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lab-card-open:hover .dash-card-name {
+  color: var(--accent-dark);
+}
+
+.lab-start-reply .sp-shuttle {
+  margin-right: 4px;
 }
