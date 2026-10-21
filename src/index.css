@@ -58,7 +58,8 @@ button {
 }
 
 .app {
-  min-height: 100vh;
+  /* Full height under the display-size zoom too (src/displayScale.ts). */
+  min-height: calc(100vh / var(--app-zoom, 1));
   isolation: isolate;
 }
 

@@ -1,5 +1,5 @@
 .cfg {
-  min-height: 100vh;
+  min-height: calc(100vh / var(--app-zoom, 1));
   background: var(--paper);
 }
 
@@ -66,6 +66,40 @@
   font-size: 14px;
   line-height: 1.45;
   color: var(--muted);
+}
+
+.cfg-seg {
+  align-self: flex-start;
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+}
+
+.cfg-seg button {
+  min-width: 72px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.cfg-seg button + button {
+  border-left: 1.5px solid var(--ink);
+}
+
+.cfg-seg button:hover:not(.is-active) {
+  background: var(--periwinkle);
+}
+
+.cfg-seg button.is-active {
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .cfg-grid {

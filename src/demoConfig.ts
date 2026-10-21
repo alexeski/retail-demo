@@ -193,3 +193,21 @@ export type Hotkey = { id: string; combo: KeyCombo; phrase: string }
 
 export const hotkeyStore = persistedStore<{ hotkeys: Hotkey[] }>('storeloom.demo.hotkeys', { hotkeys: [] })
 export const useHotkeys = () => useStore(hotkeyStore).hotkeys
+
+// ---------------------------------------------------------------------------
+// Display size
+// ---------------------------------------------------------------------------
+
+/** Scale of the whole app, embeds included: `auto` is 80% on laptop widths, 100% above. */
+export type DisplayScale = 'auto' | 1 | 0.9 | 0.8 | 0.75
+
+export const DISPLAY_SCALES: { value: DisplayScale; label: string }[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: 1, label: '100%' },
+  { value: 0.9, label: '90%' },
+  { value: 0.8, label: '80%' },
+  { value: 0.75, label: '75%' },
+]
+
+export const displayStore = persistedStore<{ scale: DisplayScale }>('storeloom.demo.display', { scale: 'auto' })
+export const useDisplay = () => useStore(displayStore)

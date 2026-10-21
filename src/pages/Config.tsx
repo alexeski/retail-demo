@@ -3,11 +3,14 @@ import { Brand } from '../components/Brand'
 import {
   accountStore,
   ACCOUNT_DEFAULTS,
+  DISPLAY_SCALES,
+  displayStore,
   formatQuestions,
   hotkeyStore,
   PLANS,
   usageStore,
   useAccount,
+  useDisplay,
   useHotkeys,
   useUsage,
   type Account,
@@ -42,6 +45,7 @@ export function Config() {
         <MeteringSection />
         <AccountSection />
         <HotkeysSection />
+        <DisplaySection />
       </main>
     </div>
   )
@@ -306,5 +310,36 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
     >
       <span />
     </button>
+  )
+}
+
+function DisplaySection() {
+  const { scale } = useDisplay()
+  return (
+    <section className="cfg-card">
+      <div className="cfg-card-head">
+        <div>
+          <h2 className="mono-label">Display size</h2>
+          <p>
+            Scales the whole app, embedded dashboards included, like the browser’s zoom. Auto is 80% on laptop screens (under 1,600 px wide) and
+            100% on larger ones.
+          </p>
+        </div>
+      </div>
+      <div className="cfg-seg" role="radiogroup" aria-label="Display size">
+        {DISPLAY_SCALES.map((s) => (
+          <button
+            key={String(s.value)}
+            type="button"
+            role="radio"
+            aria-checked={scale === s.value}
+            className={scale === s.value ? 'is-active' : undefined}
+            onClick={() => displayStore.set({ scale: s.value })}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+    </section>
   )
 }
