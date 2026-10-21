@@ -312,7 +312,7 @@
 
 .sp-overlay-panel {
   width: min(1400px, 94vw);
-  height: 92vh;
+  height: calc(92vh / var(--app-zoom, 1));
   background: var(--card);
   border: 2px solid var(--ink);
   box-shadow: 8px 8px 0 var(--ink);
