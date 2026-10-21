@@ -11,6 +11,7 @@ import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
 import { Config } from './pages/Config'
 import { Studio } from './pages/Studio'
+import { Brief } from './pages/Brief'
 import { useHotkeyListener } from './hotkeys'
 
 /** Signed-in pages share one layout, so Shuttle keeps its conversation across them. */
@@ -44,6 +45,7 @@ export default function App() {
               <Route path="/dashboards" element={<Dashboards />} />
               <Route path="/dashboards/:id" element={<DashboardView />} />
               <Route path="/studio" element={<Studio />} />
+              <Route path="/studio/brief" element={<Brief />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -1,0 +1,604 @@
+/* Brief: a conversation with ShuttleViz on the left, the dashboard on the right. */
+
+.brief-via {
+  font-size: 10px;
+  padding: 3px 7px;
+  border: 1.5px dashed var(--ink);
+  background: var(--card);
+}
+
+.brief-workspace {
+  display: grid;
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+  gap: 16px;
+  padding: 0 var(--gutter);
+  min-height: 560px;
+}
+
+/* ---------- Conversation ---------- */
+.brief-talk {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+
+.brief-intro {
+  padding: 16px 16px 4px;
+  display: grid;
+  gap: 14px;
+}
+
+.brief-intro-lede {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.brief-modes {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.brief-modes .studio-mode + .studio-mode {
+  border-left: 0;
+  border-top: 0;
+}
+
+.brief-entries {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.brief-entry {
+  animation: sp-in 0.3s ease-out both;
+}
+
+.brief-from {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.brief-you {
+  align-self: flex-end;
+  max-width: 88%;
+  padding: 10px 12px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1.5px solid var(--ink);
+}
+
+.brief-you p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.brief-you-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--periwinkle);
+}
+
+.brief-md {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* The designer's plan: the moment the user decides. */
+.brief-plan {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+
+.brief-plan.is-open {
+  background: var(--card);
+  border-width: 2px;
+  box-shadow: 4px 4px 0 var(--accent);
+}
+
+.brief-plan:not(.is-open) {
+  opacity: 0.8;
+}
+
+.brief-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.brief-plan-actions .btn-chip {
+  font-size: 13px;
+  min-height: 36px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.brief-plan-actions .btn-chip:hover {
+  background: var(--periwinkle);
+}
+
+/* Progress, as ShuttleViz reports it. */
+.brief-work {
+  padding: 10px 12px;
+  border: 1.5px dashed var(--ink);
+  background: color-mix(in srgb, var(--periwinkle) 22%, var(--card));
+}
+
+.brief-work.is-failed {
+  background: var(--bad-soft);
+}
+
+.brief-work:not(.is-running):not(.is-failed) {
+  border-style: solid;
+  background: var(--card);
+}
+
+.brief-work-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.brief-work-icon {
+  width: 22px;
+  display: inline-flex;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.brief-work-time {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.brief-steps {
+  margin: 8px 0 0 32px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.brief-steps li.is-current {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.brief-done {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 2px solid var(--ink);
+  background: var(--good-soft);
+}
+
+.brief-error {
+  padding: 10px 12px;
+  border: 1.5px solid var(--ink);
+  background: var(--bad-soft);
+  font-size: 14px;
+}
+
+.brief-analysis {
+  display: grid;
+  gap: 10px;
+}
+
+/* A chart from Shuttle, with the choice to keep it for the dashboard. */
+.brief-answer {
+  margin: 0;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  transition: box-shadow 0.15s;
+}
+
+.brief-answer.is-kept {
+  box-shadow: 4px 4px 0 var(--accent);
+}
+
+.brief-answer figcaption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1.5px solid var(--ink);
+}
+
+.brief-answer-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.brief-answer .sp-answer-query {
+  margin: 6px 10px 0;
+}
+
+.brief-keep {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 8px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+
+.brief-answer.is-kept .brief-keep {
+  background: var(--accent);
+}
+
+.brief-keep input {
+  accent-color: var(--ink);
+  margin: 0;
+}
+
+.brief-answer-frame {
+  height: 300px;
+  resize: vertical;
+  overflow: hidden;
+  background: #fff;
+  min-height: 220px;
+}
+
+.brief-answer-frame iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+
+.brief-tray {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 2px solid var(--ink);
+  background: var(--periwinkle);
+  font-size: 14px;
+}
+
+.brief-tray .btn-primary {
+  height: 38px;
+  font-size: 14px;
+}
+
+/* ---------- Composer ---------- */
+.brief-composer {
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  border-top: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+.brief-composer textarea {
+  width: 100%;
+  resize: none;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.4;
+  padding: 10px 12px;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+}
+
+.brief-composer textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.brief-composer.is-busy textarea {
+  background: var(--sand);
+}
+
+.brief-composer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.brief-composer-row .pin-toggle {
+  flex: none;
+  font-size: 11px;
+}
+
+.brief-name {
+  flex: 1 1 140px;
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+}
+
+.brief-send {
+  margin-left: auto;
+  height: 40px;
+}
+
+.brief-send:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.brief-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.brief-suggestion {
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 6px 10px;
+  border: 1.5px dashed var(--ink);
+  background: var(--card);
+  cursor: pointer;
+}
+
+.brief-suggestion:hover {
+  border-style: solid;
+  background: var(--periwinkle);
+}
+
+/* ---------- Stage ---------- */
+.brief-stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  border: 2px solid var(--ink);
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+}
+
+.brief-stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
+  border-bottom: 2px solid var(--ink);
+  background: var(--card);
+}
+
+.brief-stage-head .dash-tabs {
+  border-bottom: 0;
+}
+
+.brief-stage-links {
+  display: flex;
+  gap: 16px;
+}
+
+.brief-stage-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+}
+
+.brief-embed {
+  position: relative;
+  min-height: 100%;
+}
+
+.brief-embed.is-changing > :first-child {
+  filter: saturate(0.4);
+  opacity: 0.55;
+  transition: opacity 0.3s;
+}
+
+.brief-embed-veil {
+  position: sticky;
+  bottom: 16px;
+  margin: -64px auto 16px;
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  box-shadow: 4px 4px 0 var(--accent);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* The loom: an empty dashboard frame that weaves itself while ShuttleViz works. */
+.brief-loom {
+  height: 100%;
+  min-height: 480px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 16px;
+  padding: clamp(20px, 3vw, 40px);
+}
+
+.brief-loom .mosaic-block {
+  --tone: transparent !important;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.brief-loom .mosaic-block::after {
+  opacity: 0.15;
+}
+
+.brief-loom.is-weaving .mosaic-block {
+  border-style: solid;
+  border-color: var(--ink);
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--ink) 14%, transparent) 0 2px, transparent 2px 12px),
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--accent) 35%, transparent) 0 2px, transparent 2px 12px),
+    var(--paper);
+  background-size: 240px 100%, 100% 240px, auto;
+  animation:
+    sl-warp 6s linear infinite,
+    brief-weave 2.4s ease-in-out infinite;
+}
+
+.brief-loom.is-weaving .mosaic-block:nth-child(2n) {
+  animation-delay: 0s, 0.4s;
+}
+
+.brief-loom.is-weaving .mosaic-block:nth-child(3n) {
+  animation-delay: 0s, 0.8s;
+}
+
+@keyframes brief-weave {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0 var(--periwinkle);
+  }
+  50% {
+    box-shadow: inset 0 -40px 0 0 color-mix(in srgb, var(--periwinkle) 60%, transparent);
+  }
+}
+
+.brief-loom-note {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* get_data: the rows behind each chart. */
+.brief-numbers {
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.brief-numbers-note,
+.brief-numbers-loading {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.brief-numbers-loading {
+  padding: 24px 16px;
+}
+
+.brief-table {
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+}
+
+.brief-table header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-bottom: 1.5px solid var(--ink);
+}
+
+.brief-table header strong {
+  flex: 1;
+  font-size: 14px;
+}
+
+.brief-table header .mono-label {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.brief-table header .btn-outline {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 10px;
+}
+
+.brief-table-scroll {
+  max-height: 280px;
+  overflow: auto;
+}
+
+.brief-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.brief-table th,
+.brief-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--sand);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.brief-table th {
+  position: sticky;
+  top: 0;
+  background: var(--sand);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.brief-table td.is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .brief-workspace {
+    grid-template-columns: 1fr;
+    height: auto !important;
+  }
+
+  .brief-talk {
+    max-height: 80vh;
+  }
+
+  .brief-stage {
+    min-height: 520px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brief-loom.is-weaving .mosaic-block {
+    animation: none;
+  }
+}

@@ -229,6 +229,48 @@
   color: var(--accent-dark);
 }
 
+/* The conversational way in (the Brief page), under the two build modes. */
+.brief-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px 20px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border: 2px solid var(--ink);
+  background: repeating-linear-gradient(90deg, rgba(23, 21, 15, 0.05) 0 1px, transparent 1px 24px), var(--card);
+  transition: background 0.15s;
+}
+
+.brief-strip:hover {
+  color: var(--ink);
+  background: repeating-linear-gradient(90deg, rgba(23, 21, 15, 0.05) 0 1px, transparent 1px 24px), var(--periwinkle);
+}
+
+.brief-strip .tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--accent);
+}
+
+.brief-strip-text {
+  flex: 1 1 360px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.brief-strip-text strong {
+  color: var(--ink);
+}
+
+.brief-strip .mode-card-cta {
+  border-top: 0;
+  padding-top: 0;
+}
+
 /* ---------- My dashboards ---------- */
 .dash-library {
   padding: clamp(28px, 3vw, 40px) var(--gutter) clamp(48px, 5vw, 80px);

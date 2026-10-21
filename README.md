@@ -20,6 +20,12 @@ The Shuttle launcher is hidden in Studio (its drawer and SpotterViz would compet
 - **SpotterViz** enabled on the cluster (Early Access: ask ThoughtSpot Support) for ShuttleViz mode.
 - For in-place tile updates, removing charts and renaming, **Can download data** (TML export) and **Can manage data** (TML import). Without them, updates and removals fall back to the embed's own Pin and Remove, and renaming isn't available.
 
+### Brief (`/studio/brief`): the same, over ThoughtSpot's Spotter MCP Server
+
+A third way to build, as a conversation, that doesn't touch Studio. It runs on the Spotter MCP Server's tools (`src/tsMcp.ts`), which the page calls itself (no LLM in between): the user briefs ShuttleViz, `create_dashboard` answers with a plan and the data it chose, nothing is built until the user approves it (or picks one of the designer's choices), progress is relayed while `get_dashboard_status` is polled, and the finished dashboard appears beside the conversation. From there each message is a `modify_dashboard` (layout, styling, new charts, notes, groups, tabs). Three ways in: *Describe it*; *Explore first*, where questions go to Spotter (`create_analysis_session`, `send_session_message`, `get_session_updates`), its charts show inline and the ones kept become the dashboard (`create_dashboard` with `answers`); and *Rebuild one*, from the description of a dashboard in another tool. *Storeloom style* sends the brand colours as hex codes. *The numbers* tab shows the rows behind each chart (`get_data`, offered only when the user has Can download data). *✎ Brief* on a dashboard card starts a conversation about that dashboard.
+
+The page asks ThoughtSpot for a bearer token from the visitor's session (`GET /api/rest/2.0/auth/session/token`) and sends it to `https://agent.thoughtspot.app/token/mcp` with `x-ts-host`. The MCP server sends no CORS headers, so the browser reaches it through this app's origin: `/ts-mcp` is a plain pass-through (Vite's dev proxy, and `nginx.conf` in the container). The tool contract is pinned with `api-version=2026-10-14`.
+
 ## Demo controls (`/config`)
 
 An unlinked page at `/config` (no sign-in needed) with presenter controls, saved in the browser's localStorage and applied live to any open tab:
