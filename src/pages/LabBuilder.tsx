@@ -69,6 +69,9 @@ const REFINEMENTS = [
 const BRAND_STYLE =
   'Style it in the Storeloom brand: ink #17150F for text and outlines, paper #F4EFE4 and card #FFFDF8 backgrounds, accent #E5502A for the main series, periwinkle #B8C6FF and sand #EBE4D4 as secondary colours.'
 
+/** The hand editor fills its panel (see `.lab-embed.is-editing`). */
+const EDITOR_FRAME = { height: '100%', width: '100%' }
+
 /** Sent with the first request after the user edited the dashboard by hand. */
 const KEEP_HAND_EDITS =
   'The user has changed this dashboard by hand since your last change (layout, sizes, notes or tiles). Keep their changes unless they ask otherwise.'
@@ -1109,7 +1112,7 @@ export function LabBuilder({ id }: { id: string }) {
                 </div>
               )}
             </header>
-            <div className="lab-stage-body">
+            <div className={editing ? 'lab-stage-body is-editing' : 'lab-stage-body'}>
               {!dashboardId && keptAnswers.length > 0 && !entries.some((e) => e.kind === 'work' && !e.endedAt) ? (
                 <DraftBoard answers={keptAnswers} onRemove={toggleKeep} />
               ) : !dashboardId ? (
@@ -1128,8 +1131,10 @@ export function LabBuilder({ id }: { id: string }) {
                       hiddenActions={HIDDEN_BRANDED_ACTIONS}
                       customizations={WITH_LIVEBOARD_HEADER}
                       showLiveboardTitle={false}
-                      fullHeight
-                      minimumHeight={480}
+                      // A frame the size of the panel, not the dashboard's full height: a
+                      // chart's Edit opens ThoughtSpot's Search in this same frame, and it's
+                      // laid out for a window-sized one. The dashboard scrolls inside it.
+                      frameParams={EDITOR_FRAME}
                       onLiveboardRendered={onEditorRendered}
                       onSave={onHandSaved}
                       onCancel={onHandCancelled}

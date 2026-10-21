@@ -726,8 +726,26 @@
 }
 
 .lab-embed.is-editing {
+  height: 100%;
+  min-height: 0;
   outline: 3px solid var(--accent);
   outline-offset: -3px;
+}
+
+/* While editing, the editor's frame is the panel: no page-style scrolling around it. */
+.lab-stage-body.is-editing {
+  overflow: hidden;
+}
+
+.lab-embed.is-editing .ts-embed-container {
+  height: 100%;
+}
+
+.lab-embed.is-editing iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 
 .lab-editing-note {
