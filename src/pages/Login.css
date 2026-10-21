@@ -148,6 +148,11 @@
   border-bottom-color: var(--accent);
 }
 
+.field-row {
+  display: flex;
+  justify-content: space-between;
+}
+
 .field-pw {
   display: flex;
   align-items: center;

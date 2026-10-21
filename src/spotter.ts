@@ -1,15 +1,17 @@
 import { rebrand } from './brand'
 import { RETAIL_MODEL_ID, THOUGHTSPOT_HOST } from './thoughtspot'
-import { tsFetch } from './tsApi'
 
 // Headless Spotter via the Spotter Agent REST API (Spotter 3, ThoughtSpot 26.5.0.cl+).
-// Calls go through Storeloom's server (/api/ts), which adds the signed-in user's
-// trusted-auth token; the stream is relayed as it arrives.
+// Calls use the viewer's ThoughtSpot session cookie, like the embeds and the
+// Search Data API; the cluster's CORS allowlist must include this app's origin.
+
+const HEADERS = { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Requested-By': 'ThoughtSpot' }
 
 async function post(path: string, body: unknown, init: RequestInit = {}) {
-  const res = await tsFetch(path, {
+  const res = await fetch(`${THOUGHTSPOT_HOST}/api/rest/2.0${path}`, {
     method: 'POST',
-    headers: init.headers,
+    credentials: 'include',
+    headers: { ...HEADERS, ...(init.headers as Record<string, string>) },
     body: JSON.stringify(body),
     signal: init.signal,
   })

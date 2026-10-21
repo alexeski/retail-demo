@@ -1,26 +1,22 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { SignInFailed, useAuth, type SignInError } from '../auth'
+import { ClusterIdleError, fetchThoughtSpotUser, useAuth } from '../auth'
 import { Brand } from '../components/Brand'
+import { THOUGHTSPOT_HOST } from '../thoughtspot'
 import './Login.css'
 
 type Mode = 'office' | 'register'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫']
 
-const SIGN_IN_ERRORS: Record<SignInError, string> = {
-  'unknown-user': 'We couldn’t find that username in your analytics workspace.',
-  'username-required': 'Enter your username.',
-  'not-configured': 'Sign-in isn’t set up on this server yet (trusted authentication key missing).',
-  'register-not-configured': 'Register sign-in isn’t set up on this server yet.',
-  'cluster-idle': 'Your analytics workspace is waking up after a period of inactivity. This takes a few minutes, try again shortly.',
-  unavailable: 'Could not reach the sign-in service. Check your connection and try again.',
+const sameUser = (typed: string, ts: { name: string; email?: string }) => {
+  const t = typed.trim().toLowerCase()
+  return t === ts.name.toLowerCase() || (!!ts.email && t === ts.email.toLowerCase())
 }
 
 /**
- * Demo sign-in through ThoughtSpot trusted authentication: the server mints a
- * token for the username (an existing ThoughtSpot user). The password is not
- * checked or sent. Register mode signs in as the server's configured register user.
+ * Demo sign-in backed by the viewer's ThoughtSpot browser session: the username
+ * must match the user signed in to the cluster; the password is not checked or sent.
  */
 export function Login() {
   const { user, signIn } = useAuth()
@@ -33,7 +29,7 @@ export function Login() {
   const [keep, setKeep] = useState(true)
   const [store, setStore] = useState('')
   const [pin, setPin] = useState('')
-  const [error, setError] = useState<{ text: string } | null>(null)
+  const [error, setError] = useState<{ text: string; needsTsLogin?: boolean } | null>(null)
   const [busy, setBusy] = useState(false)
   const office = mode === 'office'
 
@@ -50,17 +46,28 @@ export function Login() {
       setError({ text: 'Enter a store code and 4-digit PIN.' })
       return
     }
-    if (office && !username.trim()) {
-      setError({ text: SIGN_IN_ERRORS['username-required'] })
-      return
-    }
     setBusy(true)
     setError(null)
     try {
-      await signIn({ username: office ? username : undefined, keep, mode })
+      const ts = await fetchThoughtSpotUser()
+      if (!ts) {
+        setError({ text: 'No active session found in this browser. Sign in to your analytics account, then try again.', needsTsLogin: true })
+        return
+      }
+      if (office && !sameUser(username, ts)) {
+        setError({ text: `This browser is signed in as ${ts.name}. Use that username.` })
+        return
+      }
+      signIn(ts, keep)
       navigate(from, { replace: true })
     } catch (err) {
-      setError({ text: SIGN_IN_ERRORS[err instanceof SignInFailed ? err.code : 'unavailable'] })
+      setError({
+        text:
+          err instanceof ClusterIdleError
+            ? 'Your analytics workspace is waking up after a period of inactivity. This takes a few minutes, try again shortly.'
+            : // An idle cluster's page may also be unreadable here (no CORS headers), so mention it.
+              'Could not reach your analytics workspace. If it has been idle, it may be waking up (this takes a few minutes): try again shortly.',
+      })
     } finally {
       setBusy(false)
     }
@@ -113,9 +120,14 @@ export function Login() {
                     />
                   </label>
                   <label className="field">
-                    Password
+                    <span className="field-row">
+                      <span>Password</span>
+                      <a href={THOUGHTSPOT_HOST} target="_blank" rel="noreferrer">
+                        Forgot?
+                      </a>
+                    </span>
                     <span className="field-pw">
-                      <input type={showPw ? 'text' : 'password'} autoComplete="off" placeholder="••••••••" />
+                      <input type={showPw ? 'text' : 'password'} required autoComplete="off" placeholder="••••••••" />
                       <button type="button" onClick={() => setShowPw((v) => !v)}>
                         {showPw ? 'Hide' : 'Show'}
                       </button>
@@ -159,6 +171,14 @@ export function Login() {
               {error && (
                 <div className="login-error" role="alert">
                   {error.text}
+                  {error.needsTsLogin && (
+                    <>
+                      {' '}
+                      <a href={THOUGHTSPOT_HOST} target="_blank" rel="noreferrer">
+                        Open sign-in ↗
+                      </a>
+                    </>
+                  )}
                 </div>
               )}
             </div>

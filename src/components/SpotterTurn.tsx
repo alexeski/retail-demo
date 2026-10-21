@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
@@ -62,25 +62,6 @@ function StepItem({ step, live }: { step: Step; live: boolean }) {
 }
 
 /**
- * The answer iframe, created outside React: the SDK's frame renderer swaps it
- * in place for an authenticated embed (see initThoughtSpot), which React must
- * not try to reconcile.
- */
-function AnswerFrame({ url, title }: { url: string; title: string }) {
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const host = ref.current
-    if (!host) return
-    const frame = document.createElement('iframe')
-    frame.src = url
-    frame.title = title
-    host.appendChild(frame)
-    return () => host.replaceChildren()
-  }, [url, title])
-  return <div ref={ref} className="sp-answer-clip" />
-}
-
-/**
  * The interactive Spotter answer (chart or table) in a card. The frame is
  * cross-origin and doesn't report its height, so it gets a generous default,
  * can be dragged taller, and can be expanded to a large overlay.
@@ -114,7 +95,9 @@ function AnswerCard({ answer }: { answer: AnswerMeta }) {
         {answer.sage_query && <code className="sp-answer-query">{answer.sage_query}</code>}
       </figcaption>
       <div className="sp-answer-frame">
-        <AnswerFrame url={url} title={title} />
+        <div className="sp-answer-clip">
+          <iframe src={url} title={title} loading="lazy" />
+        </div>
       </div>
       {/* Portalled: the drawer's slide-in transform would otherwise trap a fixed overlay inside it. */}
       {expanded &&
@@ -127,7 +110,9 @@ function AnswerCard({ answer }: { answer: AnswerMeta }) {
                 ×
               </button>
             </div>
-            <AnswerFrame url={url} title={title} />
+            <div className="sp-answer-clip">
+              <iframe src={url} title={title} />
+            </div>
           </div>
         </div>,
           document.body,

@@ -1,99 +1,108 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { actionTracker } from './actionTracker'
-import { SIGNED_OUT_EVENT } from './tsApi'
-
-// Sign-in is ThoughtSpot trusted authentication, done by Storeloom's server
-// (server/api.ts): it mints a token for an existing ThoughtSpot user and keeps it
-// in an httpOnly cookie. The browser only ever learns who is signed in.
+import { THOUGHTSPOT_HOST } from './thoughtspot'
 
 export type StoreloomUser = { name: string; displayName: string; email?: string }
 
-export type SignInError =
-  | 'unknown-user'
-  | 'not-configured'
-  | 'register-not-configured'
-  | 'username-required'
-  | 'cluster-idle'
-  | 'unavailable'
+type TsSessionUser = { name: string; display_name: string; email?: string | null }
 
-export class SignInFailed extends Error {
-  code: SignInError
+/**
+ * The cluster is idle (auto-paused after inactivity): it answers with its
+ * "Idle Screen" page while it resumes, which takes a few minutes.
+ */
+export class ClusterIdleError extends Error {}
 
-  constructor(code: SignInError) {
-    super(code)
-    this.code = code
+/** The user signed in to the ThoughtSpot cluster in this browser, or null if there is no session. */
+export async function fetchThoughtSpotUser(): Promise<StoreloomUser | null> {
+  const res = await fetch(`${THOUGHTSPOT_HOST}/api/rest/2.0/auth/session/user`, {
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401 || res.status === 403) return null
+  if (!res.ok) throw new Error(`Session check failed (${res.status})`)
+  if (!res.headers.get('content-type')?.includes('json')) {
+    const text = await res.text()
+    if (/idle screen|back up momentarily/i.test(text)) throw new ClusterIdleError('ThoughtSpot cluster is idle and resuming')
+    throw new Error('Unexpected response from the session check')
   }
+  const u: TsSessionUser = await res.json()
+  return { name: u.name, displayName: u.display_name, email: u.email ?? undefined }
 }
 
-async function postJson(path: string, body?: unknown) {
-  return fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
+const STORAGE_KEY = 'storeloom.user'
+
+function readStoredUser(): StoreloomUser | null {
+  for (const store of [sessionStorage, localStorage]) {
+    try {
+      const raw = store.getItem(STORAGE_KEY)
+      if (raw) return JSON.parse(raw)
+    } catch {
+      // Storage can be unavailable (private mode, blocked site data).
+    }
+  }
+  return null
+}
+
+function writeStoredUser(user: StoreloomUser | null, keep = false) {
+  for (const store of [sessionStorage, localStorage]) {
+    try {
+      store.removeItem(STORAGE_KEY)
+    } catch {
+      // ignore
+    }
+  }
+  if (!user) return
+  try {
+    ;(keep ? localStorage : sessionStorage).setItem(STORAGE_KEY, JSON.stringify(user))
+  } catch {
+    // ignore
+  }
 }
 
 type AuthContextValue = {
   user: StoreloomUser | null
-  /** False until the first session check has answered. */
-  ready: boolean
-  /** `mode: 'register'` signs in as the server's configured register user. */
-  signIn: (params: { username?: string; keep: boolean; mode?: 'office' | 'register' }) => Promise<StoreloomUser>
-  signOut: () => Promise<void>
+  signIn: (user: StoreloomUser, keep: boolean) => void
+  signOut: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<StoreloomUser | null>(null)
-  const [ready, setReady] = useState(false)
+  const [user, setUser] = useState<StoreloomUser | null>(readStoredUser)
 
-  // Resume an existing session (the cookie survives reloads).
-  useEffect(() => {
-    let cancelled = false
-    fetch('/api/session', { headers: { Accept: 'application/json' } })
-      .then(async (res) => (res.ok ? ((await res.json()) as { user: StoreloomUser }).user : null))
-      .catch(() => null)
-      .then((u) => {
-        if (cancelled) return
-        setUser(u)
-        setReady(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  // The server reports an expired or revoked token on any ThoughtSpot call.
-  useEffect(() => {
-    const onSignedOut = () => setUser(null)
-    window.addEventListener(SIGNED_OUT_EVENT, onSignedOut)
-    return () => window.removeEventListener(SIGNED_OUT_EVENT, onSignedOut)
-  }, [])
-
-  const signIn = useCallback<AuthContextValue['signIn']>(async ({ username, keep, mode = 'office' }) => {
-    let res: Response
-    try {
-      res = await postJson('/api/login', { username, keep, mode })
-    } catch {
-      throw new SignInFailed('unavailable')
-    }
-    const body = (await res.json().catch(() => ({}))) as { user?: StoreloomUser; error?: SignInError }
-    if (!res.ok || !body.user) throw new SignInFailed(body.error ?? 'unavailable')
+  const signIn = useCallback((u: StoreloomUser, keep: boolean) => {
+    writeStoredUser(u, keep)
     // Tracked actions last one signed-in session: each sign-in starts a fresh demo.
     actionTracker.reset()
-    setUser(body.user)
-    return body.user
+    setUser(u)
   }, [])
 
-  const signOut = useCallback(async () => {
-    await postJson('/api/logout').catch(() => {})
+  const signOut = useCallback(() => {
+    writeStoredUser(null)
     actionTracker.reset()
     setUser(null)
   }, [])
 
-  return <AuthContext.Provider value={{ user, ready, signIn, signOut }}>{children}</AuthContext.Provider>
+  // A remembered Storeloom sign-in is only valid while the same ThoughtSpot session is.
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    fetchThoughtSpotUser()
+      .then((ts) => {
+        if (!cancelled && (!ts || ts.name !== user.name)) signOut()
+      })
+      .catch(() => {
+        // Network trouble: keep the user signed in rather than bouncing them.
+      })
+    return () => {
+      cancelled = true
+    }
+    // Only re-check when the signed-in identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.name, signOut])
+
+  return <AuthContext.Provider value={{ user, signIn, signOut }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
@@ -103,9 +112,8 @@ export function useAuth() {
 }
 
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { user, ready } = useAuth()
+  const { user } = useAuth()
   const location = useLocation()
-  if (!ready) return null
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return <>{children}</>
 }
