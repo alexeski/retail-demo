@@ -143,15 +143,6 @@
   box-shadow: 5px 5px 0 var(--accent);
 }
 
-.mode-card-n {
-  position: absolute;
-  top: 18px;
-  right: 20px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--muted);
-}
-
 .mode-card-art {
   min-height: 92px;
   display: flex;

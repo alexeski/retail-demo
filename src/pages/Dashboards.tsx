@@ -8,14 +8,12 @@ import './Dashboards.css'
 const BUILD_MODES = [
   {
     mode: 'search',
-    n: '01',
     title: 'Build with Search',
     body: 'Pick columns from Retail Sales and shape each chart yourself. Pin it, and it stays linked: keep editing and the dashboard follows.',
     cta: 'Start with Search',
   },
   {
     mode: 'ai',
-    n: '02',
     title: 'Build with ShuttleViz',
     body: 'Describe the dashboard you need in plain words. ShuttleViz picks the charts, lays them out and refines them as you talk.',
     cta: 'Start with ShuttleViz',
@@ -106,7 +104,6 @@ export function Dashboards() {
       <section className="dash-modes" aria-label="Start a new dashboard">
         {BUILD_MODES.map((m) => (
           <Link key={m.mode} to={`/studio?mode=${m.mode}`} className={`mode-card is-${m.mode}`}>
-            <span className="mode-card-n">{m.n}</span>
             <div className="mode-card-art" aria-hidden>
               {m.mode === 'search' ? (
                 <>

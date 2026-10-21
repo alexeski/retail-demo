@@ -13,7 +13,6 @@ import './Lab.css'
 const STARTS = [
   {
     mode: 'describe',
-    n: '01',
     title: 'Describe it',
     body: 'Say what you need in a sentence. Shuttle comes back with a plan and the data it will use, builds once you approve, then keeps refining as you talk.',
     cta: 'Describe a dashboard',
@@ -21,7 +20,6 @@ const STARTS = [
   },
   {
     mode: 'explore',
-    n: '02',
     title: 'Explore first',
     body: 'Ask Shuttle questions about Retail Sales. Keep the charts worth keeping, and turn them into a laid-out, styled dashboard in one click.',
     cta: 'Start exploring',
@@ -88,7 +86,6 @@ export function Lab() {
       <section className="dash-modes" aria-label="Start a new dashboard">
         {STARTS.map((m) => (
           <button key={m.mode} type="button" className={`mode-card lab-start is-${m.mode}`} onClick={() => start(m.mode)}>
-            <span className="mode-card-n">{m.n}</span>
             <div className="mode-card-art lab-start-art" aria-hidden>
               <span className="lab-start-bubble">{m.prompt}</span>
               <span className="lab-start-reply">
