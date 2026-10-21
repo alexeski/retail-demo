@@ -20,19 +20,17 @@ The Shuttle launcher is hidden in Studio (its drawer and SpotterViz would compet
 - **SpotterViz** enabled on the cluster (Early Access: ask ThoughtSpot Support) for ShuttleViz mode.
 - For in-place tile updates, removing charts and renaming, **Can download data** (TML export) and **Can manage data** (TML import). Without them, updates and removals fall back to the embed's own Pin and Remove, and renaming isn't available.
 
-## Dashboard Lab (`/lab`): building by conversation, over ThoughtSpot's Spotter MCP Server
+## Dashboard Lab (`/lab`): the same, with ShuttleViz over ThoughtSpot's Spotter MCP Server
 
-A second, separate way to build dashboards (*Dashboard Lab · Beta* in the top bar), offered alongside Studio so people can try both. It doesn't share pages with Studio or its embedded ShuttleViz; only the dashboards themselves are the same ThoughtSpot Liveboards. It runs on the Spotter MCP Server's tools (`src/tsMcp.ts`), which the page calls itself, with no LLM in between.
+A second copy of the dashboards experience (*Dashboard Lab · Beta* in the top bar), offered alongside the first so people can try both. Everything is the same pages (`src/experience.tsx` gives them the Lab's links): the two ways to build, *My dashboards* and *Shared with you*, the dashboard page, and Studio's Search. Only **ShuttleViz** works differently: instead of SpotterViz embedded in the dashboard's edit mode, it's a conversation (`src/pages/LabBuilder.tsx`, at `/lab/shuttleviz/new`, then `/lab/shuttleviz/<id>`) that drives the Spotter MCP Server's tools (`src/tsMcp.ts`) itself, with no LLM in between. Its Search / ShuttleViz switch moves between the two on the same dashboard, as in Studio.
 
-- **`/lab`**: the two ways to start, *Describe it* and *Explore first*, and the user's dashboards, each of which opens in the Lab to be changed.
-- **`/lab/new`, then `/lab/<id>`**: the conversation, with the dashboard beside it.
-  - *Describe it*: `create_dashboard` answers with a plan and the data it chose. Nothing is built until the user approves it (or picks one of the designer's choices). Progress is relayed while `get_dashboard_status` is polled, and the dashboard appears when it's saved. The conversation then moves to `/lab/<id>`.
-  - *Explore first*: questions go to Spotter (`create_analysis_session`, `send_session_message`, `get_session_updates`). Its charts show inline and, once kept, on a draft board beside the conversation. *Make it a dashboard* sends the kept ones to `create_dashboard` as `answers`.
-  - **Changing a dashboard**: each message is a `modify_dashboard` (layout, styling, new charts, notes, groups, tabs), and the embedded dashboard reloads when it's saved. *Full view* folds the conversation away.
-  - **The numbers**: the rows behind each chart of the saved dashboard (`get_data`), offered only when the user has Can download data.
-  - **Storeloom style**: sends the brand colours as hex codes. Every request also asks for "dashboard", never "Liveboard", in text written onto the dashboard.
+- **Describe it**: `create_dashboard` answers with a plan and the data it chose. Nothing is built until the user approves it (or picks one of the designer's choices). Progress is relayed while `get_dashboard_status` is polled, and the dashboard appears when it's saved.
+- **Explore first**: questions go to Spotter (`create_analysis_session`, `send_session_message`, `get_session_updates`). Its charts show inline and, once kept, on a draft board beside the conversation. *Make it a dashboard* sends the kept ones to `create_dashboard` as `answers`.
+- **Changing a dashboard**: each message is a `modify_dashboard` (layout, styling, new charts, notes, groups, tabs), and the embedded dashboard reloads when it's saved. *Full view* folds the conversation away.
+- **The numbers**: the rows behind each chart of the saved dashboard (`get_data`), offered only when the user has Can download data.
+- **Storeloom style**: sends the brand colours as hex codes. Every request also asks for "dashboard", never "Liveboard", in text written onto the dashboard.
 
-Each conversation is kept for the tab (per route), so a reload picks up a plan or a build in progress; *New dashboard* always starts clean. The Shuttle launcher is hidden in the builder, as in Studio.
+Each conversation is kept for the tab (per address), so a reload picks up a plan or a build in progress; *Build with ShuttleViz* and *New dashboard* always start clean. The Shuttle launcher is hidden there, as in Studio.
 
 The page asks ThoughtSpot for a bearer token from the visitor's session (`GET /api/rest/2.0/auth/session/token`) and keeps it in the tab's sessionStorage until it expires or the user signs out: the MCP server stores designer tasks and Spotter sessions under the token, and ThoughtSpot issues a new one on every request, so one token has to last the whole conversation. It sends it to `https://agent.thoughtspot.app/token/mcp` with `x-ts-host`. The MCP server sends no CORS headers, so the browser reaches it through this app's origin: `/ts-mcp` is a plain pass-through (Vite's dev proxy, and `nginx.conf` in the container). The tool contract is pinned with `api-version=2026-10-14`.
 

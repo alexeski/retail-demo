@@ -685,3 +685,21 @@
     animation: none;
   }
 }
+
+/* Dashboard Lab (the same page under /lab): its badge, and ShuttleViz's plan step. */
+.lab-beta {
+  padding: 4px 8px;
+  border: 1.5px solid var(--ink);
+  background: var(--accent);
+}
+
+.lab-plan-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 10px;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  white-space: nowrap;
+}

@@ -7,6 +7,7 @@ import { useShuttle } from '../components/Shuttle'
 import { EditableTitle } from '../components/EditableTitle'
 import { cloneDashboard, formatEdited, getDashboard, renameDashboard, tileCount, type Dashboard } from '../dashboards'
 import { chartMenu, EDIT_CHART, PINNED_CHART_HIDDEN_ACTIONS, pickedChartAction } from '../chartActions'
+import { usePaths } from '../experience'
 import './Dashboards.css'
 
 /** Three starter questions for Shuttle, from the dashboard's own tiles. */
@@ -25,6 +26,7 @@ function questionsFor(d: Dashboard) {
 export function DashboardView() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
+  const paths = usePaths()
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [rendered, setRendered] = useState(false)
@@ -58,10 +60,10 @@ export function DashboardView() {
   const onChartAction = useCallback(
     (payload: unknown) => {
       const picked = pickedChartAction(payload, chartsRef.current)
-      if (picked?.action === EDIT_CHART) navigate(`/studio?mode=search&dashboard=${id}&edit=${picked.vizId}`)
+      if (picked?.action === EDIT_CHART) navigate(paths.editChart(id, picked.vizId))
       else console.warn('Unrecognised chart action', payload)
     },
-    [id, navigate],
+    [id, navigate, paths],
   )
 
   const clone = async () => {
@@ -69,7 +71,7 @@ export function DashboardView() {
     setCloneError(null)
     try {
       const copy = await cloneDashboard(id)
-      navigate(`/studio?mode=search&dashboard=${copy.id}`)
+      navigate(paths.search(copy.id))
     } catch (err) {
       setCloneError((err as Error).message)
       setCloning(false)
@@ -92,7 +94,7 @@ export function DashboardView() {
       <div className="dashboards">
         <section className="dash-head">
           <div className="dash-title">
-            <Link to="/dashboards" className="dash-back mono-label">
+            <Link to={paths.home} className="dash-back mono-label">
               ← My dashboards
             </Link>
             <h1 className="display dash-h1">Not found</h1>
@@ -107,7 +109,7 @@ export function DashboardView() {
     <div className="dashboards">
       <section className="dash-head">
         <div className="dash-title">
-          <Link to="/dashboards" className="dash-back mono-label">
+          <Link to={paths.home} className="dash-back mono-label">
             ← My dashboards
           </Link>
           <div className="eyebrow">
@@ -143,10 +145,10 @@ export function DashboardView() {
           </button>
           {owned && (
             <>
-              <button type="button" className="btn-outline" onClick={() => navigate(`/studio?mode=search&dashboard=${id}`)}>
+              <button type="button" className="btn-outline" onClick={() => navigate(paths.search(id))}>
                 ⌕ Edit with Search
               </button>
-              <button type="button" className="btn-outline" onClick={() => navigate(`/studio?mode=ai&dashboard=${id}`)}>
+              <button type="button" className="btn-outline" onClick={() => navigate(paths.shuttleViz(id))}>
                 ✦ Edit with ShuttleViz
               </button>
             </>
@@ -181,10 +183,10 @@ export function DashboardView() {
               <strong>This dashboard is empty.</strong>
               <p>{owned ? 'Add a first chart with Search, or ask ShuttleViz to draft the whole thing.' : 'Nothing has been added to it yet.'}</p>
               <div className="dash-blank-actions" hidden={!owned}>
-                <button type="button" className="btn-primary" onClick={() => navigate(`/studio?mode=search&dashboard=${id}`)}>
+                <button type="button" className="btn-primary" onClick={() => navigate(paths.search(id))}>
                   Add a chart with Search
                 </button>
-                <button type="button" className="btn-outline" onClick={() => navigate(`/studio?mode=ai&dashboard=${id}`)}>
+                <button type="button" className="btn-outline" onClick={() => navigate(paths.shuttleViz(id))}>
                   ✦ Draft it with ShuttleViz
                 </button>
               </div>

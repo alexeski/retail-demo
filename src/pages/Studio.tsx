@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { SearchBuilder } from '../components/SearchBuilder'
 import { ShuttleBuilder } from '../components/ShuttleBuilder'
 import { EditableTitle } from '../components/EditableTitle'
 import { cloneDashboard, listDashboards, renameDashboard, tileCount, type Dashboard } from '../dashboards'
+import { useExperience, usePaths } from '../experience'
 import './Dashboards.css'
 import './Studio.css'
 
@@ -21,6 +22,10 @@ const MODES: { mode: Mode; icon: string; label: string; sub: string }[] = [
  */
 export function Studio() {
   const [params, setParams] = useSearchParams()
+  const paths = usePaths()
+  // In Dashboard Lab, ShuttleViz is its own page (the MCP builder): Studio is Search only.
+  const lab = useExperience() === 'lab'
+  const navigate = useNavigate()
   const mode: Mode = params.get('mode') === 'ai' ? 'ai' : 'search'
   const dashboardId = params.get('dashboard')
   const editVizId = params.get('edit')
@@ -80,6 +85,10 @@ export function Studio() {
 
   const go = (next: { mode?: Mode; dashboard?: string | null }) => {
     if (!leaveOk()) return
+    if (lab && next.mode === 'ai') {
+      navigate(paths.shuttleViz(next.dashboard === undefined ? dashboardId : next.dashboard))
+      return
+    }
     const p = new URLSearchParams(params)
     if (next.mode) p.set('mode', next.mode)
     if (next.dashboard !== undefined) {
@@ -127,11 +136,13 @@ export function Studio() {
   )
 
 
+  if (lab && mode === 'ai') return <Navigate to={paths.shuttleViz(dashboardId)} replace />
+
   return (
     <div className="studio">
       <section className="studio-head">
         <div className="dash-title">
-          <Link to="/dashboards" className="dash-back mono-label" onClick={(e) => !leaveOk() && e.preventDefault()}>
+          <Link to={paths.home} className="dash-back mono-label" onClick={(e) => !leaveOk() && e.preventDefault()}>
             ← My dashboards
           </Link>
           <div className="eyebrow">
@@ -197,7 +208,7 @@ export function Studio() {
           {listError ? 'Couldn’t load your dashboards' : dashboardId ? 'Changes go to this dashboard' : mode === 'search' ? 'Created on your first pin' : 'Created when ShuttleViz starts'}
         </span>
         {dashboardId && !foreign && (
-          <Link to={`/dashboards/${dashboardId}`} className="studio-open" onClick={(e) => !leaveOk() && e.preventDefault()}>
+          <Link to={paths.view(dashboardId)} className="studio-open" onClick={(e) => !leaveOk() && e.preventDefault()}>
             Open dashboard <span aria-hidden>↗</span>
           </Link>
         )}

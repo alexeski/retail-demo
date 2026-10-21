@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { LiveboardEmbed } from '@thoughtspot/visual-embed-sdk/react'
 import { rebrand } from '../brand'
 import { PINNED_CHART_HIDDEN_ACTIONS } from '../chartActions'
 import { DashboardMosaic } from '../components/DashboardMosaic'
 import { Markdown } from '../components/SpotterTurn'
 import { getDashboard } from '../dashboards'
+import { usePaths } from '../experience'
 import { RETAIL_MODEL_ID } from '../thoughtspot'
 import {
   createAnalysisSession,
@@ -27,7 +28,7 @@ import './Dashboards.css'
 import './Studio.css'
 import './Lab.css'
 
-// Dashboard Lab's builder: a conversation with Shuttle over ThoughtSpot's
+// Dashboard Lab's ShuttleViz: a conversation over ThoughtSpot's
 // Spotter MCP Server (SpotterViz designs, Spotter analyses). The user briefs it,
 // it answers with a plan, the user approves or changes it, it builds and styles
 // the dashboard, and the conversation keeps going to refine it. Two ways in:
@@ -125,7 +126,7 @@ function load(key: string): Saved {
   // the designer gave it an ID) there's nothing to follow, so say so.
   const entries = saved.entries.map((e): Entry => {
     if (e.kind === 'work' && !e.endedAt && !saved.running)
-      return { ...e, endedAt: Date.now(), failed: true, steps: [...e.steps, 'Interrupted: the page was left before Shuttle replied.'] }
+      return { ...e, endedAt: Date.now(), failed: true, steps: [...e.steps, 'Interrupted: the page was left before ShuttleViz replied.'] }
     if (e.kind === 'analysis' && !e.done) return { ...e, done: true }
     return e
   })
@@ -165,7 +166,7 @@ function useElapsed(start: number, end?: number) {
 // Conversation entries
 // ---------------------------------------------------------------------------
 
-/** Shuttle reports a step as "Its tool\nWhat it's doing": the tool as a label, the rest as a note. */
+/** ShuttleViz reports a step as "Its tool\nWhat it's doing": the tool as a label, the rest as a note. */
 function StepText({ text }: { text: string }) {
   const [label, ...rest] = text.split('\n')
   return (
@@ -236,7 +237,7 @@ function Loom({ seed, weaving }: { seed: string; weaving: boolean }) {
       <p className="lab-loom-note">
         {weaving ? (
           <>
-            <span className="sp-shuttle" aria-hidden /> Shuttle is weaving your dashboard
+            <span className="sp-shuttle" aria-hidden /> ShuttleViz is weaving your dashboard
           </>
         ) : (
           'Your dashboard takes shape here.'
@@ -273,7 +274,7 @@ function DraftBoard({ answers, onRemove }: { answers: Answer[]; onRemove: (id: s
   return (
     <div className="lab-draft">
       <p className="mono-label lab-numbers-note">
-        Draft · {answers.length} {answers.length === 1 ? 'chart' : 'charts'} kept · Shuttle lays them out and styles them when you make it a dashboard
+        Draft · {answers.length} {answers.length === 1 ? 'chart' : 'charts'} kept · ShuttleViz lays them out and styles them when you make it a dashboard
       </p>
       <div className="lab-draft-grid">
         {answers.map((a) => (
@@ -371,12 +372,22 @@ function Numbers({ dashboardId, version }: { dashboardId: string; version: numbe
 /** The route: each conversation (`new`, or a dashboard's ID) is its own instance. */
 export function LabBuilderRoute() {
   const { id = 'new' } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  // Arriving from "Build with ShuttleViz" starts a new dashboard from scratch; a
+  // reload (no such state) picks the saved conversation up instead.
+  const fresh = id === 'new' && !!(location.state as { fresh?: boolean } | null)?.fresh
+  if (fresh) forgetNewLabConversation()
+  useEffect(() => {
+    if (fresh) navigate(location.pathname + location.search, { replace: true, state: null })
+  }, [fresh, navigate, location.pathname, location.search])
   return <LabBuilder key={id} id={id} />
 }
 
 /** `/lab/new` starts a dashboard; `/lab/<id>` continues one. Rendered with `key={id}`, so each gets its own conversation. */
 export function LabBuilder({ id }: { id: string }) {
   const navigate = useNavigate()
+  const paths = usePaths()
   const [state, setState] = useState<Saved>(() => load(id))
   const { entries, dashboardId, title, task, kept } = state
   const [params] = useSearchParams()
@@ -401,11 +412,11 @@ export function LabBuilder({ id }: { id: string }) {
     if (id === 'new' && state.dashboardId) {
       save(state.dashboardId, state)
       forgetNewLabConversation()
-      if (!busy) navigate(`/lab/${state.dashboardId}`, { replace: true })
+      if (!busy) navigate(paths.shuttleViz(state.dashboardId), { replace: true })
       return
     }
     save(id, state)
-  }, [id, state, busy, navigate])
+  }, [id, state, busy, navigate, paths])
 
   const update = useCallback((fn: (s: Saved) => Saved) => setState((s) => fn(s)), [])
   const push = useCallback((entry: Entry) => update((s) => ({ ...s, entries: [...s.entries, entry] })), [update])
@@ -450,7 +461,7 @@ export function LabBuilder({ id }: { id: string }) {
       try {
         let r = await first()
         while (r.status === 'in_progress') {
-          if (!r.task_id) throw new Error('Shuttle is working but didn’t say on what. Check Dashboard Lab in a few minutes.')
+          if (!r.task_id) throw new Error('ShuttleViz is working but didn’t say on what. Check My dashboards in a few minutes.')
           const running = { id: r.task_id, kind }
           update((s) => (s.running?.id === running.id ? s : { ...s, running }))
           addStep(r.message)
@@ -458,7 +469,7 @@ export function LabBuilder({ id }: { id: string }) {
         }
         patch(workId, (e) => (e.kind === 'work' ? { ...e, endedAt: Date.now(), failed: r.status === 'failed' } : e))
         if (r.status === 'needs_input') {
-          push({ id: uid(), kind: 'plan', message: r.message ?? 'Shuttle has a question.', choices: r.choices ?? [], open: true })
+          push({ id: uid(), kind: 'plan', message: r.message ?? 'ShuttleViz has a question.', choices: r.choices ?? [], open: true })
           update((s) => ({ ...s, running: null, task: r.task_id ? { id: r.task_id, kind } : s.task }))
         } else if (r.status === 'completed') {
           const id = dashboardIdOf(r) ?? stateRef.current.dashboardId
@@ -468,7 +479,7 @@ export function LabBuilder({ id }: { id: string }) {
           setView('dashboard')
         } else {
           update((s) => ({ ...s, running: null, task: null }))
-          push({ id: uid(), kind: 'error', message: r.message ?? 'Shuttle couldn’t finish. Nothing was saved.' })
+          push({ id: uid(), kind: 'error', message: r.message ?? 'ShuttleViz couldn’t finish. Nothing was saved.' })
         }
       } catch (err) {
         patch(workId, (e) => (e.kind === 'work' ? { ...e, endedAt: Date.now(), failed: true } : e))
@@ -488,7 +499,7 @@ export function LabBuilder({ id }: { id: string }) {
     if (resumed.current || !running) return
     resumed.current = true
     const open = stateRef.current.entries.findLast((e) => e.kind === 'work' && !e.endedAt)
-    void drive(() => dashboardStatus(running.id), running.kind, 'Picking up where Shuttle left off', open?.id)
+    void drive(() => dashboardStatus(running.id), running.kind, 'Picking up where ShuttleViz left off', open?.id)
   }, [drive])
 
   /** Closes the open plan: the user answered it. */
@@ -524,7 +535,7 @@ export function LabBuilder({ id }: { id: string }) {
           data_source_id: RETAIL_MODEL_ID,
         }),
       'create',
-      'Planning with Shuttle',
+      'Planning with ShuttleViz',
     )
   }
 
@@ -605,7 +616,7 @@ export function LabBuilder({ id }: { id: string }) {
       setState(EMPTY)
       setDraft('')
       setName('')
-    } else navigate('/lab/new')
+    } else navigate(paths.shuttleViz())
   }
 
   const pickMode = (m: StartMode) => {
@@ -643,12 +654,13 @@ export function LabBuilder({ id }: { id: string }) {
     <div className="studio lab-page">
       <section className="studio-head">
         <div className="dash-title">
-          <Link to="/lab" className="dash-back mono-label">
-            ← Dashboard Lab
+          <Link to={paths.home} className="dash-back mono-label">
+            ← My dashboards
           </Link>
           <div className="eyebrow">
-            <span className="tag">Dashboard Lab</span>
-            <span className="studio-model" title="Shuttle reads the Retail Sales model here.">
+            <span className="tag">ShuttleViz</span>
+            <span className="lab-beta">Dashboard Lab</span>
+            <span className="studio-model" title="ShuttleViz and Shuttle read the Retail Sales model here.">
               <span aria-hidden>▣</span> Retail Sales model · fixed
             </span>
             <span className="lab-via" title="Every step runs on ThoughtSpot’s Spotter MCP Server: SpotterViz, Spotter and get_data">
@@ -657,20 +669,50 @@ export function LabBuilder({ id }: { id: string }) {
           </div>
           <h1 className="display studio-h1">{title || (dashboardId ? ' ' : 'New dashboard')}</h1>
         </div>
-        {(started || dashboardId) && (
-          <button type="button" className="btn-outline" onClick={startOver} disabled={busy}>
-            ＋ New dashboard
-          </button>
-        )}
+        <div className="lab-head-actions">
+          {(started || dashboardId) && (
+            <button type="button" className="btn-outline" onClick={startOver} disabled={busy}>
+              ＋ New dashboard
+            </button>
+          )}
+          {/* As in Studio: switch to Search on the same dashboard. */}
+          <div className="studio-modes" role="tablist" aria-label="How to build">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={false}
+              className="studio-mode"
+              disabled={busy}
+              onClick={() => navigate(paths.search(dashboardId))}
+            >
+              <span className="studio-mode-icon" aria-hidden>
+                ⌕
+              </span>
+              <span className="studio-mode-text">
+                <strong>Search</strong>
+                <span>Chart by chart</span>
+              </span>
+            </button>
+            <button type="button" role="tab" aria-selected className="studio-mode is-active">
+              <span className="studio-mode-icon" aria-hidden>
+                ✦
+              </span>
+              <span className="studio-mode-text">
+                <strong>ShuttleViz</strong>
+                <span>Talk it through</span>
+              </span>
+            </button>
+          </div>
+        </div>
       </section>
 
       <div className={focus && dashboardId ? 'lab-workspace is-focus' : 'lab-workspace'} ref={stageRef} style={{ height: stageHeight } as CSSProperties}>
         {/* ---- Conversation ---- */}
-        <section className="lab-talk" aria-label="Conversation with Shuttle">
+        <section className="lab-talk" aria-label="Conversation with ShuttleViz">
           {!started && !dashboardId && (
             <div className="lab-intro">
               <p className="lab-intro-lede">
-                Tell Shuttle what you need. It comes back with a plan and the data it will use, builds only once you approve, and keeps refining the
+                Tell ShuttleViz what you need. It comes back with a plan and the data it will use, builds only once you approve, and keeps refining the
                 dashboard as you talk.
               </p>
               <div className="studio-modes lab-modes" role="tablist" aria-label="How to start">
@@ -698,7 +740,7 @@ export function LabBuilder({ id }: { id: string }) {
 
           {!started && dashboardId && (
             <div className="lab-intro">
-              <p className="lab-intro-lede">Tell Shuttle how to change this dashboard: layout, styling, new charts, notes, groups or tabs.</p>
+              <p className="lab-intro-lede">Tell ShuttleViz how to change this dashboard: layout, styling, new charts, notes, groups or tabs.</p>
             </div>
           )}
 
@@ -715,7 +757,7 @@ export function LabBuilder({ id }: { id: string }) {
                 case 'plan':
                   return (
                     <li key={e.id} className={e.open ? 'lab-entry lab-plan is-open' : 'lab-entry lab-plan'}>
-                      <span className="mono-label lab-from">Shuttle · {e.open ? 'waiting for you' : 'answered'}</span>
+                      <span className="mono-label lab-from">ShuttleViz · {e.open ? 'waiting for you' : 'answered'}</span>
                       <Markdown text={e.message} className="lab-md" />
                       {e.open && (
                         <div className="lab-plan-actions">
@@ -738,7 +780,7 @@ export function LabBuilder({ id }: { id: string }) {
                 case 'done':
                   return (
                     <li key={e.id} className="lab-entry lab-done">
-                      <span className="mono-label lab-from">Shuttle · {e.changed ? 'saved' : 'nothing changed'}</span>
+                      <span className="mono-label lab-from">ShuttleViz · {e.changed ? 'saved' : 'nothing changed'}</span>
                       <Markdown text={e.message} className="lab-md" />
                     </li>
                   )
@@ -797,7 +839,7 @@ export function LabBuilder({ id }: { id: string }) {
             <textarea
               value={draft}
               rows={2}
-              placeholder={busy ? 'Shuttle is working…' : placeholder}
+              placeholder={busy ? 'ShuttleViz is working…' : placeholder}
               disabled={busy}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -808,7 +850,7 @@ export function LabBuilder({ id }: { id: string }) {
               {((phase === 'start' && !started) || (phase === 'explore' && keptAnswers.length > 0)) && !task && (
                 <>
                   <input className="lab-name" value={name} placeholder="Dashboard name (optional)" maxLength={100} onChange={(e) => setName(e.target.value)} />
-                  <label className="pin-toggle" title="Sends the Storeloom colours to Shuttle as hex codes">
+                  <label className="pin-toggle" title="Sends the Storeloom colours to ShuttleViz as hex codes">
                     <input type="checkbox" checked={styled} onChange={(e) => setStyled(e.target.checked)} />
                     <span className="pin-toggle-track" aria-hidden />
                     <span>Storeloom style</span>
@@ -862,7 +904,7 @@ export function LabBuilder({ id }: { id: string }) {
                 />
                 {busy && (
                   <div className="lab-embed-veil">
-                    <span className="sp-shuttle" aria-hidden /> Shuttle is changing the dashboard
+                    <span className="sp-shuttle" aria-hidden /> ShuttleViz is changing the dashboard
                   </div>
                 )}
               </div>

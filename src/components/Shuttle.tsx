@@ -60,9 +60,9 @@ export function useShuttle() {
  */
 export function ShuttleProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
-  // Studio and Dashboard Lab's builder have no launcher (they have their own
-  // assistant panels): close a conversation left open on the way in.
-  const inStudio = /^\/(studio|lab\/)/.test(useLocation().pathname)
+  // Studio (also Dashboard Lab's) and the Lab's ShuttleViz have no launcher (they
+  // have their own assistant panels): close a conversation left open on the way in.
+  const inStudio = /^\/(lab\/)?studio|^\/lab\/shuttleviz/.test(useLocation().pathname)
   useEffect(() => {
     if (inStudio) setIsOpen(false)
   }, [inStudio])

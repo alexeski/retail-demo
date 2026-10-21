@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { ExperienceProvider } from './experience'
 import { AuthProvider, RequireAuth } from './auth'
 import { AppBar } from './components/AppBar'
 import { Backdrop } from './components/Backdrop'
@@ -11,7 +12,6 @@ import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
 import { Config } from './pages/Config'
 import { Studio } from './pages/Studio'
-import { Lab } from './pages/Lab'
 import { LabBuilderRoute } from './pages/LabBuilder'
 import { useHotkeyListener } from './hotkeys'
 
@@ -46,8 +46,20 @@ export default function App() {
               <Route path="/dashboards" element={<Dashboards />} />
               <Route path="/dashboards/:id" element={<DashboardView />} />
               <Route path="/studio" element={<Studio />} />
-              <Route path="/lab" element={<Lab />} />
-              <Route path="/lab/:id" element={<LabBuilderRoute />} />
+              {/* Dashboard Lab: the same pages, with ShuttleViz over the Spotter MCP Server (src/experience.tsx). */}
+              <Route
+                path="/lab"
+                element={
+                  <ExperienceProvider experience="lab">
+                    <Outlet />
+                  </ExperienceProvider>
+                }
+              >
+                <Route index element={<Dashboards />} />
+                <Route path="dashboards/:id" element={<DashboardView />} />
+                <Route path="studio" element={<Studio />} />
+                <Route path="shuttleviz/:id" element={<LabBuilderRoute />} />
+              </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
