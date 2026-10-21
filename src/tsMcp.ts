@@ -137,9 +137,21 @@ async function post(body: object, sessionId: string | null) {
   return fetch(ENDPOINT, { method: 'POST', headers, body: JSON.stringify(body) })
 }
 
+/** What the page sees when /ts-mcp isn't proxied: no server, or the app's own pages answering. */
+const NO_PASS_THROUGH =
+  'Storeloom can’t reach ThoughtSpot’s MCP Server: the /ts-mcp pass-through isn’t running. In development, restart the dev server (npm run dev); in the container, check nginx.conf.'
+
 async function rpc(method: string, params: object, sessionId: string | null) {
   const id = nextId++
-  const res = await post({ jsonrpc: '2.0', id, method, params }, sessionId)
+  let res: Response
+  try {
+    res = await post({ jsonrpc: '2.0', id, method, params }, sessionId)
+  } catch (err) {
+    if (err instanceof McpError) throw err
+    throw new McpError(NO_PASS_THROUGH)
+  }
+  // An HTML page means the request reached the app's own server, not the MCP server.
+  if ((res.headers.get('content-type') ?? '').includes('text/html')) throw new McpError(NO_PASS_THROUGH, res.status)
   if (!res.ok) {
     const detail = (await res.text().catch(() => '')).slice(0, 200)
     throw new McpError(
