@@ -228,8 +228,14 @@ export function Dashboards() {
                       <button type="button" onClick={() => navigate(`/studio?mode=ai&dashboard=${d.id}`)} title="Edit this dashboard with ShuttleViz">
                         ✦ ShuttleViz
                       </button>
-                      <button type="button" onClick={() => navigate(`/studio/brief?dashboard=${d.id}`)} title="Tell ShuttleViz what to change, in a conversation">
-                        ✎ Brief
+                      <button
+                        type="button"
+                        className="is-icon"
+                        onClick={() => navigate(`/studio/brief?dashboard=${d.id}`)}
+                        aria-label={`Brief ShuttleViz on ${d.name}`}
+                        title="Brief: tell ShuttleViz what to change, in a conversation"
+                      >
+                        ✎
                       </button>
                       {confirming === d.id ? (
                         <button type="button" className="is-danger" disabled={deleting === d.id} onClick={() => remove(d)} onBlur={() => setConfirming(null)} autoFocus>

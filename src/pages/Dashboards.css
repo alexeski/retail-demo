@@ -526,6 +526,12 @@
   background: var(--periwinkle);
 }
 
+.dash-card-actions .is-icon {
+  flex: 0 0 auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
 .dash-card-actions .is-quiet {
   flex: 0 0 auto;
   padding: 0 14px;

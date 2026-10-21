@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { LiveboardEmbed } from '@thoughtspot/visual-embed-sdk/react'
 import { rebrand } from '../brand'
@@ -67,6 +67,11 @@ const REFINEMENTS = [
 const BRAND_STYLE =
   'Style it in the Storeloom brand: ink #17150F for text and outlines, paper #F4EFE4 and card #FFFDF8 backgrounds, accent #E5502A for the main series, periwinkle #B8C6FF and sand #EBE4D4 as secondary colours.'
 
+/** Sent with every request: text the designer writes onto the dashboard is read by Storeloom users. */
+const VOCABULARY = 'In any text you write on the dashboard, call it a dashboard, never a Liveboard, and don’t mention ThoughtSpot or Spotter.'
+
+const withVocabulary = (instructions: string) => `${instructions}\n\n${VOCABULARY}`
+
 type Answer = { id: string; title: string; url?: string; query?: string }
 
 type Entry =
@@ -106,8 +111,8 @@ function load(): Saved {
   // page resumes it under a new entry; without one (the first request, before
   // the designer gave it an ID) there's nothing to follow, so say so.
   const entries = saved.entries.map((e): Entry => {
-    if (e.kind === 'work' && !e.endedAt)
-      return { ...e, endedAt: Date.now(), failed: !saved.running, steps: saved.running ? e.steps : [...e.steps, 'Interrupted: the page was left before ShuttleViz replied.'] }
+    if (e.kind === 'work' && !e.endedAt && !saved.running)
+      return { ...e, endedAt: Date.now(), failed: true, steps: [...e.steps, 'Interrupted: the page was left before ShuttleViz replied.'] }
     if (e.kind === 'analysis' && !e.done) return { ...e, done: true }
     return e
   })
@@ -147,6 +152,17 @@ function useElapsed(start: number, end?: number) {
 // Conversation entries
 // ---------------------------------------------------------------------------
 
+/** ShuttleViz reports a step as "Its tool\nWhat it's doing": the tool as a label, the rest as a note. */
+function StepText({ text }: { text: string }) {
+  const [label, ...rest] = text.split('\n')
+  return (
+    <>
+      <span className="bf-step-label">{label}</span>
+      {rest.length > 0 && <span className="bf-step-note">{rest.join(' ')}</span>}
+    </>
+  )
+}
+
 function WorkEntry({ entry }: { entry: Extract<Entry, { kind: 'work' }> }) {
   const elapsed = useElapsed(entry.startedAt, entry.endedAt)
   const running = !entry.endedAt
@@ -163,7 +179,7 @@ function WorkEntry({ entry }: { entry: Extract<Entry, { kind: 'work' }> }) {
         <ol className="bf-steps">
           {entry.steps.map((s, i) => (
             <li key={i} className={running && i === entry.steps.length - 1 ? 'is-current' : undefined}>
-              {rebrand(s)}
+              <StepText text={rebrand(s)} />
             </li>
           ))}
         </ol>
@@ -217,6 +233,58 @@ function Loom({ seed, weaving }: { seed: string; weaving: boolean }) {
   )
 }
 
+type Cell = VizData['data_rows'][number][number]
+
+/**
+ * How to show one column: get_data returns raw values, so dates come as epoch
+ * seconds (bucketed by the column's "Month(…)"-style name) and percentages as
+ * fractions.
+ */
+function columnFormat(name: string, values: Cell[]): (v: Cell) => string {
+  const nums = values.filter((v): v is number => typeof v === 'number')
+  const bucket = name.match(/^(Day|Week|Month|Quarter|Year)\(/i)?.[1]?.toLowerCase()
+  if ((bucket || /date/i.test(name)) && nums.length && nums.every((v) => v > 1e8 && v < 1e11)) {
+    const opts: Intl.DateTimeFormatOptions =
+      bucket === 'year' ? { year: 'numeric' } : bucket === 'month' || bucket === 'quarter' ? { month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short', year: 'numeric' }
+    const fmt = new Intl.DateTimeFormat(undefined, { ...opts, timeZone: 'UTC' })
+    return (v) => (typeof v === 'number' ? fmt.format(v * 1000) : String(v ?? '—'))
+  }
+  if (/%/.test(name) && nums.length && nums.every((v) => Math.abs(v) <= 1)) {
+    return (v) => (typeof v === 'number' ? `${(v * 100).toLocaleString(undefined, { maximumFractionDigits: 1 })}%` : String(v ?? '—'))
+  }
+  return (v) => (typeof v === 'number' ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(v ?? '—'))
+}
+
+/** While exploring: the charts kept so far, laid out as the dashboard-to-be. */
+function DraftBoard({ answers, onRemove }: { answers: Answer[]; onRemove: (id: string) => void }) {
+  return (
+    <div className="bf-draft">
+      <p className="mono-label bf-numbers-note">
+        Draft · {answers.length} {answers.length === 1 ? 'chart' : 'charts'} kept · ShuttleViz lays them out and styles them when you make it a dashboard
+      </p>
+      <div className="bf-draft-grid">
+        {answers.map((a) => (
+          <figure key={a.id} className="bf-answer is-kept">
+            <figcaption>
+              <span className="bf-answer-title">{rebrand(a.title)}</span>
+              <button type="button" className="bf-draft-remove" aria-label={`Remove ${a.title}`} title="Don’t keep this chart" onClick={() => onRemove(a.id)}>
+                ×
+              </button>
+            </figcaption>
+            {a.url && (
+              <div className="bf-answer-frame">
+                <div className="sp-answer-clip">
+                  <iframe src={a.url} title={a.title} loading="lazy" />
+                </div>
+              </div>
+            )}
+          </figure>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Numbers({ dashboardId, version }: { dashboardId: string; version: number }) {
   const [data, setData] = useState<VizData[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -235,6 +303,8 @@ function Numbers({ dashboardId, version }: { dashboardId: string; version: numbe
 
   const csv = (v: VizData) =>
     [v.columns, ...v.data_rows].map((row) => row.map((c) => (c == null ? '' : /[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : String(c))).join(',')).join('\n')
+
+  const formats = useMemo(() => data?.map((v) => v.columns.map((name, c) => columnFormat(name, v.data_rows.map((row) => row[c] ?? null)))) ?? [], [data])
 
   if (error) return <div className="dash-notice is-error">{error}</div>
   if (!data) return <div className="bf-numbers-loading mono-label">Reading the saved charts…</div>
@@ -267,7 +337,7 @@ function Numbers({ dashboardId, version }: { dashboardId: string; version: numbe
                   <tr key={r}>
                     {row.map((cell, c) => (
                       <td key={c} className={typeof cell === 'number' ? 'is-num' : undefined}>
-                        {typeof cell === 'number' ? cell.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(cell ?? '—')}
+                        {formats[i]![c]!(cell)}
                       </td>
                     ))}
                   </tr>
@@ -344,10 +414,10 @@ export function Brief() {
    * the dashboard on completed.
    */
   const drive = useCallback(
-    async (first: () => Promise<DesignResult>, kind: Task['kind'], label: string) => {
+    async (first: () => Promise<DesignResult>, kind: Task['kind'], label: string, resumeId?: string) => {
       setBusy(true)
-      const workId = uid()
-      push({ id: workId, kind: 'work', label, steps: [], startedAt: Date.now() })
+      const workId = resumeId ?? uid()
+      if (!resumeId) push({ id: workId, kind: 'work', label, steps: [], startedAt: Date.now() })
       const addStep = (msg?: string) =>
         msg && patch(workId, (e) => (e.kind === 'work' && e.steps[e.steps.length - 1] !== msg ? { ...e, steps: [...e.steps, msg] } : e))
       try {
@@ -390,7 +460,8 @@ export function Brief() {
     const running = stateRef.current.running
     if (resumed.current || !running) return
     resumed.current = true
-    void drive(() => dashboardStatus(running.id), running.kind, 'Picking up where ShuttleViz left off')
+    const open = stateRef.current.entries.findLast((e) => e.kind === 'work' && !e.endedAt)
+    void drive(() => dashboardStatus(running.id), running.kind, 'Picking up where ShuttleViz left off', open?.id)
   }, [drive])
 
   /** Closes the open plan: the user answered it. */
@@ -404,8 +475,13 @@ export function Brief() {
     // The task is known, so a reload from here on can pick it up again.
     update((s) => ({ ...s, task: null, running: task }))
     const instructions = text.trim()
-    if (task.kind === 'create') void drive(() => createDashboard({ task_id: task.id, instructions }), 'create', 'Building your dashboard')
-    else void drive(() => modifyDashboard({ dashboard_id: dashboardId!, task_id: task.id, instructions }), 'modify', 'Changing your dashboard')
+    if (task.kind === 'create') void drive(() => createDashboard({ task_id: task.id, instructions: withVocabulary(instructions) }), 'create', 'Building your dashboard')
+    else
+      void drive(
+        () => modifyDashboard({ dashboard_id: dashboardId!, task_id: task.id, instructions: withVocabulary(instructions) }),
+        'modify',
+        'Changing your dashboard',
+      )
   }
 
   const startDesign = (text: string) => {
@@ -417,7 +493,7 @@ export function Brief() {
       () =>
         createDashboard({
           title: dashboardTitle,
-          instructions: styled ? `${brief}\n\n${BRAND_STYLE}` : brief,
+          instructions: withVocabulary(styled ? `${brief}\n\n${BRAND_STYLE}` : brief),
           data_source_id: RETAIL_MODEL_ID,
         }),
       'create',
@@ -428,7 +504,7 @@ export function Brief() {
   const refine = (text: string) => {
     if (!dashboardId) return
     push({ id: uid(), kind: 'you', text })
-    void drive(() => modifyDashboard({ dashboard_id: dashboardId, instructions: text }), 'modify', 'Changing your dashboard')
+    void drive(() => modifyDashboard({ dashboard_id: dashboardId, instructions: withVocabulary(text) }), 'modify', 'Changing your dashboard')
   }
 
   /** One question to Shuttle (the analytics agent), polled until it's answered. */
@@ -446,9 +522,13 @@ export function Brief() {
       await sendSessionMessage(sessionId, question)
       for (;;) {
         const { session_updates: updates, is_done } = await sessionUpdates(sessionId)
+        // The same answer can arrive more than once (as it's drafted, then final): keep the latest.
+        const seen = new Set(stateRef.current.entries.flatMap((e) => (e.kind === 'analysis' ? e.answers.map((a) => a.id) : [])))
         const answers: Answer[] = []
         for (const u of updates) {
-          if (u.type === 'answer' && u.answer_id) answers.push({ id: u.answer_id, title: u.answer_title ?? 'Answer', url: u.iframe_url, query: u.answer_query })
+          if (u.type !== 'answer' || !u.answer_id || seen.has(u.answer_id)) continue
+          seen.add(u.answer_id)
+          answers.push({ id: u.answer_id, title: u.answer_title ?? 'Answer', url: u.iframe_url, query: u.answer_query })
         }
         patch(entryId, (e) => {
           if (e.kind !== 'analysis') return e
@@ -472,7 +552,7 @@ export function Brief() {
     }
   }
 
-  const allAnswers = entries.flatMap((e) => (e.kind === 'analysis' ? e.answers : []))
+  const allAnswers = [...new Map(entries.flatMap((e) => (e.kind === 'analysis' ? e.answers : [])).map((a) => [a.id, a])).values()]
   const keptAnswers = allAnswers.filter((a) => kept.includes(a.id))
   const toggleKeep = (id: string) => update((s) => ({ ...s, kept: s.kept.includes(id) ? s.kept.filter((k) => k !== id) : [...s.kept, id] }))
 
@@ -485,7 +565,7 @@ export function Brief() {
         createDashboard({
           title: dashboardTitle,
           answers: keptAnswers.map((a) => ({ answer_id: a.id, title: a.title })),
-          instructions: styled ? BRAND_STYLE : undefined,
+          instructions: withVocabulary(styled ? BRAND_STYLE : 'Organise these charts into a clear dashboard.'),
         }),
       'create',
       'Laying out your charts',
@@ -641,10 +721,10 @@ export function Brief() {
                       <span className="mono-label bf-from">
                         {!e.done && <span className="sp-shuttle" aria-hidden />} Shuttle {e.done ? '' : `· ${rebrand(e.steps[e.steps.length - 1] ?? 'thinking')}`}
                       </span>
-                      {e.text && <Markdown text={e.text} className="bf-md" />}
                       {e.answers.map((a) => (
                         <AnswerTile key={a.id} answer={a} kept={kept.includes(a.id)} onToggle={dashboardId ? undefined : () => toggleKeep(a.id)} />
                       ))}
+                      {e.text && <Markdown text={e.text} className="bf-md" />}
                     </li>
                   )
               }
@@ -734,7 +814,9 @@ export function Brief() {
             )}
           </header>
           <div className="bf-stage-body">
-            {!dashboardId ? (
+            {!dashboardId && keptAnswers.length > 0 && !entries.some((e) => e.kind === 'work' && !e.endedAt) ? (
+              <DraftBoard answers={keptAnswers} onRemove={toggleKeep} />
+            ) : !dashboardId ? (
               <Loom seed={seed} weaving={entries.some((e) => e.kind === 'work' && !e.endedAt)} />
             ) : view === 'numbers' ? (
               <Numbers dashboardId={dashboardId} version={version} />
