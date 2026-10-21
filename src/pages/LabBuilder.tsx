@@ -740,12 +740,6 @@ export function LabBuilder({ id }: { id: string }) {
           <div className="eyebrow">
             <span className="tag">ShuttleViz</span>
             <span className="lab-beta">Dashboard Lab</span>
-            <span className="studio-model" title="ShuttleViz and Shuttle read the Retail Sales model here.">
-              <span aria-hidden>▣</span> Retail Sales model · fixed
-            </span>
-            <span className="lab-via" title="Every step runs on ThoughtSpot’s Spotter MCP Server: SpotterViz, Spotter and get_data">
-              via ThoughtSpot MCP
-            </span>
           </div>
           {dashboardId && title && owned ? (
             <EditableTitle name={title} className="display studio-h1" onRename={rename} />

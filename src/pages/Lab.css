@@ -1,12 +1,5 @@
 /* Brief: a conversation with ShuttleViz on the left, the dashboard on the right. */
 
-.lab-via {
-  font-size: 10px;
-  padding: 3px 7px;
-  border: 1.5px dashed var(--ink);
-  background: var(--card);
-}
-
 .lab-workspace {
   display: grid;
   grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
