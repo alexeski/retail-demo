@@ -7,7 +7,6 @@ import { useShuttle } from '../components/Shuttle'
 import { EditableTitle } from '../components/EditableTitle'
 import { cloneDashboard, formatEdited, getDashboard, renameDashboard, tileCount, type Dashboard } from '../dashboards'
 import { chartMenu, EDIT_CHART, PINNED_CHART_HIDDEN_ACTIONS, pickedChartAction } from '../chartActions'
-import { WITH_LIVEBOARD_HEADER } from '../thoughtspot'
 import './Dashboards.css'
 
 /** Three starter questions for Shuttle, from the dashboard's own tiles. */
@@ -201,11 +200,8 @@ export function DashboardView() {
                   customActions={menu}
                   onCustomAction={onChartAction}
                   updatedSpotterChatPrompt
-                  // ThoughtSpot's own header carries this dashboard's filters and tabs;
-                  // Storeloom shows the title above.
-                  customizations={WITH_LIVEBOARD_HEADER}
-                  showLiveboardTitle={false}
-                  showLiveboardDescription={false}
+                  // No ThoughtSpot header bar: Storeloom shows the title and actions above.
+                  hideLiveboardHeader
                   fullHeight
                   minimumHeight={640}
                   onLiveboardRendered={onRendered}
