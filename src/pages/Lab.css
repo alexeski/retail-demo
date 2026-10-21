@@ -694,3 +694,45 @@
   gap: 16px;
   flex-wrap: wrap;
 }
+
+/* ---------- Editing by hand ---------- */
+.lab-edit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lab-editing-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1.5px solid var(--ink);
+  background: var(--accent);
+  font-size: 10px;
+}
+
+.lab-embed.is-editing {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.lab-editing-note {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1.5px solid var(--ink);
+  background: var(--accent);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.lab-manual {
+  align-self: center;
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1.5px dashed var(--ink);
+  background: var(--card);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

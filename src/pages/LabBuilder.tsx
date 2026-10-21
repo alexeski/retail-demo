@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { LiveboardEmbed } from '@thoughtspot/visual-embed-sdk/react'
+import { ContextType, HostEvent } from '@thoughtspot/visual-embed-sdk'
+import { LiveboardEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
 import { rebrand } from '../brand'
 import { PINNED_CHART_HIDDEN_ACTIONS } from '../chartActions'
 import { DashboardMosaic } from '../components/DashboardMosaic'
 import { Markdown } from '../components/SpotterTurn'
 import { getDashboard } from '../dashboards'
 import { usePaths } from '../experience'
-import { RETAIL_MODEL_ID } from '../thoughtspot'
+import { HIDDEN_BRANDED_ACTIONS, RETAIL_MODEL_ID, WITH_LIVEBOARD_HEADER } from '../thoughtspot'
 import {
   createAnalysisSession,
   createDashboard,
@@ -66,6 +67,10 @@ const REFINEMENTS = [
 const BRAND_STYLE =
   'Style it in the Storeloom brand: ink #17150F for text and outlines, paper #F4EFE4 and card #FFFDF8 backgrounds, accent #E5502A for the main series, periwinkle #B8C6FF and sand #EBE4D4 as secondary colours.'
 
+/** Sent with the first request after the user edited the dashboard by hand. */
+const KEEP_HAND_EDITS =
+  'The user has changed this dashboard by hand since your last change (layout, sizes, notes or tiles). Keep their changes unless they ask otherwise.'
+
 /** Sent with every request: text the designer writes onto the dashboard is read by Storeloom users. */
 const VOCABULARY = 'In any text you write on the dashboard, call it a dashboard, never a Liveboard, and don’t mention ThoughtSpot or Spotter.'
 
@@ -79,6 +84,7 @@ type Entry =
   | { id: string; kind: 'work'; label: string; steps: string[]; startedAt: number; endedAt?: number; failed?: boolean }
   | { id: string; kind: 'done'; message: string; changed: boolean }
   | { id: string; kind: 'error'; message: string }
+  | { id: string; kind: 'manual' }
   | { id: string; kind: 'analysis'; steps: string[]; text: string; answers: Answer[]; done: boolean }
 
 /** A designer task waiting for the user: its plan or question is open. */
@@ -93,6 +99,8 @@ type Saved = {
   running: Task | null
   analysisId: string | null
   kept: string[]
+  /** The user changed the dashboard by hand since ShuttleViz last did: tell it to keep those changes. */
+  handEdited?: boolean
 }
 
 /**
@@ -542,8 +550,45 @@ export function LabBuilder({ id }: { id: string }) {
   const refine = (text: string) => {
     if (!dashboardId) return
     push({ id: uid(), kind: 'you', text })
-    void drive(() => modifyDashboard({ dashboard_id: dashboardId, instructions: withVocabulary(text) }), 'modify', 'Changing your dashboard')
+    const handEdited = stateRef.current.handEdited
+    if (handEdited) update((s) => ({ ...s, handEdited: false }))
+    const instructions = withVocabulary(handEdited ? `${text}\n\n${KEEP_HAND_EDITS}` : text)
+    void drive(() => modifyDashboard({ dashboard_id: dashboardId, instructions }), 'modify', 'Changing your dashboard')
   }
+
+  // ---- Editing by hand: ThoughtSpot's own edit mode, without its SpotterViz agent ----
+  // ShuttleViz saves the dashboard itself, and the editor saves what it loaded, so
+  // the two take turns: no editing while ShuttleViz works or waits on a plan, and
+  // no messages to ShuttleViz until the edits are saved or cancelled.
+  const editorRef = useEmbedRef<typeof LiveboardEmbed>()
+  const [editing, setEditing] = useState(false)
+  // ThoughtSpot can report one save more than once: only the first ends the edit.
+  const editingRef = useRef(false)
+  editingRef.current = editing
+  const canEdit = !!dashboardId && !busy && !task
+  const onEditorRendered = useCallback(() => {
+    editorRef.current?.trigger(HostEvent.Edit, {} as never, ContextType.Liveboard).catch(() => {})
+  }, [editorRef])
+  const onHandSaved = useCallback(() => {
+    if (!editingRef.current) return
+    editingRef.current = false
+    setEditing(false)
+    setVersion((v) => v + 1)
+    update((s) => ({ ...s, handEdited: true, entries: [...s.entries, { id: uid(), kind: 'manual' }] }))
+  }, [update])
+  const onHandCancelled = useCallback(() => {
+    if (!editingRef.current) return
+    editingRef.current = false
+    setEditing(false)
+    setVersion((v) => v + 1)
+  }, [])
+  // Unsaved edits live in the editor only: warn before the tab is closed or reloaded.
+  useEffect(() => {
+    if (!editing) return
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [editing])
 
   /** One question to Shuttle (the analytics agent), polled until it's answered. */
   const ask = async (question: string) => {
@@ -671,7 +716,7 @@ export function LabBuilder({ id }: { id: string }) {
         </div>
         <div className="lab-head-actions">
           {(started || dashboardId) && (
-            <button type="button" className="btn-outline" onClick={startOver} disabled={busy}>
+            <button type="button" className="btn-outline" onClick={startOver} disabled={busy || editing}>
               ＋ New dashboard
             </button>
           )}
@@ -682,7 +727,7 @@ export function LabBuilder({ id }: { id: string }) {
               role="tab"
               aria-selected={false}
               className="studio-mode"
-              disabled={busy}
+              disabled={busy || editing}
               onClick={() => navigate(paths.search(dashboardId))}
             >
               <span className="studio-mode-icon" aria-hidden>
@@ -790,6 +835,12 @@ export function LabBuilder({ id }: { id: string }) {
                       {rebrand(e.message)}
                     </li>
                   )
+                case 'manual':
+                  return (
+                    <li key={e.id} className="lab-entry lab-manual">
+                      <span aria-hidden>✎</span> You edited the dashboard by hand · saved
+                    </li>
+                  )
                 case 'analysis':
                   return (
                     <li key={e.id} className="lab-entry lab-analysis">
@@ -817,8 +868,13 @@ export function LabBuilder({ id }: { id: string }) {
             </div>
           )}
 
-          <form className={busy ? 'lab-composer is-busy' : 'lab-composer'} onSubmit={submit}>
-            {phase === 'refine' && !busy && (
+          <form className={busy || editing ? 'lab-composer is-busy' : 'lab-composer'} onSubmit={submit}>
+            {editing && (
+              <p className="lab-editing-note" role="status">
+                <strong>You’re editing by hand.</strong> Save or cancel in the toolbar above the dashboard to keep talking to ShuttleViz.
+              </p>
+            )}
+            {phase === 'refine' && !busy && !editing && (
               <div className="lab-suggest">
                 {REFINEMENTS.map((r) => (
                   <button key={r} type="button" className="lab-suggestion" onClick={() => refine(r)}>
@@ -839,8 +895,8 @@ export function LabBuilder({ id }: { id: string }) {
             <textarea
               value={draft}
               rows={2}
-              placeholder={busy ? 'ShuttleViz is working…' : placeholder}
-              disabled={busy}
+              placeholder={busy ? 'ShuttleViz is working…' : editing ? 'ShuttleViz waits while you edit…' : placeholder}
+              disabled={busy || editing}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) submit(e)
@@ -857,7 +913,7 @@ export function LabBuilder({ id }: { id: string }) {
                   </label>
                 </>
               )}
-              <button type="submit" className="btn-primary lab-send" disabled={busy || !draft.trim()}>
+              <button type="submit" className="btn-primary lab-send" disabled={busy || editing || !draft.trim()}>
                 {phase === 'reply' ? 'Reply' : phase === 'refine' ? 'Change it' : phase === 'explore' ? 'Ask' : 'Brief it'} <span aria-hidden>→</span>
               </button>
             </div>
@@ -872,13 +928,42 @@ export function LabBuilder({ id }: { id: string }) {
                 Dashboard
               </button>
               {canGetData && dashboardId && (
-                <button type="button" role="tab" aria-selected={view === 'numbers'} className={view === 'numbers' ? 'dash-tab is-active' : 'dash-tab'} onClick={() => setView('numbers')}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={view === 'numbers'}
+                  className={view === 'numbers' ? 'dash-tab is-active' : 'dash-tab'}
+                  onClick={() => setView('numbers')}
+                  disabled={editing}
+                >
                   The numbers
                 </button>
               )}
             </div>
             {dashboardId && (
               <div className="lab-stage-links">
+                {editing ? (
+                  <span className="mono-label lab-editing-badge">✎ Editing by hand</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="studio-open lab-edit-btn"
+                    disabled={!canEdit}
+                    onClick={() => {
+                      setView('dashboard')
+                      setEditing(true)
+                    }}
+                    title={
+                      canEdit
+                        ? 'Resize, move and add to the dashboard yourself, in the dashboard editor'
+                        : task
+                          ? 'Answer ShuttleViz first, then edit by hand'
+                          : 'Wait for ShuttleViz to finish, then edit by hand'
+                    }
+                  >
+                    ✎ Edit by hand
+                  </button>
+                )}
                 <button type="button" className="studio-open" onClick={() => setFocus((f) => !f)} aria-pressed={focus}>
                   {focus ? '⤡ Show conversation' : '⤢ Full view'}
                 </button>
@@ -893,15 +978,33 @@ export function LabBuilder({ id }: { id: string }) {
             ) : view === 'numbers' ? (
               <Numbers dashboardId={dashboardId} version={version} />
             ) : (
-              <div className={busy ? 'lab-embed is-changing' : 'lab-embed'}>
-                <LiveboardEmbed
-                  key={`${dashboardId}-${version}`}
-                  liveboardId={dashboardId}
-                  hiddenActions={PINNED_CHART_HIDDEN_ACTIONS}
-                  hideLiveboardHeader
-                  fullHeight
-                  minimumHeight={480}
-                />
+              <div className={busy ? 'lab-embed is-changing' : editing ? 'lab-embed is-editing' : 'lab-embed'}>
+                {editing ? (
+                  // The editor: ThoughtSpot's edit toolbar (Save, Cancel, add, resize), but
+                  // no SpotterViz button: language goes through ShuttleViz's conversation.
+                  <LiveboardEmbed
+                    key={`${dashboardId}-${version}-edit`}
+                    ref={editorRef}
+                    liveboardId={dashboardId}
+                    hiddenActions={HIDDEN_BRANDED_ACTIONS}
+                    customizations={WITH_LIVEBOARD_HEADER}
+                    showLiveboardTitle={false}
+                    fullHeight
+                    minimumHeight={480}
+                    onLiveboardRendered={onEditorRendered}
+                    onSave={onHandSaved}
+                    onCancel={onHandCancelled}
+                  />
+                ) : (
+                  <LiveboardEmbed
+                    key={`${dashboardId}-${version}`}
+                    liveboardId={dashboardId}
+                    hiddenActions={PINNED_CHART_HIDDEN_ACTIONS}
+                    hideLiveboardHeader
+                    fullHeight
+                    minimumHeight={480}
+                  />
+                )}
                 {busy && (
                   <div className="lab-embed-veil">
                     <span className="sp-shuttle" aria-hidden /> ShuttleViz is changing the dashboard
