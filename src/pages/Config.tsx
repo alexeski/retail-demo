@@ -42,43 +42,12 @@ export function Config() {
         <p className="cfg-lede">
           Controls for running the Storeloom demo. They’re saved in this browser and apply instantly to any open tab.
         </p>
-        <DisplaySection />
         <MeteringSection />
         <AccountSection />
         <HotkeysSection />
+        <DisplaySection />
       </main>
     </div>
-  )
-}
-
-function DisplaySection() {
-  const { scale } = useDisplay()
-  return (
-    <section className="cfg-card">
-      <div className="cfg-card-head">
-        <div>
-          <h2 className="mono-label">Display size</h2>
-          <p>
-            Scales the whole app, embedded dashboards included, like the browser’s zoom. Auto is 80% on laptop screens (under 1,600 px wide) and
-            100% on larger ones.
-          </p>
-        </div>
-      </div>
-      <div className="cfg-seg" role="radiogroup" aria-label="Display size">
-        {DISPLAY_SCALES.map((s) => (
-          <button
-            key={String(s.value)}
-            type="button"
-            role="radio"
-            aria-checked={scale === s.value}
-            className={scale === s.value ? 'is-active' : undefined}
-            onClick={() => displayStore.set({ scale: s.value })}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-    </section>
   )
 }
 
@@ -341,5 +310,36 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
     >
       <span />
     </button>
+  )
+}
+
+function DisplaySection() {
+  const { scale } = useDisplay()
+  return (
+    <section className="cfg-card">
+      <div className="cfg-card-head">
+        <div>
+          <h2 className="mono-label">Display size</h2>
+          <p>
+            Scales the whole app, embedded dashboards included, like the browser’s zoom. Auto is 80% on laptop screens (under 1,600 px wide) and
+            100% on larger ones.
+          </p>
+        </div>
+      </div>
+      <div className="cfg-seg" role="radiogroup" aria-label="Display size">
+        {DISPLAY_SCALES.map((s) => (
+          <button
+            key={String(s.value)}
+            type="button"
+            role="radio"
+            aria-checked={scale === s.value}
+            className={scale === s.value ? 'is-active' : undefined}
+            onClick={() => displayStore.set({ scale: s.value })}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+    </section>
   )
 }
