@@ -228,8 +228,25 @@ export function Dashboards() {
                     </span>
                   </div>
                 </Link>
-                <div className="dash-card-actions">
-                  {d.owned ? (
+                <div
+                  className={confirming === d.id ? 'dash-card-actions is-confirming' : 'dash-card-actions'}
+                  // The confirmation closes when focus leaves it (a click elsewhere) or on Escape.
+                  onBlur={(e) => confirming === d.id && !deleting && !e.currentTarget.contains(e.relatedTarget as Node) && setConfirming(null)}
+                  onKeyDown={(e) => e.key === 'Escape' && !deleting && setConfirming(null)}
+                >
+                  {d.owned && confirming === d.id ? (
+                    <>
+                      <span className="dash-confirm" role="alert">
+                        Delete for good?
+                      </span>
+                      <button type="button" className="is-danger" disabled={deleting === d.id} onClick={() => remove(d)} autoFocus>
+                        {deleting === d.id ? 'Deleting…' : 'Delete'}
+                      </button>
+                      <button type="button" className="is-quiet" disabled={deleting === d.id} onClick={() => setConfirming(null)}>
+                        Cancel
+                      </button>
+                    </>
+                  ) : d.owned ? (
                     <>
                       <button type="button" onClick={() => navigate(paths.search(d.id))} title="Add or change charts with Search">
                         ⌕ Search
@@ -237,15 +254,9 @@ export function Dashboards() {
                       <button type="button" onClick={() => navigate(paths.shuttleViz(d.id))} title="Edit this dashboard with ShuttleViz">
                         ✦ ShuttleViz
                       </button>
-                      {confirming === d.id ? (
-                        <button type="button" className="is-danger" disabled={deleting === d.id} onClick={() => remove(d)} onBlur={() => setConfirming(null)} autoFocus>
-                          {deleting === d.id ? 'Deleting…' : 'Delete for good?'}
-                        </button>
-                      ) : (
-                        <button type="button" className="is-quiet" onClick={() => setConfirming(d.id)} aria-label={`Delete ${d.name}`} title="Delete">
-                          Delete
-                        </button>
-                      )}
+                      <button type="button" className="is-quiet" onClick={() => setConfirming(d.id)} aria-label={`Delete ${d.name}`} title="Delete">
+                        Delete
+                      </button>
                     </>
                   ) : (
                     <>
