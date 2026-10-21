@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ContextType, HostEvent } from '@thoughtspot/visual-embed-sdk'
 import { LiveboardEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
@@ -375,6 +375,20 @@ function Numbers({ dashboardId, version }: { dashboardId: string; version: numbe
   )
 }
 
+/**
+ * The conversation and the dashboard, filling the window below the bar. Its own
+ * component so it measures itself whenever it appears: a new dashboard opens on
+ * the brief screen, and the workspace only mounts once the brief is sent.
+ */
+function Workspace({ className, children }: { className: string; children: ReactNode }) {
+  const [ref, height] = useFillHeight<HTMLDivElement>(560, 24)
+  return (
+    <div className={className} ref={ref} style={{ height }}>
+      {children}
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // The page
 // ---------------------------------------------------------------------------
@@ -412,7 +426,6 @@ export function LabBuilder({ id }: { id: string }) {
   /** Bumped when the designer changes the dashboard, so the embed reloads. */
   const [version, setVersion] = useState(0)
   const [canGetData, setCanGetData] = useState(false)
-  const [stageRef, stageHeight] = useFillHeight<HTMLDivElement>(560, 24)
   const listRef = useRef<HTMLOListElement>(null)
   const stateRef = useRef(state)
   stateRef.current = state
@@ -878,7 +891,7 @@ export function LabBuilder({ id }: { id: string }) {
           </section>
         </div>
       ) : (
-        <div className={focus && dashboardId ? 'lab-workspace is-focus' : 'lab-workspace'} ref={stageRef} style={{ height: stageHeight } as CSSProperties}>
+        <Workspace className={focus && dashboardId ? 'lab-workspace is-focus' : 'lab-workspace'}>
           {/* ---- Conversation ---- */}
           <section className="lab-talk" aria-label="Conversation with ShuttleViz">
             {!started && !dashboardId && (
@@ -1140,7 +1153,7 @@ export function LabBuilder({ id }: { id: string }) {
               )}
             </div>
           </section>
-        </div>
+        </Workspace>
       )}
     </div>
   )
