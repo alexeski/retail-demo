@@ -157,9 +157,12 @@ function save(key: string, s: Saved) {
 let seq = 0
 const uid = () => `${Date.now().toString(36)}-${(seq++).toString(36)}`
 
-/** A dashboard name from the brief: its first clause, capitalised, at most ~60 characters. */
+/** A dashboard name from the brief: its first clause without the instruction, capitalised, at most ~60 characters. */
+/** How a brief tends to start ("Build an…", "Create a…", "Show me…"): not part of the name. */
+const BRIEF_LEAD = /^(?:please\s+)?(?:(?:build|create|make|design|draft|put together|give|show)(?:\s+(?:me|us))?|i\s+(?:need|want)|we\s+(?:need|want))\s+(?:(?:an?|the)\s+)?/i
+
 function titleFrom(text: string) {
-  const first = text.trim().split(/[.:\n]/)[0]!.trim()
+  const first = text.trim().split(/[.:\n]/)[0]!.trim().replace(BRIEF_LEAD, '')
   const short = first.length > 60 ? `${first.slice(0, 57).replace(/\s+\S*$/, '')}…` : first
   return short ? short[0]!.toUpperCase() + short.slice(1) : 'Untitled dashboard'
 }
