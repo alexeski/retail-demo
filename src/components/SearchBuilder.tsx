@@ -3,7 +3,7 @@ import { Action, ContextType, HostEvent } from '@thoughtspot/visual-embed-sdk'
 import { LiveboardEmbed, SearchEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
 import { chartMenu, EDIT_CHART, PINNED_CHART_HIDDEN_ACTIONS, pickedChartAction, REMOVE_CHART } from '../chartActions'
 import { DashboardError, deleteDraft, getDashboard, openDraft, removeTile, replaceTile, titleFromQuery, type Dashboard } from '../dashboards'
-import { HIDDEN_BRANDED_ACTIONS, RETAIL_MODEL_ID } from '../thoughtspot'
+import { HIDDEN_BRANDED_ACTIONS, RETAIL_MODEL_ID, WITH_LIVEBOARD_HEADER } from '../thoughtspot'
 import { useFillHeight } from '../useFillHeight'
 import { DashboardMosaic } from './DashboardMosaic'
 
@@ -71,9 +71,30 @@ type Props = {
   onChanged: () => void
   /** `editVizId` has been opened (Studio drops it from the URL). */
   onEditOpened: () => void
+  /** The dashboard is open in ThoughtSpot's editor (Studio guards leaving the page). */
+  handEditing: boolean
+  /** The editor embed, so Studio can save it on the way out. */
+  editorRef: ReturnType<typeof useEmbedRef<typeof LiveboardEmbed>>
+  /** Search is writing to the dashboard (pinning, syncing, removing): editing by hand waits. */
+  onBusyChange: (busy: boolean) => void
+  /** The editor closed: saved, or cancelled. */
+  onHandEditEnd: (saved: boolean) => void
 }
 
-export function SearchBuilder({ dashboardId, newName, editVizId, onCreated, onChanged, onEditOpened }: Props) {
+type EditorRef = Props['editorRef']
+
+export function SearchBuilder({
+  dashboardId,
+  newName,
+  editVizId,
+  onCreated,
+  onChanged,
+  onEditOpened,
+  handEditing,
+  editorRef,
+  onBusyChange,
+  onHandEditEnd,
+}: Props) {
   const searchRef = useEmbedRef<typeof SearchEmbed>()
   const canvasRef = useEmbedRef<typeof LiveboardEmbed>()
   const [workspaceRef, workspaceHeight] = useFillHeight<HTMLDivElement>(560, 16)
@@ -167,6 +188,31 @@ export function SearchBuilder({ dashboardId, newName, editVizId, onCreated, onCh
       cancelled = true
     }
   }, [dashboardId, canvasKey])
+
+  // ---- Editing by hand: ThoughtSpot's own edit mode (resize, move, notes, tabs…) ----
+  // The editor saves the dashboard as it loaded it, so Search and the editor take
+  // turns: the drawer closes while editing, and editing waits for pins and syncs.
+  // The SDK re-creates an embed when a listener changes identity: these stay stable.
+  const handEditingRef = useRef(handEditing)
+  handEditingRef.current = handEditing
+  const handEditEnd = useRef(onHandEditEnd)
+  handEditEnd.current = onHandEditEnd
+  const onEditorRendered = useCallback(() => {
+    ;(editorRef as EditorRef).current?.trigger(HostEvent.Edit, {} as never, ContextType.Liveboard).catch(() => {})
+  }, [editorRef])
+  const endHandEdit = useCallback((saved: boolean) => {
+    // ThoughtSpot can report one save more than once: only the first ends the edit.
+    if (!handEditingRef.current) return
+    handEditingRef.current = false
+    setCanvasKey((k) => k + 1)
+    handEditEnd.current(saved)
+  }, [])
+  // The drawer closes while editing by hand.
+  useEffect(() => {
+    if (handEditing) setDrawerOpen(false)
+  }, [handEditing])
+  const onEditorSave = useCallback(() => endHandEdit(true), [endHandEdit])
+  const onEditorCancel = useCallback(() => endHandEdit(false), [endHandEdit])
 
   const effectiveTitle = (title.trim() || suggested || 'Untitled chart').slice(0, 120)
   const chartName = (vizId: string) => charts?.find((c) => c.id === vizId)?.name ?? 'this chart'
@@ -445,13 +491,31 @@ export function SearchBuilder({ dashboardId, newName, editVizId, onCreated, onCh
     }
   })()
 
+  /** Search is writing to the dashboard: editing by hand waits, or the editor would overwrite it. */
+  const handBusy = pinning || !!opening || !!removing || sync.kind === 'pending' || sync.kind === 'syncing'
+  useEffect(() => onBusyChange(handBusy), [handBusy, onBusyChange])
+
   const editingExisting = source.kind === 'draft' && !!linked
   const drawerTitle = opening ? 'Opening the chart…' : editingExisting ? 'Editing a chart' : linked ? 'Linked chart' : 'New chart'
 
   return (
     <div className="workspace" ref={workspaceRef} style={{ height: workspaceHeight }}>
       <section className={drawerOpen ? 'canvas is-drawer-open' : 'canvas'} aria-label="Dashboard">
-        {dashboardId ? (
+        {dashboardId && handEditing ? (
+          // The editor: ThoughtSpot's edit toolbar (Save, Cancel, add, resize).
+          <LiveboardEmbed
+            key={`${dashboardId}:${canvasKey}:edit`}
+            ref={editorRef}
+            liveboardId={dashboardId}
+            frameParams={FILL_FRAME}
+            hiddenActions={HIDDEN_BRANDED_ACTIONS}
+            customizations={WITH_LIVEBOARD_HEADER}
+            showLiveboardTitle={false}
+            onLiveboardRendered={onEditorRendered}
+            onSave={onEditorSave}
+            onCancel={onEditorCancel}
+          />
+        ) : dashboardId ? (
           <LiveboardEmbed
             key={`${dashboardId}:${canvasKey}`}
             ref={canvasRef}
@@ -619,11 +683,19 @@ export function SearchBuilder({ dashboardId, newName, editVizId, onCreated, onCh
       </aside>
 
       {!drawerOpen && (
-        <button type="button" className="editor-rail" onClick={() => setDrawerOpen(true)} title="Show Search">
+        <button
+          type="button"
+          className="editor-rail"
+          onClick={() => setDrawerOpen(true)}
+          disabled={handEditing}
+          title={handEditing ? 'Save or cancel your edits by hand first' : 'Show Search'}
+        >
           <span className="editor-rail-icon" aria-hidden>
             »
           </span>
-          <span className="editor-rail-label">{linked ? `Editing · ${linked.title}` : 'Search & pin'}</span>
+          <span className="editor-rail-label">
+            {handEditing ? 'Search waits while you edit by hand' : linked ? `Editing · ${linked.title}` : 'Search & pin'}
+          </span>
           {linked && <span className={`editor-rail-dot is-${sync.kind}`} aria-hidden />}
         </button>
       )}

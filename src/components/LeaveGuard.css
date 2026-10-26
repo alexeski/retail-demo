@@ -1,0 +1,48 @@
+/* Leaving a dashboard that's being edited by hand (useLeaveGuard). */
+.leave-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(23, 21, 15, 0.45);
+}
+
+.leave-dialog {
+  width: min(460px, 100%);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: 8px 8px 0 var(--ink);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.leave-dialog h2 {
+  margin: 0;
+  font-weight: 800;
+  font-stretch: 115%;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.leave-dialog p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.leave-dialog .leave-error {
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+.leave-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
