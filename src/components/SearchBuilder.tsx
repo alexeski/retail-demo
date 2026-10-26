@@ -459,6 +459,8 @@ export function SearchBuilder({
   chartAction.current = (payload) => {
     const picked = pickedChartAction(payload, charts ?? [])
     if (!picked) return console.warn('Unrecognised chart action', payload)
+    // Only charts and tables open in Search (not notes, groups or filters).
+    if (picked.action === EDIT_CHART && charts && !charts.some((c) => c.id === picked.vizId)) return
     if (picked.action === EDIT_CHART) void editChart(picked.vizId)
     if (picked.action === REMOVE_CHART) setConfirmRemove(picked.vizId)
   }
