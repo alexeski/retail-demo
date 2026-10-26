@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { ContextType, HostEvent } from '@thoughtspot/visual-embed-sdk'
+import { LiveboardEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
+import { useLeaveGuard } from '../components/LeaveGuard'
 import { SearchBuilder } from '../components/SearchBuilder'
 import { ShuttleBuilder } from '../components/ShuttleBuilder'
 import { EditableTitle } from '../components/EditableTitle'
@@ -45,6 +48,19 @@ export function Studio() {
    */
   const [renamedAt, setRenamedAt] = useState(0)
 
+  // ---- Editing by hand (Search mode): the dashboard in ThoughtSpot's editor ----
+  const editorRef = useEmbedRef<typeof LiveboardEmbed>()
+  const [handEditing, setHandEditing] = useState(false)
+  /** Search is writing to the dashboard: editing by hand waits. */
+  const [searchBusy, setSearchBusy] = useState(false)
+  // Leaving while editing by hand (My dashboards, ShuttleViz, another dashboard,
+  // the top bar…) asks first: save the edits and go, go without them, or stay.
+  const { leave, saved: handSaved, dialog: leaveDialog } = useLeaveGuard({
+    active: handEditing,
+    save: () => void editorRef.current?.trigger(HostEvent.Save, {} as never, ContextType.Liveboard).catch(() => {}),
+    discard: () => setHandEditing(false),
+  })
+
   const refresh = useCallback(() => {
     listDashboards()
       .then((d) => {
@@ -83,7 +99,8 @@ export function Studio() {
 
   const leaveOk = () => !dirty || window.confirm('ShuttleViz’s latest changes aren’t saved. Leave without saving?')
 
-  const go = (next: { mode?: Mode; dashboard?: string | null }) => {
+  const go = (next: { mode?: Mode; dashboard?: string | null }) => leave(() => goNow(next))
+  const goNow = (next: { mode?: Mode; dashboard?: string | null }) => {
     if (!leaveOk()) return
     if (lab && next.mode === 'ai') {
       navigate(paths.shuttleViz(next.dashboard === undefined ? dashboardId : next.dashboard))
@@ -115,6 +132,7 @@ export function Studio() {
 
   const rename = async (name: string) => {
     if (dirty) throw new Error('Save ShuttleViz’s changes first, then rename.')
+    if (handEditing) throw new Error('Save or cancel your edits first, then rename.')
     const renamed = await renameDashboard(dashboardId!, name)
     setDashboards((list) => list?.map((d) => (d.id === renamed.id ? renamed : d)) ?? null)
     setCreated((c) => (renamed.id in c ? { ...c, [renamed.id]: renamed.name } : c))
@@ -135,6 +153,19 @@ export function Studio() {
     [setParams],
   )
 
+
+  const onHandEditEnd = useCallback(
+    (wasSaved: boolean) => {
+      setHandEditing(false)
+      if (wasSaved) {
+        refresh()
+        handSaved()
+      }
+    },
+    [refresh, handSaved],
+  )
+  // Another dashboard, or another mode: not editing by hand any more.
+  useEffect(() => setHandEditing(false), [dashboardId, mode])
 
   if (lab && mode === 'ai') return <Navigate to={paths.shuttleViz(dashboardId)} replace />
 
@@ -207,6 +238,27 @@ export function Studio() {
         <span className="studio-bar-note">
           {listError ? 'Couldn’t load your dashboards' : dashboardId ? 'Changes go to this dashboard' : mode === 'search' ? 'Created on your first pin' : 'Created when ShuttleViz starts'}
         </span>
+        {dashboardId && !foreign && mode === 'search' && !checking && (
+          handEditing ? (
+            <span className="studio-open studio-hand is-editing" role="status">
+              ✎ Editing by hand · Save or Cancel above the dashboard
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="studio-open studio-hand"
+              disabled={searchBusy}
+              onClick={() => setHandEditing(true)}
+              title={
+                searchBusy
+                  ? 'Wait for Search to finish updating the dashboard, then edit by hand'
+                  : 'Resize, move and add to the dashboard yourself, in the dashboard editor'
+              }
+            >
+              ✎ Edit by hand
+            </button>
+          )
+        )}
         {dashboardId && !foreign && (
           <Link to={paths.view(dashboardId)} className="studio-open" onClick={(e) => !leaveOk() && e.preventDefault()}>
             Open dashboard <span aria-hidden>↗</span>
@@ -233,6 +285,10 @@ export function Studio() {
           onCreated={onCreated}
           onChanged={refresh}
           onEditOpened={onEditOpened}
+          handEditing={handEditing}
+          editorRef={editorRef}
+          onBusyChange={setSearchBusy}
+          onHandEditEnd={onHandEditEnd}
         />
       ) : (
         <ShuttleBuilder
@@ -245,6 +301,7 @@ export function Studio() {
           onDirtyChange={setDirty}
         />
       )}
+      {leaveDialog}
     </div>
   )
 }

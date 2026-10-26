@@ -26,6 +26,7 @@ import {
 } from '../tsMcp'
 import { LAB_STORE_PREFIX } from '../tsMcp'
 import { useFillHeight } from '../useFillHeight'
+import { useLeaveGuard } from '../components/LeaveGuard'
 import '../components/SpotterTurn.css'
 import './Dashboards.css'
 import './Studio.css'
@@ -590,81 +591,31 @@ export function LabBuilder({ id }: { id: string }) {
   const onEditorRendered = useCallback(() => {
     editorRef.current?.trigger(HostEvent.Edit, {} as never, ContextType.Liveboard).catch(() => {})
   }, [editorRef])
-  // Set while "Save and continue" waits for the editor to save: where to go next.
-  const afterSave = useRef<(() => void) | null>(null)
+  // Leaving the page while editing by hand (My dashboards, Search, Start over, the
+  // top bar…) asks first: save the edits and go, go without them, or stay.
+  const { leave, saved: handSavedGo, dialog: leaveDialog } = useLeaveGuard({
+    active: editing,
+    save: () => void editorRef.current?.trigger(HostEvent.Save, {} as never, ContextType.Liveboard).catch(() => {}),
+    discard: () => {
+      editingRef.current = false
+      setEditing(false)
+      setVersion((v) => v + 1)
+    },
+  })
   const onHandSaved = useCallback(() => {
     if (!editingRef.current) return
     editingRef.current = false
     setEditing(false)
     setVersion((v) => v + 1)
     update((s) => ({ ...s, handEdited: true, entries: [...s.entries, { id: uid(), kind: 'manual' }] }))
-    const next = afterSave.current
-    afterSave.current = null
-    next?.()
-  }, [update])
+    handSavedGo()
+  }, [update, handSavedGo])
   const onHandCancelled = useCallback(() => {
     if (!editingRef.current) return
     editingRef.current = false
     setEditing(false)
     setVersion((v) => v + 1)
   }, [])
-  // Unsaved edits live in the editor only: warn before the tab is closed or reloaded.
-  useEffect(() => {
-    if (!editing) return
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault()
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [editing])
-
-  // Leaving the page while editing by hand (My dashboards, Search, Start over, the
-  // top bar…) asks first: save the edits and go, go without them, or stay.
-  const [leaving, setLeaving] = useState<{ go: () => void; saving: boolean; failed: boolean } | null>(null)
-  /** Runs `go` now, or once the user has decided what happens to their hand edits. */
-  const leave = useCallback((go: () => void) => {
-    if (editingRef.current) setLeaving({ go, saving: false, failed: false })
-    else go()
-  }, [])
-  // In-app links anywhere on the page (the top bar included) go through `leave` too.
-  useEffect(() => {
-    if (!editing) return
-    const onClick = (e: MouseEvent) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-      const link = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
-      if (!link || link.target === '_blank' || link.origin !== window.location.origin) return
-      e.preventDefault()
-      e.stopPropagation()
-      leave(() => navigate(link.pathname + link.search + link.hash))
-    }
-    document.addEventListener('click', onClick, true)
-    return () => document.removeEventListener('click', onClick, true)
-  }, [editing, leave, navigate])
-  const saveAndLeave = () => {
-    if (!leaving) return
-    const { go } = leaving
-    setLeaving({ ...leaving, saving: true, failed: false })
-    afterSave.current = () => {
-      setLeaving(null)
-      go()
-    }
-    editorRef.current?.trigger(HostEvent.Save, {} as never, ContextType.Liveboard).catch(() => {})
-    // ThoughtSpot says when it has saved (onHandSaved); if it doesn't, say so rather than hang.
-    window.setTimeout(() => {
-      if (!afterSave.current) return
-      afterSave.current = null
-      setLeaving((l) => (l ? { ...l, saving: false, failed: true } : l))
-    }, 15_000)
-  }
-  const leaveWithoutSaving = () => {
-    if (!leaving) return
-    const { go } = leaving
-    afterSave.current = null
-    editingRef.current = false
-    setEditing(false)
-    setVersion((v) => v + 1)
-    setLeaving(null)
-    go()
-  }
-
   /** One question to Shuttle (the analytics agent), polled until it's answered. */
   const ask = async (question: string) => {
     setBusy(true)
@@ -1218,32 +1169,7 @@ export function LabBuilder({ id }: { id: string }) {
         </Workspace>
       )}
 
-      {leaving && (
-        <div className="lab-leave-scrim" onClick={() => !leaving.saving && setLeaving(null)}>
-          <div className="lab-leave" role="alertdialog" aria-modal aria-labelledby="lab-leave-title" onClick={(e) => e.stopPropagation()}>
-            <h2 id="lab-leave-title">Save your edits first?</h2>
-            <p>
-              You’re editing this dashboard by hand, and your changes aren’t saved yet. Leaving now loses them.
-            </p>
-            {leaving.failed && (
-              <p className="lab-leave-error" role="alert">
-                The dashboard didn’t save. Try again, or use Save in the toolbar above the dashboard.
-              </p>
-            )}
-            <div className="lab-leave-actions">
-              <button type="button" className="btn-primary" onClick={saveAndLeave} disabled={leaving.saving} autoFocus>
-                {leaving.saving ? 'Saving…' : 'Save and continue'}
-              </button>
-              <button type="button" className="btn-outline" onClick={leaveWithoutSaving} disabled={leaving.saving}>
-                Leave without saving
-              </button>
-              <button type="button" className="btn-outline" onClick={() => setLeaving(null)} disabled={leaving.saving}>
-                Keep editing
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {leaveDialog}
     </div>
   )
 }

@@ -205,6 +205,35 @@
   color: var(--ink);
 }
 
+/* Edit by hand (Search mode), just before Open dashboard. */
+.studio-hand {
+  background: transparent;
+  cursor: pointer;
+}
+
+.studio-hand + .studio-open {
+  margin-left: 0;
+}
+
+.studio-hand:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.studio-hand:disabled:hover {
+  background: transparent;
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
+.studio-hand.is-editing,
+.studio-hand.is-editing:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ink);
+  cursor: default;
+}
+
 .studio-blocked {
   margin: 28px var(--gutter);
   padding: 28px;
@@ -1019,4 +1048,11 @@
   .pin-status-dot {
     animation: none !important;
   }
+}
+
+/* Editing by hand: Search waits. */
+.editor-rail:disabled {
+  background: var(--line-dark);
+  color: var(--muted-light);
+  cursor: default;
 }
