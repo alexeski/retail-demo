@@ -139,7 +139,7 @@ async function post(body: object, sessionId: string | null) {
 
 /** What the page sees when /ts-mcp isn't proxied: no server, or the app's own pages answering. */
 const NO_PASS_THROUGH =
-  'Storeloom can’t reach ThoughtSpot’s MCP Server: the /ts-mcp pass-through isn’t running. In development, restart the dev server (npm run dev); in the container, check nginx.conf.'
+  'ShuttleViz lost its connection: the /ts-mcp pass-through didn’t answer. In development, restart the dev server (npm run dev); in the container, check nginx.conf. A build in progress picks up where it was.'
 
 async function rpc(method: string, params: object, sessionId: string | null) {
   const id = nextId++
@@ -155,12 +155,12 @@ async function rpc(method: string, params: object, sessionId: string | null) {
   if (!res.ok) {
     const detail = (await res.text().catch(() => '')).slice(0, 200)
     throw new McpError(
-      res.status === 401 ? 'ThoughtSpot didn’t accept your token. Sign in again, then retry.' : `The ThoughtSpot MCP Server answered ${res.status}. ${detail}`,
+      res.status === 401 ? 'ThoughtSpot didn’t accept your token. Sign in again, then retry.' : `ShuttleViz’s server answered ${res.status}. ${detail}`,
       res.status,
     )
   }
   const reply = await readReply(res, id)
-  if (!reply) throw new McpError('The ThoughtSpot MCP Server sent no reply.')
+  if (!reply) throw new McpError('ShuttleViz’s server sent no reply.')
   if (reply.error) throw new McpError(reply.error.message)
   return { result: reply.result, sessionId: res.headers.get('mcp-session-id') }
 }
