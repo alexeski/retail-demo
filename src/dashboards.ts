@@ -110,22 +110,33 @@ type SearchHit = {
     created?: number
     modified?: number
   }
-  visualization_headers?: { id: string; name?: string; created?: number }[]
+  visualization_headers?: { id: string; name?: string; created?: number; vizType?: string }[]
 }
 
 const ownedBy = (hit: SearchHit, userId: string) => hit.metadata_header?.author === userId
 
-const toDashboard = (hit: SearchHit, userId: string): Dashboard => ({
-  id: hit.metadata_id,
-  name: hit.metadata_name,
-  description: hit.metadata_header?.description ?? '',
-  created: hit.metadata_header?.created ?? null,
-  modified: hit.metadata_header?.modified ?? null,
-  tiles: hit.visualization_headers?.length ?? 0,
-  charts: (hit.visualization_headers ?? []).map((v) => ({ id: v.id, name: v.name ?? 'Untitled chart', created: v.created ?? null })),
-  author: hit.metadata_header?.authorDisplayName ?? '',
-  owned: ownedBy(hit, userId),
-})
+/**
+ * Tiles that are search answers (charts and tables): the ones Search can open and
+ * edit. Notes, groups, AI tiles (no vizType) and filter tiles (FILTER) aren't.
+ */
+const ANSWER_TILES = new Set(['CHART', 'TABLE'])
+
+const toDashboard = (hit: SearchHit, userId: string): Dashboard => {
+  const charts = (hit.visualization_headers ?? [])
+    .filter((v) => ANSWER_TILES.has(v.vizType ?? ''))
+    .map((v) => ({ id: v.id, name: v.name ?? 'Untitled chart', created: v.created ?? null }))
+  return {
+    id: hit.metadata_id,
+    name: hit.metadata_name,
+    description: hit.metadata_header?.description ?? '',
+    created: hit.metadata_header?.created ?? null,
+    modified: hit.metadata_header?.modified ?? null,
+    tiles: charts.length,
+    charts,
+    author: hit.metadata_header?.authorDisplayName ?? '',
+    owned: ownedBy(hit, userId),
+  }
+}
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
