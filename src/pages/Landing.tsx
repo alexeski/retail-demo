@@ -45,18 +45,14 @@ const RISK = ([['Denver', 1.5], ['Salt Lake', 2], ['Minneapolis', 2.5], ['Chicag
 
 const SIZES = ['2–10', '11–50', '51–200', '200+']
 
-// The loom band: each store is a warp thread, each sale, transfer or pickup a weft
-// thread woven across them, knotted at the store it happened in.
+// The thread band: one thread across the network, an eyelet per store. Each sale,
+// transfer or pickup sends the shuttle along the thread to the store it happened in.
 type Kind = 'sale' | 'transfer' | 'pickup'
 type Weft = { id: number; store: number; kind: Kind; item: string; price: number }
 const KINDS: Kind[] = ['sale', 'sale', 'transfer', 'pickup']
 const KIND_LABEL: Record<Kind, string> = { sale: 'Sold', transfer: 'Transfer', pickup: 'Pickup' }
 const WEFT_ROWS = 8
-/** Warp threads per store: enough for the cloth to read as woven. */
-const THREADS = 4
-const WARPS = Array.from({ length: STORES.length * THREADS }, (_, j) => j)
-const warpX = (j: number) => `${((j + 0.5) / WARPS.length) * 100}%`
-/** The middle of a store's group of threads. */
+/** Where a store's eyelet sits on the thread. */
 const storeX = (i: number) => `${((i + 0.5) / STORES.length) * 100}%`
 const weftText = (w: Weft) => `${KIND_LABEL[w.kind]} · ${STORES[w.store][1]} ${STORES[w.store][0]} · ${w.item} · ${money(w.price)}`
 
@@ -225,46 +221,47 @@ export function Landing() {
         </div>
       </section>
 
-      {/* LOOM: the network's day, woven live */}
-      <section className={still ? 'loom is-still' : 'loom'} aria-label="Today's store activity, woven live">
-        <div className="loom-key">
-          <span className="loom-eyebrow">Woven live</span>
-          <span className="loom-count">{woven.toLocaleString('en-US')}</span>
-          <span className="loom-count-label">threads across {STORES.length} stores today</span>
-          <ul className="loom-legend">
+      {/* THREAD: the shuttle runs to whichever store just sold, transferred or handed over */}
+      <section className={still ? 'thread is-still' : 'thread'} aria-label="Today's store activity, live">
+        <div className="thread-key">
+          <span className="thread-eyebrow">On the thread today</span>
+          <span className="thread-count">{woven.toLocaleString('en-US')}</span>
+          <ul className="thread-legend">
             {(['sale', 'transfer', 'pickup'] as Kind[]).map((k) => (
               <li key={k}>
-                <span className={`loom-swatch is-${k}`} aria-hidden />
+                <span className={`thread-dot is-${k}`} aria-hidden />
                 {KIND_LABEL[k]}
               </li>
             ))}
           </ul>
         </div>
-        <div className="loom-frame">
-          <div className="loom-cloth" aria-hidden>
-            {WARPS.map((j) => (
-              <span key={j} className={Math.floor(j / THREADS) === pulse ? 'loom-warp is-hot' : 'loom-warp'} style={{ left: warpX(j) }} />
-            ))}
-            {wefts.map((w, row) => (
-              <div key={w.id} className={`loom-weft is-${w.kind}`} style={{ top: `${row * 13 + 8}px`, opacity: 1 - row * 0.09 }}>
-                {/* Over one warp, under the next: where the weft goes under, the warp shows on top. */}
-                {WARPS.map((j) =>
-                  (j + w.id) % 2 === 0 ? (
-                    <span key={j} className={Math.floor(j / THREADS) === pulse ? 'loom-under is-hot' : 'loom-under'} style={{ left: warpX(j) }} />
-                  ) : null,
-                )}
-                <span className="loom-knot" style={{ left: storeX(w.store) }} />
-              </div>
-            ))}
+        <div className="thread-track">
+          <div className="thread-line" aria-hidden>
+            {STORES.map((st, i) => {
+              const last = wefts.find((w) => w.store === i)
+              const now = wefts[0]?.store === i
+              return (
+                <span
+                  key={st[0]}
+                  className={['thread-eyelet', last && `is-${last.kind}`, now && 'is-now'].filter(Boolean).join(' ')}
+                  style={{ left: storeX(i) }}
+                />
+              )
+            })}
+            {wefts[0] && <span className={`thread-shuttle is-${wefts[0].kind}`} style={{ left: storeX(wefts[0].store) }} />}
           </div>
-          <div className="loom-stores" aria-hidden>
+          <div className="thread-stores" aria-hidden>
             {STORES.map((st, i) => (
-              <span key={st[0]} className={i === pulse ? 'is-hot' : undefined} style={{ left: storeX(i) }} title={st[1]}>
+              <span key={st[0]} className={wefts[0]?.store === i ? 'is-now' : undefined} style={{ left: storeX(i) }}>
                 {st[0]}
               </span>
             ))}
           </div>
-          {wefts[0] && <p className="loom-latest">■ {weftText(wefts[0])}</p>}
+          {wefts[0] && (
+            <p className="thread-latest" aria-live="off">
+              <span className={`thread-dot is-${wefts[0].kind}`} aria-hidden /> {weftText(wefts[0])}
+            </p>
+          )}
         </div>
       </section>
 
