@@ -13,6 +13,13 @@ export const INSIGHTS_LIVEBOARD_ID =
 export const REGION_LIVEBOARD_ID =
   import.meta.env.VITE_REGION_LIVEBOARD_ID || '0fc762ea-2a1e-4368-927c-a3caf6ed9d23'
 
+/**
+ * "Industry Demo - Retail Sales" model: what the Insights Liveboards, Shuttle and
+ * the KPIs use, and the only data source the dashboard builder offers.
+ */
+export const RETAIL_MODEL_ID = '11e40743-9285-42bd-856d-3f81a755c4f6'
+export const RETAIL_MODEL_NAME = 'Industry Demo - Retail Sales'
+
 export type PlaceholderTile = { title: string; sub: string; kind: string; span: number; h: string }
 
 export type InsightsTab = {
@@ -84,6 +91,103 @@ export const HIDDEN_BRANDED_ACTIONS = [Action.SpotterOnLiveboard, Action.Spotter
 export const THOUGHTSPOT_CSS_URL =
   'https://cdn.jsdelivr.net/gh/jhegele-ts/industry-demos-assets@main/retail-sales/styles.css'
 
+// Icon overrides (public/thoughtspot/icons.svg): the Shuttle (Spotter) icon becomes
+// the Storeloom mark. Served by jsDelivr from this repo, pinned to a commit so a
+// change ships with a new URL rather than waiting on the CDN's cache.
+export const THOUGHTSPOT_ICONS_URL =
+  'https://cdn.jsdelivr.net/gh/alexeski/retail-demo@9015fdbca71496eb050cac4d52420c93327a4574/public/thoughtspot/icons.svg'
+
+// Let the host page show through behind the Liveboard's tiles.
+const CSS_VARIABLES = {
+  '--ts-var-root-background': 'transparent',
+  '--ts-var-liveboard-layout-background': 'transparent',
+  '--ts-var-liveboard-header-background': 'transparent',
+  '--ts-var-liveboard-cross-filter-layout-background': 'transparent',
+  // Chart-tile buttons (custom actions, Shuttle, ⋯) use these as their
+  // hover / pressed *background*; the theme's near-black values hid the
+  // dark button text. Light sand tones from the same theme instead.
+  '--ts-var-liveboard-header-action-button-hover-color': '#E7E1D8',
+  '--ts-var-liveboard-header-action-button-active-color': '#D7D1C8',
+}
+
+/** The Storeloom mark (src/components/Brand.tsx) as a CSS image, for the embeds' own logos. */
+const STORELOOM_MARK = `url("data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23"><rect width="10" height="10" fill="#17150f"/><rect x="13" width="10" height="10" fill="#e5502a"/><rect y="13" width="10" height="10" fill="#e5502a"/><rect x="13" y="13" width="10" height="10" fill="#17150f"/></svg>',
+)}")`
+
+/**
+ * Paints the Storeloom mark over a logo element, whatever ThoughtSpot renders it
+ * as: an <img> (pushed out of its box), an inline <svg> or a wrapper (its
+ * children hidden). The ThoughtSpot logo and SpotterViz's avatar come from the
+ * cluster's style settings, which change it for every user, so CSS instead.
+ */
+const markRules = (selector: string, size = '70%', tile?: string) => ({
+  [selector]: {
+    // On a dark surface (SpotterViz's panel) the ink squares need a paper tile behind them.
+    background: `${STORELOOM_MARK} center / ${size} no-repeat${tile ? `, ${tile}` : ''} !important`,
+    'object-position': '-9999px -9999px !important',
+    ...(tile ? { 'border-radius': '8px !important' } : {}),
+  },
+  [`${selector} > *`]: { visibility: 'hidden !important' },
+})
+
+// Selectors may need updating after a ThoughtSpot upgrade.
+const CSS_RULES = {
+  // Vendor footer ("Powered by …") under embedded content.
+  '[class*="embed-module__footerWrapper"]': { display: 'none !important' },
+  // ThoughtSpot's logo at the left of a dashboard's edit toolbar (edit and styling modes).
+  ...markRules('[class*="edit-header-module__headerLogo"]'),
+  // SpotterViz's avatar: on its welcome screen, and beside each of its replies.
+  ...markRules('[class*="spotter-viz-landing-content-module__iconPlaceholder"]', '58%', '#f4efe4'),
+  ...markRules('[class*="spotter-viz-message-item-module__agentIcon"]', '66%', '#f4efe4'),
+  // The charts' Shuttle chat (a modal). In full-height embeds ThoughtSpot lets
+  // its conversation grow instead of scrolling, so once it's taller than the
+  // modal the whole modal scrolls, and the question bar (placed at the bottom
+  // of the chat) scrolls away with it or covers the latest answer. Make the
+  // conversation the scroll area instead: the bar stays fixed at the bottom of
+  // the modal, and the padding lets every answer scroll fully above it.
+  '.chat-module__convAssistModalContent .chat-module__globalLoader': {
+    flex: '1 1 0 !important',
+    'min-height': '0 !important',
+    'overflow-y': 'auto !important',
+  },
+  '.chat-module__convAssistModalContent .chat-module__chatItemsWrapperContainer': {
+    'padding-bottom': '170px !important',
+  },
+}
+
+// The Liveboard header has to stay mounted for HostEvent.OpenFilter to work
+// (it drives the filter chips), but the host app renders its own title,
+// actions and filter bar, so hide ThoughtSpot's.
+const HIDE_LIVEBOARD_HEADER = {
+  '[data-testid="pinboard-header"]': { display: 'none !important' },
+  '[class*="pinboard-header-module__tabAndFilterWrapper"]': { display: 'none !important' },
+}
+
+/**
+ * Per-embed customizations that keep ThoughtSpot's Liveboard header visible:
+ * the dashboard builder needs its edit toolbar, which hosts the SpotterViz
+ * (Shuttle) button and the Save / Cancel controls. The SDK merges `customCSS`
+ * shallowly, so the shared variables and rules are repeated here.
+ */
+export const WITH_LIVEBOARD_HEADER = {
+  style: {
+    customCSS: {
+      variables: {
+        ...CSS_VARIABLES,
+        // Edit toolbar in the Storeloom palette: ink outline, periwinkle hover.
+        '--ts-var-liveboard-edit-toolbar-border': '#17150f',
+        '--ts-var-liveboard-edit-toolbar-selected-background': '#17150f',
+        '--ts-var-liveboard-edit-toolbar-selected-text-color': '#f4efe4',
+        '--ts-var-liveboard-edit-toolbar-text': '#17150f',
+        '--ts-var-liveboard-edit-toolbar-hover-background': '#b8c6ff',
+        '--ts-var-liveboard-edit-toolbar-hover-text-color': '#17150f',
+      },
+      rules_UNSTABLE: CSS_RULES,
+    },
+  },
+}
+
 /** The signed-in user's trusted-auth token, from Storeloom's server (httpOnly session cookie). */
 async function getAuthToken(): Promise<string> {
   const res = await fetch('/api/thoughtspot/token', { headers: { Accept: 'application/json' } })
@@ -121,47 +225,18 @@ export function initThoughtSpot() {
           Liveboard: 'dashboard',
           ThoughtSpot: 'Storeloom',
         },
+        stringIDs: {
+          // The chart Shuttle button's tooltip while ThoughtSpot still checks access
+          // to the data (it shows even once the button works): say what it does.
+          'permission.requestDataAccess': 'Ask Shuttle about this chart: why the numbers moved, and follow-up questions on its data.',
+        },
       },
+      iconSpriteUrl: THOUGHTSPOT_ICONS_URL,
       style: {
         customCSSUrl: THOUGHTSPOT_CSS_URL,
         customCSS: {
-          // Let the host page show through behind the Liveboard's tiles.
-          variables: {
-            '--ts-var-root-background': 'transparent',
-            '--ts-var-liveboard-layout-background': 'transparent',
-            '--ts-var-liveboard-header-background': 'transparent',
-            '--ts-var-liveboard-cross-filter-layout-background': 'transparent',
-            // Chart-tile buttons (custom actions, Shuttle, ⋯) use these as their
-            // hover / pressed *background*; the theme's near-black values hid the
-            // dark button text. Light sand tones from the same theme instead.
-            '--ts-var-liveboard-header-action-button-hover-color': '#E7E1D8',
-            '--ts-var-liveboard-header-action-button-active-color': '#D7D1C8',
-          },
-          // The Liveboard header has to stay mounted for HostEvent.OpenFilter to work
-          // (it drives the filter chips), but the host app renders its own title,
-          // actions and filter bar, so hide ThoughtSpot's. Selectors may need
-          // updating after a ThoughtSpot upgrade.
-          rules_UNSTABLE: {
-            '[data-testid="pinboard-header"]': { display: 'none !important' },
-            '[class*="pinboard-header-module__tabAndFilterWrapper"]': { display: 'none !important' },
-            // Vendor footer ("Powered by …") under embedded content.
-            '[class*="embed-module__footerWrapper"]': { display: 'none !important' },
-            // The charts' Shuttle chat (a modal). In full-height embeds ThoughtSpot lets
-            // its conversation grow instead of scrolling, so once it's taller than the
-            // modal the whole modal scrolls, and the question bar (placed at the bottom
-            // of the chat) scrolls away with it or covers the latest answer. Make the
-            // conversation the scroll area instead: the bar stays fixed at the bottom of
-            // the modal, and the padding lets every answer scroll fully above it.
-            // Selectors may need updating after a ThoughtSpot upgrade.
-            '.chat-module__convAssistModalContent .chat-module__globalLoader': {
-              flex: '1 1 0 !important',
-              'min-height': '0 !important',
-              'overflow-y': 'auto !important',
-            },
-            '.chat-module__convAssistModalContent .chat-module__chatItemsWrapperContainer': {
-              'padding-bottom': '170px !important',
-            },
-          },
+          variables: CSS_VARIABLES,
+          rules_UNSTABLE: { ...HIDE_LIVEBOARD_HEADER, ...CSS_RULES },
         },
       },
     },

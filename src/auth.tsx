@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { Navigate, useLocation } from 'react-router-dom'
 import { actionTracker } from './actionTracker'
 import { SIGNED_OUT_EVENT } from './tsApi'
+import { forgetMcpSession } from './tsMcp'
 
 // Sign-in is ThoughtSpot trusted authentication, done by Storeloom's server
 // (server/api.ts): it mints a token for an existing ThoughtSpot user and keeps it
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!res.ok || !body.user) throw new SignInFailed(body.error ?? 'unavailable')
     // Tracked actions last one signed-in session: each sign-in starts a fresh demo.
     actionTracker.reset()
+    forgetMcpSession()
     setUser(body.user)
     return body.user
   }, [])
@@ -90,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await postJson('/api/logout').catch(() => {})
     actionTracker.reset()
+    forgetMcpSession()
     setUser(null)
   }, [])
 
