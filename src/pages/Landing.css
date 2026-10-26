@@ -228,40 +228,219 @@
   }
 }
 
-/* ---------- Ticker ---------- */
-@keyframes sl-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+/* ---------- Loom: the network's day, woven live ---------- */
+@keyframes loom-weave {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
 }
 
-.ticker {
+@keyframes loom-knot {
+  0% { transform: translate(-50%, -50%) scale(0); }
+  70% { transform: translate(-50%, -50%) scale(1.35); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.loom {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 48px);
+  align-items: center;
+  padding: 26px clamp(20px, 4vw, 56px) 22px;
   background: var(--ink);
-  color: var(--periwinkle);
-  font-family: var(--font-mono);
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 14px 0;
-  overflow: hidden;
-  white-space: nowrap;
+  color: var(--paper);
   border-top: 2px solid var(--ink);
   border-bottom: 2px solid var(--ink);
 }
 
-.ticker-track {
+.loom-key {
   display: flex;
-  width: max-content;
-  animation: sl-marquee 70s linear infinite;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-mono);
 }
 
-.ticker-track.is-still {
+.loom-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--periwinkle);
+}
+
+.loom-count {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-stretch: 120%;
+  font-size: clamp(30px, 3.2vw, 42px);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin-top: 6px;
+}
+
+.loom-count-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-light);
+}
+
+.loom-legend {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.loom-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loom-swatch {
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.loom-swatch.is-sale,
+.loom-weft.is-sale { --weft: var(--accent); }
+.loom-swatch.is-transfer,
+.loom-weft.is-transfer { --weft: var(--periwinkle); }
+.loom-swatch.is-pickup,
+.loom-weft.is-pickup { --weft: var(--paper); }
+
+.loom-swatch {
+  background: var(--weft);
+}
+
+.loom-frame {
+  min-width: 0;
+}
+
+.loom-cloth {
+  position: relative;
+  height: calc(8 * 13px + 12px);
+}
+
+.loom-warp {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--line-dark);
+  transition: background 0.3s ease;
+}
+
+.loom-warp.is-hot,
+.loom-under.is-hot {
+  background: var(--accent);
+}
+
+.loom-weft {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--weft);
+  transition: top 0.5s ease, opacity 0.5s ease;
+}
+
+.loom-weft:first-of-type {
+  animation: loom-weave 0.9s cubic-bezier(0.6, 0, 0.3, 1) both;
+}
+
+/* Where the weft passes under, the warp crosses on top of it. */
+.loom-under {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 3px;
+  transform: translateX(-50%);
+  background: var(--line-dark);
+  box-shadow: 0 0 0 1px var(--ink);
+  transition: background 0.3s ease;
+}
+
+.loom-knot {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  background: var(--weft);
+  border: 2px solid var(--ink);
+  outline: 1.5px solid var(--weft);
+}
+
+.loom-weft:first-of-type .loom-knot {
+  animation: loom-knot 0.5s 0.75s ease-out both;
+}
+
+.loom-stores {
+  position: relative;
+  height: 16px;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted-light);
+}
+
+.loom-stores span {
+  position: absolute;
+  transform: translateX(-50%);
+  transition: color 0.3s ease;
+}
+
+.loom-stores .is-hot {
+  color: var(--accent);
+}
+
+.loom-latest {
+  margin: 10px 0 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--periwinkle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loom.is-still .loom-weft,
+.loom.is-still .loom-knot {
   animation: none;
+  transition: none;
 }
 
-.ticker-row {
-  display: flex;
-  gap: 48px;
-  padding-right: 48px;
+@media (max-width: 760px) {
+  .loom {
+    grid-template-columns: 1fr;
+  }
+  .loom-key {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+  }
+  .loom-count {
+    margin-top: 0;
+    font-size: 28px;
+  }
+  .loom-legend {
+    margin-top: 4px;
+    width: 100%;
+  }
+  .loom-stores {
+    font-size: 8.5px;
+  }
 }
 
 /* ---------- Sections ---------- */
@@ -758,7 +937,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ticker-track,
+  .loom-weft,
+  .loom-knot,
   .caret {
     animation: none;
   }
