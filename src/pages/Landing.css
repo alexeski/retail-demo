@@ -228,217 +228,185 @@
   }
 }
 
-/* ---------- Loom: the network's day, woven live ---------- */
-@keyframes loom-weave {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
-}
-
-@keyframes loom-knot {
-  0% { transform: translate(-50%, -50%) scale(0); }
-  70% { transform: translate(-50%, -50%) scale(1.35); }
-  100% { transform: translate(-50%, -50%) scale(1); }
-}
-
-.loom {
+/* ---------- Thread: the shuttle runs to the store that just moved ---------- */
+.thread {
   display: grid;
-  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
-  gap: clamp(20px, 3vw, 48px);
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 64px);
   align-items: center;
-  padding: 26px clamp(20px, 4vw, 56px) 22px;
-  background: var(--ink);
-  color: var(--paper);
-  border-top: 2px solid var(--ink);
-  border-bottom: 2px solid var(--ink);
+  padding: 28px clamp(20px, 4vw, 56px);
+  background: var(--card);
+  border-top: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
 }
 
-.loom-key {
+.thread-key {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   font-family: var(--font-mono);
 }
 
-.loom-eyebrow {
+.thread-eyebrow {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--periwinkle);
+  color: var(--muted);
 }
 
-.loom-count {
+.thread-count {
   font-family: var(--font-sans);
   font-weight: 800;
   font-stretch: 120%;
-  font-size: clamp(30px, 3.2vw, 42px);
+  font-size: clamp(28px, 3vw, 38px);
   letter-spacing: -0.02em;
   line-height: 1.05;
-  margin-top: 6px;
 }
 
-.loom-count-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted-light);
-}
-
-.loom-legend {
+.thread-legend {
   list-style: none;
-  margin: 14px 0 0;
+  margin: 8px 0 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 14px;
+  gap: 4px 14px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  color: var(--muted);
 }
 
-.loom-legend li {
+.thread-legend li {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.loom-swatch {
-  width: 16px;
-  height: 4px;
-  border-radius: 2px;
+.thread-dot,
+.thread-eyelet,
+.thread-shuttle { --kind: var(--ink); }
+.thread .is-sale { --kind: var(--accent); }
+.thread .is-transfer { --kind: var(--periwinkle); }
+.thread .is-pickup { --kind: var(--good); }
+
+.thread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--kind);
 }
 
-.loom-swatch.is-sale,
-.loom-weft.is-sale { --weft: var(--accent); }
-.loom-swatch.is-transfer,
-.loom-weft.is-transfer { --weft: var(--periwinkle); }
-.loom-swatch.is-pickup,
-.loom-weft.is-pickup { --weft: var(--paper); }
-
-.loom-swatch {
-  background: var(--weft);
-}
-
-.loom-frame {
+.thread-track {
   min-width: 0;
 }
 
-.loom-cloth {
+/* The thread itself: one fine line, with an eyelet per store. */
+.thread-line {
   position: relative;
-  height: calc(8 * 13px + 12px);
+  height: 28px;
 }
 
-.loom-warp {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  transform: translateX(-50%);
-  background: var(--line-dark);
-  transition: background 0.3s ease;
-}
-
-.loom-warp.is-hot,
-.loom-under.is-hot {
-  background: var(--accent);
-}
-
-.loom-weft {
+.thread-line::before {
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
-  height: 8px;
-  border-radius: 4px;
-  background: var(--weft);
-  transition: top 0.5s ease, opacity 0.5s ease;
+  top: 50%;
+  border-top: 1.5px solid var(--ink);
 }
 
-.loom-weft:first-of-type {
-  animation: loom-weave 0.9s cubic-bezier(0.6, 0, 0.3, 1) both;
-}
-
-/* Where the weft passes under, the warp crosses on top of it. */
-.loom-under {
-  position: absolute;
-  top: -1px;
-  bottom: -1px;
-  width: 3px;
-  transform: translateX(-50%);
-  background: var(--line-dark);
-  box-shadow: 0 0 0 1px var(--ink);
-  transition: background 0.3s ease;
-}
-
-.loom-knot {
+.thread-eyelet {
   position: absolute;
   top: 50%;
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
   transform: translate(-50%, -50%);
-  background: var(--weft);
-  border: 2px solid var(--ink);
-  outline: 1.5px solid var(--weft);
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  transition: background 0.6s ease, transform 0.4s ease;
 }
 
-.loom-weft:first-of-type .loom-knot {
-  animation: loom-knot 0.5s 0.75s ease-out both;
+/* A store keeps the colour of its latest event, softly. */
+.thread-eyelet[class*='is-'] {
+  background: color-mix(in srgb, var(--kind) 35%, var(--card));
 }
 
-.loom-stores {
+.thread-eyelet.is-now {
+  background: var(--kind);
+  transform: translate(-50%, -50%) scale(1.25);
+}
+
+/* The shuttle: the app's own mark, gliding along the thread. */
+.thread-shuttle {
+  position: absolute;
+  top: 50%;
+  width: 26px;
+  height: 12px;
+  border-radius: 12px;
+  transform: translate(-50%, -165%);
+  background: var(--kind);
+  border: 1.5px solid var(--ink);
+  transition: left 1.1s cubic-bezier(0.65, 0, 0.35, 1), background 0.3s ease;
+}
+
+.thread-stores {
   position: relative;
-  height: 16px;
-  margin-top: 6px;
+  height: 14px;
+  margin-top: 2px;
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--muted-light);
+  color: var(--muted);
 }
 
-.loom-stores span {
+.thread-stores span {
   position: absolute;
   transform: translateX(-50%);
   transition: color 0.3s ease;
 }
 
-.loom-stores .is-hot {
-  color: var(--accent);
+.thread-stores .is-now {
+  color: var(--ink);
+  font-weight: 600;
 }
 
-.loom-latest {
-  margin: 10px 0 0;
+.thread-latest {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
   font-family: var(--font-mono);
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--periwinkle);
+  letter-spacing: 0.05em;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.loom.is-still .loom-weft,
-.loom.is-still .loom-knot {
-  animation: none;
+.thread.is-still .thread-shuttle,
+.thread.is-still .thread-eyelet {
   transition: none;
 }
 
 @media (max-width: 760px) {
-  .loom {
+  .thread {
     grid-template-columns: 1fr;
+    gap: 18px;
   }
-  .loom-key {
+  .thread-key {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 4px 10px;
+    gap: 4px 12px;
   }
-  .loom-count {
-    margin-top: 0;
-    font-size: 28px;
-  }
-  .loom-legend {
-    margin-top: 4px;
+  .thread-legend {
+    margin-top: 2px;
     width: 100%;
   }
-  .loom-stores {
+  .thread-stores {
     font-size: 8.5px;
   }
 }
@@ -937,9 +905,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .loom-weft,
-  .loom-knot,
+  .thread-shuttle,
+  .thread-eyelet,
   .caret {
     animation: none;
+    transition: none;
   }
 }
