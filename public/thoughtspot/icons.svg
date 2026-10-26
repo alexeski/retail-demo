@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="width:0;height:0;visibility:hidden;">
+  <!-- Icon overrides for the embedded ThoughtSpot app (customizations.iconSpriteUrl).
+       rd-icon-spotter: the Shuttle (Spotter) icon on chart buttons and in the chat,
+       replaced by the Storeloom mark. -->
+  <symbol id="rd-icon-spotter" viewBox="-1 -1 25 25">
+    <rect x="0" y="0" width="10" height="10" fill="#17150f"/>
+    <rect x="13" y="0" width="10" height="10" fill="#e5502a"/>
+    <rect x="0" y="13" width="10" height="10" fill="#e5502a"/>
+    <rect x="13" y="13" width="10" height="10" fill="#17150f"/>
+  </symbol>
+</svg>

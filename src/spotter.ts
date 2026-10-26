@@ -1,12 +1,9 @@
 import { rebrand } from './brand'
-import { THOUGHTSPOT_HOST } from './thoughtspot'
+import { RETAIL_MODEL_ID, THOUGHTSPOT_HOST } from './thoughtspot'
 
 // Headless Spotter via the Spotter Agent REST API (Spotter 3, ThoughtSpot 26.5.0.cl+).
 // Calls use the viewer's ThoughtSpot session cookie, like the embeds and the
 // Search Data API; the cluster's CORS allowlist must include this app's origin.
-
-/** "Industry Demo - Retail Sales" worksheet. */
-const DATA_SOURCE_ID = '11e40743-9285-42bd-856d-3f81a755c4f6'
 
 const HEADERS = { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Requested-By': 'ThoughtSpot' }
 
@@ -42,7 +39,7 @@ export class SpotterError extends Error {
 
 export async function createConversation(): Promise<string> {
   const res = await post('/ai/agent/conversation/create', {
-    metadata_context: { type: 'DATA_SOURCE', data_source_context: { data_source_identifier: DATA_SOURCE_ID } },
+    metadata_context: { type: 'DATA_SOURCE', data_source_context: { data_source_identifier: RETAIL_MODEL_ID } },
     conversation_settings: {},
   })
   const body = (await res.json()) as { conversation_identifier?: string; conversation_id: string }

@@ -44,6 +44,9 @@ export function AppBar() {
           <NavLink to="/insights" className={navClass}>
             Insights
           </NavLink>
+          <NavLink to="/lab" className={navClass}>
+            Dashboard Lab <span className="appnav-beta">Beta</span>
+          </NavLink>
         </nav>
       </div>
       {user && (

@@ -7,7 +7,7 @@ import { answerFrameUrl, stageLabel, type AnswerMeta, type Step, type Turn } fro
 import './SpotterTurn.css'
 
 /** Spotter's markdown, rendered and sanitised (it is server-generated HTML). */
-function Markdown({ text, className }: { text: string; className?: string }) {
+export function Markdown({ text, className }: { text: string; className?: string }) {
   const html = useMemo(() => DOMPurify.sanitize(marked.parse(rebrand(text), { async: false, gfm: true, breaks: false })), [text])
   return <div className={['md', className].filter(Boolean).join(' ')} dangerouslySetInnerHTML={{ __html: html }} />
 }

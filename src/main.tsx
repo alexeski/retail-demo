@@ -5,9 +5,8 @@ import App from './App.tsx'
 import { startDisplayScale } from './displayScale'
 import { initThoughtSpot } from './thoughtspot'
 
-initThoughtSpot()
-
 startDisplayScale()
+initThoughtSpot()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
