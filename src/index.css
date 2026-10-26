@@ -180,6 +180,19 @@ button {
   color: var(--paper);
 }
 
+.appnav-beta {
+  margin-left: 4px;
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+  background: var(--accent);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+
 .brand.is-large .brand-mark {
   grid-template-columns: repeat(2, 11px);
 }

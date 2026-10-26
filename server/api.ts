@@ -14,7 +14,17 @@ const PROXY_ALLOWLIST: { method: string; path: RegExp }[] = [
   { method: 'POST', path: /^\/ai\/agent\/conversation\/create$/ },
   { method: 'POST', path: /^\/ai\/agent\/conversation\/[\w-]+\/send\/stream$/ },
   { method: 'POST', path: /^\/ai\/agent\/conversation\/[\w-]+\/stop-response$/ },
+  // Dashboard Lab (src/dashboards.ts): list, delete, and edit dashboards through their TML.
+  { method: 'POST', path: /^\/metadata\/search$/ },
+  { method: 'POST', path: /^\/metadata\/delete$/ },
+  { method: 'POST', path: /^\/metadata\/tml\/export$/ },
+  { method: 'POST', path: /^\/metadata\/tml\/import$/ },
 ]
+
+/** ThoughtSpot's Spotter MCP Server, for Dashboard Lab's ShuttleViz (src/tsMcp.ts). */
+const MCP_URL = 'https://agent.thoughtspot.app/token/mcp'
+/** Request headers passed through to the MCP server; it answers with mcp-session-id. */
+const MCP_REQUEST_HEADERS = ['accept', 'content-type', 'mcp-session-id', 'mcp-protocol-version']
 
 const noStore = (res: Response) => res.set('Cache-Control', 'no-store')
 
@@ -23,14 +33,16 @@ const noStore = (res: Response) => res.set('Cache-Control', 'no-store')
  * Vite dev server in development):
  * - POST /login, POST /logout, GET /session: trusted-auth sign-in;
  * - GET /thoughtspot/token: the token for the SDK's cookieless embeds;
- * - /ts/*: ThoughtSpot REST v2 (Search Data, Spotter) as the signed-in user.
+ * - /ts/*: ThoughtSpot REST v2 (Search Data, Spotter, Dashboard Lab) as the signed-in user;
+ * - POST /ts-mcp: ThoughtSpot's Spotter MCP Server (Dashboard Lab's ShuttleViz).
  */
 export function createApi() {
   const api = express()
   api.disable('x-powered-by')
   // Behind Coolify's proxy: req.secure reflects the browser's HTTPS.
   api.set('trust proxy', true)
-  api.use(express.json({ limit: '256kb' }))
+  // A dashboard's TML (Dashboard Lab's edits) can run to a few hundred kB.
+  api.use(express.json({ limit: '4mb' }))
 
   api.post('/login', async (req: Request, res: Response) => {
     noStore(res)
@@ -95,6 +107,48 @@ export function createApi() {
     const session = readSession(req)
     if (!session) return res.status(401).json({ error: 'signed-out' })
     res.json({ token: session.token, expiresAt: session.expiresAt })
+  })
+
+  // ThoughtSpot's Spotter MCP Server sends no CORS headers, so the browser reaches
+  // it through here. Each request is signed with the signed-in user's token; the
+  // MCP server keeps a conversation's state under that token, which lasts the session.
+  api.post('/ts-mcp', async (req: Request, res: Response) => {
+    const session = readSession(req)
+    if (!session) return res.status(401).json({ error: 'signed-out' })
+
+    const upstreamAbort = new AbortController()
+    res.on('close', () => upstreamAbort.abort())
+
+    const headers: Record<string, string> = { Authorization: `Bearer ${session.token}`, 'x-ts-host': config().host }
+    for (const name of MCP_REQUEST_HEADERS) {
+      const value = req.get(name)
+      if (value) headers[name] = value
+    }
+    const query = req.originalUrl.split('?')[1]
+    try {
+      const upstream = await fetch(`${MCP_URL}${query ? `?${query}` : ''}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(req.body ?? {}),
+        signal: upstreamAbort.signal,
+      })
+      res.status(upstream.status)
+      for (const name of ['content-type', 'mcp-session-id']) {
+        const value = upstream.headers.get(name)
+        if (value) res.set(name, value)
+      }
+      if (upstream.headers.get('content-type')?.includes('text/event-stream')) {
+        res.set({ 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' })
+        res.flushHeaders()
+      }
+      if (!upstream.body) return res.end()
+      Readable.fromWeb(upstream.body as import('node:stream/web').ReadableStream).pipe(res)
+    } catch (err) {
+      if (upstreamAbort.signal.aborted) return
+      console.error('ThoughtSpot MCP request failed', err)
+      if (!res.headersSent) res.status(502).json({ error: 'unavailable' })
+      else res.end()
+    }
   })
 
   api.use('/ts', async (req: Request, res: Response) => {
