@@ -94,7 +94,7 @@ async function post(body: object, sessionId: string | null) {
 
 /** What the page sees when /api/ts-mcp doesn't answer: Storeloom's server isn't running, or is an older build. */
 const NO_PASS_THROUGH =
-  'Storeloom can’t reach ThoughtSpot’s MCP Server: its server didn’t answer on /api/ts-mcp. Restart it (npm run dev, or npm start) and try again.'
+  'ShuttleViz lost its connection: Storeloom’s server didn’t answer. If you’re running it locally, restart it (npm run dev, or npm start), then try again; a build in progress picks up where it was.'
 
 async function rpc(method: string, params: object, sessionId: string | null) {
   const id = nextId++
@@ -110,12 +110,12 @@ async function rpc(method: string, params: object, sessionId: string | null) {
   if (!res.ok) {
     const detail = (await res.text().catch(() => '')).slice(0, 200)
     throw new McpError(
-      res.status === 401 ? 'Your session has expired. Sign in again, then retry.' : `The ThoughtSpot MCP Server answered ${res.status}. ${detail}`,
+      res.status === 401 ? 'Your session has expired. Sign in again, then retry.' : `ShuttleViz’s server answered ${res.status}. ${detail}`,
       res.status,
     )
   }
   const reply = await readReply(res, id)
-  if (!reply) throw new McpError('The ThoughtSpot MCP Server sent no reply.')
+  if (!reply) throw new McpError('ShuttleViz’s server sent no reply.')
   if (reply.error) throw new McpError(reply.error.message)
   return { result: reply.result, sessionId: res.headers.get('mcp-session-id') }
 }

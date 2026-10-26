@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import express, { type Request, type Response } from 'express'
 import { config } from './config.ts'
 import { clearSession, readSession, writeSession } from './session.ts'
@@ -27,6 +28,19 @@ const MCP_URL = 'https://agent.thoughtspot.app/token/mcp'
 const MCP_REQUEST_HEADERS = ['accept', 'content-type', 'mcp-session-id', 'mcp-protocol-version']
 
 const noStore = (res: Response) => res.set('Cache-Control', 'no-store')
+
+/**
+ * Streams an upstream body to the browser. When the browser stops reading early
+ * (Spotter's Stop, or the MCP client once it has its reply), the upstream request
+ * is aborted and the stream errors: expected, so it must not take the server down.
+ */
+async function relay(body: ReadableStream<Uint8Array>, res: Response, signal: AbortSignal) {
+  try {
+    await pipeline(Readable.fromWeb(body as import('node:stream/web').ReadableStream), res)
+  } catch (err) {
+    if (!signal.aborted) console.error('ThoughtSpot response stream failed', err)
+  }
+}
 
 /**
  * Storeloom's API, mounted at /api (by server/index.ts in production and by the
@@ -142,7 +156,7 @@ export function createApi() {
         res.flushHeaders()
       }
       if (!upstream.body) return res.end()
-      Readable.fromWeb(upstream.body as import('node:stream/web').ReadableStream).pipe(res)
+      await relay(upstream.body, res, upstreamAbort.signal)
     } catch (err) {
       if (upstreamAbort.signal.aborted) return
       console.error('ThoughtSpot MCP request failed', err)
@@ -183,7 +197,7 @@ export function createApi() {
         res.flushHeaders()
       }
       if (!upstream.body) return res.end()
-      Readable.fromWeb(upstream.body as import('node:stream/web').ReadableStream).pipe(res)
+      await relay(upstream.body, res, upstreamAbort.signal)
     } catch (err) {
       if (upstreamAbort.signal.aborted) return
       console.error(`ThoughtSpot ${req.method} ${req.path} failed`, err)
