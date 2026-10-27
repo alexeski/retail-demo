@@ -327,7 +327,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
         chat = await loadConversation(entry.id, entry.title)
       } catch (err) {
         console.error('Shuttle: saved conversation unavailable', err)
-        addNote(`Shuttle couldn’t open “${rebrand(entry.title)}” from ThoughtSpot. Try again in a moment.`)
+        addNote(`Shuttle couldn’t open “${rebrand(entry.title)}”. Try again in a moment.`)
         return
       } finally {
         setOpening(null)
@@ -436,7 +436,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
           {opening && (
             <div className="msg-note">
               <span className="shuttle-pill" aria-hidden />
-              <p>Opening “{rebrand(opening)}” from ThoughtSpot…</p>
+              <p>Opening “{rebrand(opening)}”…</p>
             </div>
           )}
           {items.length === 0 && !opening && (
