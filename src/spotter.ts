@@ -7,6 +7,19 @@ import { RETAIL_MODEL_ID, THOUGHTSPOT_HOST } from './thoughtspot'
 
 const HEADERS = { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Requested-By': 'ThoughtSpot' }
 
+/** The Retail Sales model Shuttle's conversations are about. */
+export const DATA_SOURCE_ID = RETAIL_MODEL_ID
+
+/** GET or DELETE, e.g. the saved conversations behind Shuttle's history. */
+export async function request(method: 'GET' | 'DELETE', path: string) {
+  const res = await fetch(`${THOUGHTSPOT_HOST}/api/rest/2.0${path}`, { method, credentials: 'include', headers: HEADERS })
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => '')).slice(0, 300)
+    throw new SpotterError(res.status, detail)
+  }
+  return res
+}
+
 async function post(path: string, body: unknown, init: RequestInit = {}) {
   const res = await fetch(`${THOUGHTSPOT_HOST}/api/rest/2.0${path}`, {
     method: 'POST',
@@ -40,7 +53,8 @@ export class SpotterError extends Error {
 export async function createConversation(): Promise<string> {
   const res = await post('/ai/agent/conversation/create', {
     metadata_context: { type: 'DATA_SOURCE', data_source_context: { data_source_identifier: RETAIL_MODEL_ID } },
-    conversation_settings: {},
+    // Saved in ThoughtSpot, so it shows in the user's history (src/shuttleHistory.ts).
+    conversation_settings: { enable_save_chat: true },
   })
   const body = (await res.json()) as { conversation_identifier?: string; conversation_id: string }
   return body.conversation_identifier ?? body.conversation_id

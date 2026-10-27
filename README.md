@@ -4,6 +4,12 @@ Retail demo app (React + Vite) with ThoughtSpot embedded: dashboards via the Vis
 
 There is no backend and no secrets. Sign-in reuses the visitor's own ThoughtSpot browser session on the configured cluster, so log in to ThoughtSpot in the same browser first.
 
+## Shuttle conversation history
+
+Shuttle's conversations are saved in ThoughtSpot: each is created with `enable_save_chat`, so it belongs to the signed-in user and follows them to any device (ThoughtSpot 26.7.0.cl or later). *History* in the drawer lists them (`GET /ai/agent/conversations`, filtered to the Retail Sales model), searchable and by day, and the empty drawer offers the latest three. Reopening one carries on in the same Spotter conversation.
+
+This browser also keeps its copy of each chat (`src/shuttleHistory.ts`, the 30 most recent per user): what ThoughtSpot doesn't store (store leads, Shuttle's notes, where a question was asked), and a quicker reopen. A conversation without a copy here, or that went on elsewhere since, is read back from ThoughtSpot (`…/messages`, then `…/answers/{id}/details` for each chart, whose session IDs feed the same answer frames). Deleting one removes it from ThoughtSpot for good (`…/delete`). If ThoughtSpot's history can't be reached, the list falls back to this browser's copies.
+
 ## Dashboard Lab (`/lab`)
 
 Signed-in users can build their own dashboards (Liveboards) on the Retail Sales model, the one the rest of the app uses (*Dashboard Lab · Beta* in the top bar). The model is fixed: Search hides its data-source picker, and ShuttleViz builds on that model only.

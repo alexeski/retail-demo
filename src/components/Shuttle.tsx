@@ -5,7 +5,7 @@ import { useAuth } from '../auth'
 import { rebrand } from '../brand'
 import type { StoreSelection } from '../storeActions'
 import { findStoreLeads, leadLabel, leadSelection, storeFromReply, type StoreLead } from '../storeLeads'
-import { clearHistory, deleteChat, newChatId, saveChat, useHistory, type ChatItem, type LeadsState, type SavedChat } from '../shuttleHistory'
+import { loadConversation, QUESTION_MARK, saveChat, useChatHistory, type ChatItem, type HistoryEntry, type LeadsState } from '../shuttleHistory'
 import { RecentChats, ShuttleHistory } from './ShuttleHistory'
 import { SpotterTurn } from './SpotterTurn'
 import { StoreActionPanel } from './StoreActionPanel'
@@ -81,13 +81,15 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
   const itemsRef = useRef(items)
   itemsRef.current = items
 
-  // Conversation history (see shuttleHistory.ts): the open chat is saved as it
-  // goes, and past ones reopen in place.
+  // Conversation history (see shuttleHistory.ts): conversations are saved in
+  // ThoughtSpot, this browser keeps its copy of each, and past ones reopen in place.
   const userName = useAuth().user?.name ?? 'guest'
-  const history = useHistory(userName)
+  const history = useChatHistory(userName)
   const [view, setView] = useState<'chat' | 'history'>('chat')
-  /** The open chat's id in the history; set by its first question. */
-  const chatId = useRef<string | null>(null)
+  /** Title of the saved conversation being read back from ThoughtSpot. */
+  const [opening, setOpening] = useState<string | null>(null)
+  /** Id of the open conversation's first item: earlier ones belong to another conversation. */
+  const conversationStart = useRef(0)
   /** The open chat was reopened from the history and hasn't been sent to since. */
   const reopened = useRef(false)
   /** The items a reopened chat came back with (not a change worth saving). */
@@ -113,17 +115,21 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Save the open chat once each answer is in (not on every streamed event).
+  // Keep this browser's copy of the open conversation once each answer is in (not
+  // on every streamed event); ThoughtSpot saves its own as it answers.
   useEffect(() => {
-    if (streaming || !chatId.current || items === restoredItems.current || !items.some((it) => it.kind === 'user')) return
-    saveChat(userName, {
-      id: chatId.current,
-      title: chatTitle(items),
-      conversationId: conversation.current,
-      scope: conversationScope.current,
-      items,
-    })
+    const id = conversation.current
+    if (streaming || !id || items === restoredItems.current) return
+    const mine = items.filter((it) => it.id >= conversationStart.current)
+    if (!mine.some((it) => it.kind === 'user')) return
+    saveChat(userName, { id, title: chatTitle(mine), scope: conversationScope.current, items: mine })
   }, [items, streaming, userName])
+
+  // The history list, fresh each time the drawer or the history view opens.
+  const refreshHistory = history.refresh
+  useEffect(() => {
+    if (isOpen) refreshHistory()
+  }, [isOpen, view, refreshHistory])
 
   // Follow the stream, unless the viewer has scrolled up to read.
   useEffect(() => {
@@ -167,7 +173,6 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
       // Handled locally, so it doesn't use a metered question.
       const picked = await storeFromReply(q, latestLeads()).catch(() => null)
       if (picked) {
-        chatId.current ??= newChatId()
         setItems((list) => [...list, { id: nextId.current++, kind: 'user', text: q }])
         addNote(`Building an action plan for ${leadLabel(picked)} with its latest figures…`)
         actOn(picked)
@@ -190,13 +195,13 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
         conversationScope.current = context.scope
       }
 
-      chatId.current ??= newChatId()
       const userId = nextId.current++
       const id = nextId.current++
+      if (!conversation.current) conversationStart.current = userId
       let turn = newTurn(q)
       setItems((list) => [...list, { id: userId, kind: 'user', text: q, tag: context?.tag }, { id, kind: 'assistant', turn }])
       // Spotter keeps the conversation, so follow-ups inherit this context too.
-      const message = context ? `${context.preamble}\n\nQuestion: ${q}` : q
+      const message = context ? `${context.preamble}${QUESTION_MARK}${q}` : q
       setStreaming(true)
       const controller = new AbortController()
       abort.current = controller
@@ -289,39 +294,65 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
     if (conversation.current) stopResponse(conversation.current)
   }
 
-  const newChat = () => {
+  const clearChat = () => {
     stop()
     conversation.current = null
     conversationScope.current = null
-    chatId.current = null
+    conversationStart.current = 0
     reopened.current = false
     setItems([])
+  }
+
+  const newChat = () => {
+    clearChat()
     setView('chat')
   }
 
-  /** Reopens a saved chat where it left off: its answers, leads and Spotter conversation. */
-  const openChat = (chat: SavedChat) => {
-    if (streaming) return
-    restoredItems.current = chat.items
-    nextId.current = Math.max(nextId.current, ...chat.items.map((it) => it.id + 1))
-    chatId.current = chat.id
-    conversation.current = chat.conversationId
-    conversationScope.current = chat.scope
-    reopened.current = !!chat.conversationId
+  /**
+   * Reopens a saved conversation where it left off: from this browser's copy
+   * (with its store leads and notes) unless it went on elsewhere since, otherwise
+   * from ThoughtSpot's. Follow-ups carry on in the same Spotter conversation.
+   */
+  const openChat = async (entry: HistoryEntry) => {
+    if (streaming || opening) return
+    setView('chat')
     stickToBottom.current = true
-    setItems(chat.items)
-    setView('chat')
+    const copy = entry.local && entry.savedAt <= entry.local.updatedAt + 60_000 ? entry.local : null
+    let chat = copy?.items
+    if (!chat) {
+      conversation.current = null
+      setItems([])
+      setOpening(entry.title)
+      try {
+        chat = await loadConversation(entry.id, entry.title)
+      } catch (err) {
+        console.error('Shuttle: saved conversation unavailable', err)
+        addNote(`Shuttle couldn’t open “${rebrand(entry.title)}” from ThoughtSpot. Try again in a moment.`)
+        return
+      } finally {
+        setOpening(null)
+      }
+    }
+    restoredItems.current = chat
+    nextId.current = Math.max(nextId.current, ...chat.map((it) => it.id + 1))
+    conversation.current = entry.id
+    conversationScope.current = copy?.scope ?? null
+    conversationStart.current = 0
+    reopened.current = true
+    setItems(chat)
+    // ThoughtSpot's copy has no store leads: look again for the latest answer's.
+    const last = chat.findLast((it) => it.kind === 'assistant')
+    if (!copy && last?.kind === 'assistant' && last.turn.phase === 'done') {
+      findStoreLeads(last.turn).then((found) => {
+        if (found.leads.length) setLeads(last.id, { status: 'ready', ...found })
+      })
+    }
   }
 
-  const removeChat = (chat: SavedChat) => {
-    deleteChat(userName, chat.id)
-    // Deleting the open chat leaves it on screen, but it's no longer saved.
-    if (chat.id === chatId.current) chatId.current = null
-  }
-
-  const clearAll = () => {
-    clearHistory(userName)
-    chatId.current = null
+  const removeChat = async (entry: HistoryEntry) => {
+    await history.remove(entry.id)
+    // Its Spotter conversation is gone, so the open chat can't carry on.
+    if (entry.id === conversation.current) clearChat()
   }
 
   const latestTitle = [...items]
@@ -369,7 +400,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
               onClick={() => setView((v) => (v === 'history' ? 'chat' : 'history'))}
               aria-pressed={view === 'history'}
             >
-              History{history.length > 0 && <span className="drawer-count">{history.length}</span>}
+              History{history.entries.length > 0 && <span className="drawer-count">{history.entries.length}</span>}
             </button>
             <button type="button" className="btn-outline drawer-new" onClick={newChat}>
               New chat
@@ -383,12 +414,12 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
         {view === 'history' && (
           <div className="drawer-messages">
             <ShuttleHistory
-              chats={history}
-              currentId={items.length ? chatId.current : null}
-              busy={streaming}
+              entries={history.entries}
+              status={history.status}
+              currentId={items.length ? conversation.current : null}
+              busy={streaming || !!opening}
               onOpen={openChat}
               onDelete={removeChat}
-              onClear={clearAll}
               onBack={() => setView('chat')}
             />
           </div>
@@ -402,7 +433,13 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
             stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
           }}
         >
-          {items.length === 0 && (
+          {opening && (
+            <div className="msg-note">
+              <span className="shuttle-pill" aria-hidden />
+              <p>Opening “{rebrand(opening)}” from ThoughtSpot…</p>
+            </div>
+          )}
+          {items.length === 0 && !opening && (
             <div className="drawer-empty">
               <p>Ask anything about sales, stores, products or customers. Shuttle works through your data and shows its reasoning as it goes.</p>
               <div className="msg-follow">
@@ -412,7 +449,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
                   </button>
                 ))}
               </div>
-              <RecentChats chats={history} busy={streaming} onOpen={openChat} onAll={() => setView('history')} />
+              <RecentChats entries={history.entries} busy={streaming} onOpen={openChat} onAll={() => setView('history')} />
             </div>
           )}
           {items.map((it) =>
@@ -528,7 +565,7 @@ function withRecap(items: ChatItem[], message: string) {
     .slice(-3)
     .map((it) => `Q: ${it.turn.question}\nA: ${it.turn.text.slice(0, 600)}`)
     .join('\n\n')
-  return `Earlier in this conversation:\n\n${recap}\n\n${message}`
+  return `Earlier in this conversation:\n\n${recap}${message.includes(QUESTION_MARK) ? `\n\n${message}` : `${QUESTION_MARK}${message}`}`
 }
 
 /** A chat's name in the history: Spotter's title for its first answer, or its first question. */
