@@ -20,6 +20,13 @@ The Shuttle launcher is hidden in Studio (its drawer and SpotterViz would compet
 - **SpotterViz** enabled on the cluster (Early Access: ask ThoughtSpot Support) for ShuttleViz mode.
 - For in-place tile updates, removing charts and renaming, **Can download data** (TML export) and **Can manage data** (TML import). Without them, updates and removals fall back to the embed's own Pin and Remove, and renaming isn't available.
 
+
+## Shuttle conversation history
+
+Shuttle's conversations are saved in ThoughtSpot: each is created with `enable_save_chat`, so it belongs to the signed-in user and follows them to any device (ThoughtSpot 26.7.0.cl or later). *History* in the drawer lists them (`GET /ai/agent/conversations`, filtered to the Retail Sales model), searchable and by day, and the empty drawer offers the latest three. Reopening one carries on in the same Spotter conversation.
+
+This browser also keeps its copy of each chat (`src/shuttleHistory.ts`, the 30 most recent per user): what ThoughtSpot doesn't store (store leads, Shuttle's notes, where a question was asked), and a quicker reopen. A conversation without a copy here, or that went on elsewhere since, is read back from ThoughtSpot (`…/messages`, then `…/answers/{id}/details` for each chart, whose session IDs feed the same answer frames). Deleting one removes it from ThoughtSpot for good (`…/delete`). If ThoughtSpot's history can't be reached, the list falls back to this browser's copies.
+
 ## Dashboard Lab (`/lab`): the same, with ShuttleViz over ThoughtSpot's Spotter MCP Server
 
 A second copy of the dashboards experience (*Dashboard Lab · Beta* in the top bar), offered alongside the first so people can try both. Everything is the same pages (`src/experience.tsx` gives them the Lab's links): the two ways to build, *My dashboards* and *Shared with you*, the dashboard page, and Studio's Search. Only **ShuttleViz** works differently: instead of SpotterViz embedded in the dashboard's edit mode, it's a conversation (`src/pages/LabBuilder.tsx`, at `/lab/shuttleviz/new`, then `/lab/shuttleviz/<id>`) that drives the Spotter MCP Server's tools (`src/tsMcp.ts`) itself, with no LLM in between. Its Search / ShuttleViz switch moves between the two on the same dashboard, as in Studio.
