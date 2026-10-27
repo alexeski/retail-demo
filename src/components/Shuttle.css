@@ -48,6 +48,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .drawer-name {
@@ -66,10 +67,12 @@
 
 .drawer-actions {
   display: flex;
+  flex: none;
   gap: 8px;
 }
 
 .drawer-new {
+  white-space: nowrap;
   background: transparent;
   padding: 0 12px;
   height: 40px;
@@ -642,4 +645,248 @@
   letter-spacing: 0.02em;
   color: var(--periwinkle);
   overflow-wrap: anywhere;
+}
+
+/* ---------- Conversation history ---------- */
+.drawer-messages[hidden] {
+  display: none;
+}
+
+.drawer-new.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.drawer-count {
+  display: inline-block;
+  margin-left: 8px;
+  min-width: 20px;
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  background: var(--periwinkle);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+}
+
+.hist {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hist-back,
+.hist-all,
+.hist-clear {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.hist-back:hover,
+.hist-all:hover,
+.hist-clear:hover {
+  color: var(--accent-dark);
+}
+
+.hist-search {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  outline: none;
+}
+
+.hist-search:focus {
+  background: var(--card);
+  box-shadow: 4px 4px 0 var(--periwinkle);
+}
+
+.hist-hint,
+.hist-empty {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.hist-section h3 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.hist-section ul,
+.hist-recent ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--ink);
+}
+
+.hist-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.hist-row + .hist-row,
+.hist-recent li + li {
+  border-top: 1.5px solid var(--ink);
+}
+
+.hist-row.is-current {
+  box-shadow: inset 5px 0 0 var(--accent);
+}
+
+.hist-open,
+.hist-recent button {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  text-align: left;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--card);
+  border: none;
+  cursor: pointer;
+}
+
+.hist-open:hover:not(:disabled),
+.hist-recent button:hover:not(:disabled) {
+  background: var(--paper);
+}
+
+.hist-open:disabled,
+.hist-recent button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.hist-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.hist-question {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.hist-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.hist-badge {
+  padding: 1px 6px;
+  background: var(--accent);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+}
+
+.hist-delete {
+  width: 48px;
+  flex: none;
+  font-size: 20px;
+  color: var(--muted);
+  background: var(--card);
+  border: none;
+  border-left: 1.5px solid var(--ink);
+  cursor: pointer;
+}
+
+.hist-delete:hover {
+  background: var(--bad-soft);
+  color: var(--accent-dark);
+}
+
+.hist-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.hist-confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink);
+}
+
+.hist-clear.is-danger {
+  color: var(--accent-dark);
+}
+
+.hist-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.hist-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hist-recent-head .mono-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.hist-recent button {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hist-recent .hist-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.hist-recent .hist-meta {
+  flex: none;
 }
