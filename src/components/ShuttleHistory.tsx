@@ -45,7 +45,7 @@ function HistoryRow({
     return (
       <li className="hist-row is-confirming">
         <span className="hist-confirm-text">
-          {failed ? 'ThoughtSpot didn’t delete it. Try again?' : <>Delete “{title}” from ThoughtSpot? This can’t be undone.</>}
+          {failed ? 'It wasn’t deleted. Try again?' : <>Delete “{title}”? This can’t be undone.</>}
         </span>
         <span className="hist-confirm">
           <button type="button" className="hist-clear is-danger" onClick={remove} disabled={deleting}>
@@ -139,14 +139,14 @@ export function ShuttleHistory({
         />
       )}
       {status === 'local' && (
-        <p className="hist-hint">ThoughtSpot’s chat history isn’t available right now, so this lists the chats saved in this browser.</p>
+        <p className="hist-hint">Your saved conversations aren’t available right now, so this lists the chats saved in this browser.</p>
       )}
       {busy && <p className="hist-hint">Shuttle is answering. Conversations open once it’s done.</p>}
 
       {loading && !entries.length ? (
-        <p className="hist-empty">Loading your conversations from ThoughtSpot…</p>
+        <p className="hist-empty">Loading your conversations…</p>
       ) : entries.length === 0 ? (
-        <p className="hist-empty">No conversations yet. Questions you ask Shuttle are saved in ThoughtSpot, so you can pick them up later on any device.</p>
+        <p className="hist-empty">No conversations yet. Questions you ask Shuttle are saved with your account, so you can pick them up later on any device.</p>
       ) : shown.length === 0 ? (
         <p className="hist-empty">Nothing matches “{query.trim()}”.</p>
       ) : (
@@ -170,7 +170,7 @@ export function ShuttleHistory({
       )}
 
       {entries.length > 0 && status !== 'local' && (
-        <p className="hist-foot">Saved in ThoughtSpot with your account, so they follow you to any device.</p>
+        <p className="hist-foot">Saved with your account, so they follow you to any device.</p>
       )}
     </div>
   )
