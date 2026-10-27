@@ -38,7 +38,7 @@ The browser calls ThoughtSpot's REST API v2 through Storeloom's server (`/api/ts
 
 An unlinked page at `/config` (no sign-in needed) with presenter controls, saved in the browser's localStorage and applied live to any open tab:
 
-- **Shuttle metering**: on/off, current plan (Growth 500, Scale 2,500, Enterprise unlimited), questions used and allowed, plus shortcuts (one left, at limit, reset). Defaults to Growth with 400 of 500 used; use *One left* or *At limit* to bring up the upgrade flow. Each question sent to Spotter uses one; replies Shuttle handles itself (picking a store to act on) don't.
+- **Shuttle metering**: on/off, current plan (Growth 500, Scale 2,500, Enterprise unlimited), questions used and allowed, plus shortcuts (one left, at limit, reset). Defaults to Growth with 494 of 500 used; use *One left* or *At limit* to bring up the upgrade flow. Each question sent to Spotter uses one; replies Shuttle handles itself (picking a store to act on) don't.
 - **Account & rep**: the customer company and the account rep shown in the upgrade flow.
 - **Hotkeys**: record a combo (with ⌘, Ctrl or ⌥) and a phrase; pressing it anywhere types the phrase into the focused field and copies it.
 - **Display size**: scales the whole app, embedded dashboards included, like the browser's zoom (CSS `zoom` on `<html>`, `src/displayScale.ts`). *Auto* (the default) is 80% on screens under 1,600 px wide (laptops) and 100% above; or pick 100%, 90%, 80% or 75%. Full-height styles divide `100vh` by `--app-zoom`, since `vh` ignores the zoom.
