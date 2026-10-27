@@ -15,6 +15,11 @@ const PROXY_ALLOWLIST: { method: string; path: RegExp }[] = [
   { method: 'POST', path: /^\/ai\/agent\/conversation\/create$/ },
   { method: 'POST', path: /^\/ai\/agent\/conversation\/[\w-]+\/send\/stream$/ },
   { method: 'POST', path: /^\/ai\/agent\/conversation\/[\w-]+\/stop-response$/ },
+  // Shuttle's history: conversations saved in ThoughtSpot (src/shuttleHistory.ts).
+  { method: 'GET', path: /^\/ai\/agent\/conversations$/ },
+  { method: 'GET', path: /^\/ai\/agent\/conversations\/[\w-]+\/messages$/ },
+  { method: 'GET', path: /^\/ai\/agent\/conversations\/[\w-]+\/answers\/[\w-]+\/details$/ },
+  { method: 'DELETE', path: /^\/ai\/agent\/conversations\/[\w-]+\/delete$/ },
   // Dashboard Lab (src/dashboards.ts): list, delete, and edit dashboards through their TML.
   { method: 'POST', path: /^\/metadata\/search$/ },
   { method: 'POST', path: /^\/metadata\/delete$/ },
@@ -177,7 +182,8 @@ export function createApi() {
     res.on('close', () => upstreamAbort.abort())
 
     try {
-      const upstream = await fetch(`${config().host}/api/rest/2.0${req.path}`, {
+      // req.url: the path with its query string (e.g. ?limit=50).
+      const upstream = await fetch(`${config().host}/api/rest/2.0${req.url}`, {
         method: req.method,
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +191,7 @@ export function createApi() {
           'X-Requested-By': 'ThoughtSpot',
           Authorization: `Bearer ${session.token}`,
         },
-        body: req.method === 'GET' ? undefined : JSON.stringify(req.body ?? {}),
+        body: req.method === 'GET' || req.method === 'DELETE' ? undefined : JSON.stringify(req.body ?? {}),
         signal: upstreamAbort.signal,
       })
       res.status(upstream.status)
