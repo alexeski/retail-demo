@@ -290,6 +290,13 @@
   overflow: hidden;
 }
 
+/* Zoomed down on a phone (FitWidth); a percentage height isn't zoomed, so this
+   is still the clip's full height on screen. */
+.sp-answer-clip > .fit-width,
+.sp-answer-host {
+  height: 100%;
+}
+
 .sp-answer-clip iframe {
   height: calc(100% + 24px);
 }
@@ -311,7 +318,7 @@
 }
 
 .sp-overlay-panel {
-  width: min(1400px, 94vw);
+  width: min(1400px, calc(94vw / var(--app-zoom, 1)));
   height: calc(92vh / var(--app-zoom, 1));
   background: var(--card);
   border: 2px solid var(--ink);
