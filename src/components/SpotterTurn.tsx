@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { rebrand } from '../brand'
 import { answerFrameUrl, stageLabel, type AnswerMeta, type Step, type Turn } from '../spotter'
+import { FitWidth } from './FitWidth'
 import './SpotterTurn.css'
 
 /** Spotter's markdown, rendered and sanitised (it is server-generated HTML). */
@@ -95,9 +96,11 @@ function AnswerCard({ answer }: { answer: AnswerMeta }) {
         {answer.sage_query && <code className="sp-answer-query">{answer.sage_query}</code>}
       </figcaption>
       <div className="sp-answer-frame">
-        <div className="sp-answer-clip">
-          <iframe src={url} title={title} loading="lazy" />
-        </div>
+        <FitWidth className="sp-answer-clip">
+          <div className="sp-answer-host">
+            <iframe src={url} title={title} loading="lazy" />
+          </div>
+        </FitWidth>
       </div>
       {/* Portalled: the drawer's slide-in transform would otherwise trap a fixed overlay inside it. */}
       {expanded &&
@@ -110,9 +113,11 @@ function AnswerCard({ answer }: { answer: AnswerMeta }) {
                 ×
               </button>
             </div>
-            <div className="sp-answer-clip">
-              <iframe src={url} title={title} />
-            </div>
+            <FitWidth className="sp-answer-clip">
+              <div className="sp-answer-host">
+                <iframe src={url} title={title} />
+              </div>
+            </FitWidth>
           </div>
         </div>,
           document.body,
