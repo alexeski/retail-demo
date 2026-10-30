@@ -19,7 +19,8 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(760px, 100vw);
+  /* Under the display-size zoom, 100vw is the window's unzoomed width (src/displayScale.ts). */
+  width: min(760px, calc(100vw / var(--app-zoom, 1)));
   background: var(--card);
   border-left: 2px solid var(--ink);
   box-shadow: -12px 0 0 rgba(23, 21, 15, 0.12);
@@ -47,7 +48,9 @@
 .drawer-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  /* In a narrow drawer the conversation's title drops under the name. */
+  flex-wrap: wrap;
+  gap: 6px 12px;
   min-width: 0;
 }
 
@@ -94,6 +97,15 @@
   color: var(--ink);
 }
 
+/* Phones: room for the name beside History, New chat and close. */
+@media (max-width: 560px) {
+  .drawer-head { gap: 8px; padding: 12px 14px; }
+  .drawer-name { font-size: 18px; }
+  .drawer-actions { gap: 6px; }
+  .drawer-new { padding: 0 9px; }
+  .drawer-messages { padding: 18px 14px; }
+}
+
 .drawer-messages {
   flex: 1;
   overflow-y: auto;
@@ -121,6 +133,7 @@
 
 .msg-follow button {
   font-family: var(--font-sans);
+  text-align: left;
   font-size: 14px;
   padding: 8px 12px;
   min-height: 40px;
@@ -172,7 +185,7 @@
 }
 
 .drawer-scope {
-  max-width: 280px;
+  max-width: min(280px, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -886,6 +899,7 @@
 }
 
 .hist-recent button {
+  width: 100%;
   flex-direction: row;
   align-items: baseline;
   justify-content: space-between;
@@ -893,6 +907,7 @@
 }
 
 .hist-recent .hist-title {
+  min-width: 0;
   font-size: 15px;
   font-weight: 600;
 }

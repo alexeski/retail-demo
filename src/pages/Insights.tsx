@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { HostEvent } from '@thoughtspot/visual-embed-sdk'
 import { LiveboardEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
 import { AskShuttleBar } from '../components/AskShuttleBar'
+import { FitWidth } from '../components/FitWidth'
 import { FilterBar, type LiveboardFilter } from '../components/FilterBar'
 import { useShuttle } from '../components/Shuttle'
 import { StoreActionPanel } from '../components/StoreActionPanel'
@@ -346,7 +347,7 @@ export function Insights() {
           {/* This cluster ignores in-place tab switches (SetActiveTab / SetVisibleTabs),
               so each tab gets its own embed instance opened on that tab. */}
           {activeTab.tabId && (
-            <div className="insights-embed">
+            <FitWidth className="insights-embed">
               <LiveboardEmbed
                 key={activeTab.tabId}
                 ref={embedRef}
@@ -364,7 +365,7 @@ export function Insights() {
                 onLiveboardRendered={onLiveboardRendered}
                 onFilterChanged={refreshChangedCount}
               />
-            </div>
+            </FitWidth>
           )}
 
           {activeTab.regions && (

@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { rebrand } from '../brand'
 import { answerFrameUrl, stageLabel, type AnswerMeta, type Step, type Turn } from '../spotter'
+import { FitWidth } from './FitWidth'
 import './SpotterTurn.css'
 
 /** Spotter's markdown, rendered and sanitised (it is server-generated HTML). */
@@ -77,7 +78,11 @@ function AnswerFrame({ url, title }: { url: string; title: string }) {
     host.appendChild(frame)
     return () => host.replaceChildren()
   }, [url, title])
-  return <div ref={ref} className="sp-answer-clip" />
+  return (
+    <FitWidth className="sp-answer-clip">
+      <div ref={ref} className="sp-answer-host" />
+    </FitWidth>
+  )
 }
 
 /**

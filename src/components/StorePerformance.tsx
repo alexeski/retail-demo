@@ -4,6 +4,7 @@ import { LiveboardEmbed } from '@thoughtspot/visual-embed-sdk/react'
 import { REGION_COLUMN, type FilterUpdate } from '../liveboardFilters'
 import { STORE_ACTION_ID, STORE_PICK_ACTION_ID, STORE_SCATTER_VIZ_ID, storeFromPoint, type StoreSelection } from '../storeActions'
 import { CountUp } from './CountUp'
+import { FitWidth } from './FitWidth'
 import { Sparkline } from './Sparkline'
 import { ALL_REGIONS, getRegionKpis, KPI_COLUMNS, REGIONS, type Region, type RegionKpis, type StoreKpis } from '../storePerformance'
 import { HIDDEN_BRANDED_ACTIONS, REGION_LIVEBOARD_ID } from '../thoughtspot'
@@ -270,7 +271,7 @@ export function StorePerformance({
 
               {open && (
                 <div className="region-detail" ref={detailRef}>
-                  <div className="insights-embed">
+                  <FitWidth className="insights-embed">
                     <LiveboardEmbed
                       key={region}
                       ref={embedRef}
@@ -292,7 +293,7 @@ export function StorePerformance({
                       onDialogOpen={onDialogOpen}
                       onDialogClose={onDialogClose}
                     />
-                  </div>
+                  </FitWidth>
                 </div>
               )}
             </div>

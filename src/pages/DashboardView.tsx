@@ -5,6 +5,7 @@ import { LiveboardEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react
 import { AskShuttleBar } from '../components/AskShuttleBar'
 import { useShuttle } from '../components/Shuttle'
 import { EditableTitle } from '../components/EditableTitle'
+import { FitWidth } from '../components/FitWidth'
 import { cloneDashboard, formatEdited, getDashboard, renameDashboard, tileCount, type Dashboard } from '../dashboards'
 import { chartMenu, EDIT_CHART, PINNED_CHART_HIDDEN_ACTIONS, pickedChartAction } from '../chartActions'
 import { usePaths } from '../experience'
@@ -193,7 +194,7 @@ export function DashboardView() {
             </div>
           ) : (
             dashboard && (
-              <div className="dash-embed">
+              <FitWidth className="dash-embed">
                 <LiveboardEmbed
                   key={id}
                   ref={embedRef}
@@ -208,7 +209,7 @@ export function DashboardView() {
                   minimumHeight={640}
                   onLiveboardRendered={onRendered}
                 />
-              </div>
+              </FitWidth>
             )
           )}
         </div>
