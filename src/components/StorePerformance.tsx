@@ -271,7 +271,7 @@ export function StorePerformance({
 
               {open && (
                 <div className="region-detail" ref={detailRef}>
-                  <FitWidth className="insights-embed" twoColumnUntil={1280}>
+                  <FitWidth className="insights-embed" twoColumnUntil={1720}>
                     <LiveboardEmbed
                       key={region}
                       ref={embedRef}
@@ -286,7 +286,7 @@ export function StorePerformance({
                       hideLiveboardHeader={false}
                       fullHeight
                       minimumHeight={480}
-                      // Tiles two per row below 1024px (FitWidth extends it to 1280px), one below 630px.
+                      // Tiles two per row below 1024px (FitWidth extends it to 1720px), one below 630px.
                       enable2ColumnLayout
                       onLiveboardRendered={onLiveboardRendered}
                       onFilterChanged={onFilterChanged}
