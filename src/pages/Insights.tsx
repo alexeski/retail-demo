@@ -347,7 +347,7 @@ export function Insights() {
           {/* This cluster ignores in-place tab switches (SetActiveTab / SetVisibleTabs),
               so each tab gets its own embed instance opened on that tab. */}
           {activeTab.tabId && (
-            <FitWidth className="insights-embed">
+            <FitWidth className="insights-embed" twoColumnUntil={1280}>
               <LiveboardEmbed
                 key={activeTab.tabId}
                 ref={embedRef}
@@ -362,6 +362,8 @@ export function Insights() {
                 hideLiveboardHeader={false}
                 fullHeight
                 minimumHeight={640}
+                // Tiles two per row below 1024px (FitWidth extends it to 1280px), one below 630px.
+                enable2ColumnLayout
                 onLiveboardRendered={onLiveboardRendered}
                 onFilterChanged={refreshChangedCount}
               />
