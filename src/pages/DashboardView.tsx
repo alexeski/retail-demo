@@ -194,7 +194,7 @@ export function DashboardView() {
             </div>
           ) : (
             dashboard && (
-              <FitWidth className="dash-embed" twoColumnUntil={1720}>
+              <FitWidth className="dash-embed">
                 <LiveboardEmbed
                   key={id}
                   ref={embedRef}
@@ -207,7 +207,7 @@ export function DashboardView() {
                   hideLiveboardHeader
                   fullHeight
                   minimumHeight={640}
-                  // Tiles two per row below 1024px (FitWidth extends it to 1720px), one below 630px.
+                  // Tiles two per row below 1024px, one below 630px.
                   enable2ColumnLayout
                   onLiveboardRendered={onRendered}
                 />
