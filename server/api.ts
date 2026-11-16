@@ -3,6 +3,7 @@ import { pipeline } from 'node:stream/promises'
 import express, { type Request, type Response } from 'express'
 import { config } from './config.ts'
 import { clearSession, readSession, writeSession } from './session.ts'
+import { adminToken, demoTokenFor, startSpotterDemoSweep } from './spotterDemo.ts'
 import { ClusterIdleError, mintToken, NotConfiguredError, revokeToken, sessionUser, ThoughtSpotError } from './thoughtspot.ts'
 
 /**
@@ -33,8 +34,6 @@ const PROXY_ALLOWLIST: { method: string; path: RegExp }[] = [
 /** The usage-data calls that need cluster-level ADMINISTRATION. */
 const USAGE_ADMIN_PATH = /^\/ai\/usage-data\/(search|update|delete)$/
 
-let adminToken: { token: string; expiresAt: number } | undefined
-
 /**
  * Token for the usage-data admin calls. A real product runs these from its
  * backend with an admin's token, never from the browser: THOUGHTSPOT_ADMIN_USERNAME
@@ -42,22 +41,11 @@ let adminToken: { token: string; expiresAt: number } | undefined
  * when that user is a cluster administrator).
  */
 async function usageAdminToken(sessionToken: string): Promise<string> {
-  const username = config().adminUsername
-  if (!username) return sessionToken
-  if (!adminToken || adminToken.expiresAt - Date.now() < 60_000) adminToken = await mintToken(username)
-  return adminToken.token
+  return (await adminToken()) ?? sessionToken
 }
 
-/** Request marker (header, or ?as=) for the Spotter usage limits demo page: it runs as a dedicated test user, not the signed-in one. */
+/** Request marker (header, or ?as=) for the Spotter usage limits demo page: it runs as the person's own throwaway test user (server/spotterDemo.ts), not the signed-in one. */
 const DEMO_PERSONA = 'spotter-demo'
-
-let demoToken: { token: string; expiresAt: number } | undefined
-
-/** Token for the dedicated Spotter demo user (THOUGHTSPOT_SPOTTER_DEMO_USERNAME), cached until close to expiry. */
-async function spotterDemoToken(): Promise<{ token: string; expiresAt: number }> {
-  if (!demoToken || demoToken.expiresAt - Date.now() < 60_000) demoToken = await mintToken(config().spotterDemoUsername)
-  return demoToken
-}
 
 /** ThoughtSpot's Spotter MCP Server, for Dashboard Lab's ShuttleViz (src/tsMcp.ts). */
 const MCP_URL = 'https://agent.thoughtspot.app/token/mcp'
@@ -88,6 +76,7 @@ async function relay(body: ReadableStream<Uint8Array>, res: Response, signal: Ab
  * - POST /ts-mcp: ThoughtSpot's Spotter MCP Server (Dashboard Lab's ShuttleViz).
  */
 export function createApi() {
+  startSpotterDemoSweep()
   const api = express()
   api.disable('x-powered-by')
   // Behind Coolify's proxy: req.secure reflects the browser's HTTPS.
@@ -159,7 +148,7 @@ export function createApi() {
     if (!session) return res.status(401).json({ error: 'signed-out' })
     if (req.query.as === DEMO_PERSONA) {
       try {
-        const t = await spotterDemoToken()
+        const t = await demoTokenFor(session)
         return res.json({ token: t.token, expiresAt: t.expiresAt })
       } catch (err) {
         console.error('Spotter demo user token failed', err)
@@ -227,7 +216,7 @@ export function createApi() {
       const token = USAGE_ADMIN_PATH.test(req.path)
         ? await usageAdminToken(session.token)
         : asDemo
-          ? (await spotterDemoToken()).token
+          ? (await demoTokenFor(session)).token
           : session.token
       // req.url: the path with its query string (e.g. ?limit=50).
       const upstream = await fetch(`${config().host}/api/rest/2.0${req.url}`, {

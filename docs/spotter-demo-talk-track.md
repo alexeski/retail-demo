@@ -86,7 +86,7 @@ About 12 minutes. The app is Storeloom's **Spotter usage limits demo** page (`/s
 - **At the limit,** the starter chips are disabled, because the embed doesn't block questions sent that way. That is deliberate.
 - **Typing at the limit** is not blocked: the box accepts text and only the send button is disabled. That is ThoughtSpot's behavior.
 - **Shared cluster.** The first pool sets the metering scope for the whole cluster (`USER` here). Don't change it during a demo.
-- **Who runs it:** the page always runs as the test user `spotter_monetization_TSE_do_not_delete`, whoever is signed in, so the counter you see is that user's. Pools are per user: nobody else is limited.
+- **Who runs it:** each signed-in person gets their own throwaway test user (`spotter_monetization_TSE_tmp_…`), so parallel demos never collide and the counter you see is yours. Leave the page and come back within a day and the pool is as you left it. Idle users are deleted after 24h.
 - **Admin calls** need `THOUGHTSPOT_ADMIN_USERNAME` on the server, or a signed-in cluster administrator. A 403 in the API log means that.
 
 ## Reset between demos

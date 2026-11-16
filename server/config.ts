@@ -12,6 +12,7 @@ export const SERVER_ENV_KEYS = [
   'THOUGHTSPOT_REGISTER_USERNAME',
   'THOUGHTSPOT_ADMIN_USERNAME',
   'THOUGHTSPOT_SPOTTER_DEMO_USERNAME',
+  'THOUGHTSPOT_SPOTTER_DEMO_TTL_HOURS',
 ] as const
 
 /** A variable's value; blank (or a stray "undefined" string) counts as unset. */
@@ -33,7 +34,9 @@ export function config() {
     registerUsername: read('THOUGHTSPOT_REGISTER_USERNAME'),
     /** A cluster administrator, used only to manage Spotter usage pools (the usage-data admin endpoints need ADMINISTRATION). Unset: the signed-in user's own token. */
     adminUsername: read('THOUGHTSPOT_ADMIN_USERNAME'),
-    /** The ThoughtSpot user the Spotter usage limits demo page always runs as, so a real user's allowance is never touched. */
+    /** The permanent test user: the template for each person's throwaway Spotter demo user (same groups), and the fallback if one can't be created. */
+    /** Hours a per-person Spotter demo user is kept after its last use before the sweep deletes it. */
+    spotterDemoTtlHours: Number(read('THOUGHTSPOT_SPOTTER_DEMO_TTL_HOURS')) > 0 ? Number(read('THOUGHTSPOT_SPOTTER_DEMO_TTL_HOURS')) : 24,
     spotterDemoUsername: read('THOUGHTSPOT_SPOTTER_DEMO_USERNAME') ?? 'spotter_monetization_TSE_do_not_delete',
   }
 }
