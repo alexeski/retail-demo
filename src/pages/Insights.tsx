@@ -24,7 +24,10 @@ import {
 } from '../liveboardFilters'
 import { shortStoreName, type StoreSelection } from '../storeActions'
 import { ALL_REGIONS, type Region } from '../storePerformance'
-import { HIDDEN_BRANDED_ACTIONS, INSIGHTS_LIVEBOARD_ID, INSIGHTS_TABS } from '../thoughtspot'
+import { INSIGHTS_LIVEBOARD_ID, INSIGHTS_TABS } from '../thoughtspot'
+import { useActionPolicy } from '../actionPolicy'
+import { onEmbedDialogOpen, prepareForDialog } from '../embedView'
+import { GatedButton, useUpgrade } from '../components/UpgradeProvider'
 import './Insights.css'
 
 const embeddedTabIds = INSIGHTS_TABS.flatMap((t) => (t.tabId ? [t.tabId] : []))
@@ -36,9 +39,6 @@ const withTimeout = <T,>(p: Promise<T>, ms: number) =>
   Promise.race([p, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))])
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-/** Schedule and Share in the page header: hidden for now, kept for later. */
-const SHOW_SCHEDULE_AND_SHARE = false
 
 type Embed = NonNullable<ReturnType<typeof useEmbedRef<typeof LiveboardEmbed>>['current']>
 
@@ -75,11 +75,17 @@ export function Insights() {
   const [pickedStore, setPickedStore] = useState<StoreSelection | null>(null)
   /** The action panel: open on a store, or on its store picker (store: null). */
   const [actionPanel, setActionPanel] = useState<{ store: StoreSelection | null } | null>(null)
-  const onStorePicked = useCallback((store: StoreSelection, act: boolean) => {
-    setPickedStore(store)
-    if (act) setActionPanel({ store })
-  }, [])
-  const onPickRequested = useCallback(() => setActionPanel({ store: null }), [])
+  // Store action plans are a pricing plan feature: a locked plan opens the upgrade flow instead.
+  const { require } = useUpgrade()
+  const policy = useActionPolicy()
+  const onStorePicked = useCallback(
+    (store: StoreSelection, act: boolean) => {
+      setPickedStore(store)
+      if (act) require('storeActions', () => setActionPanel({ store }))
+    },
+    [require],
+  )
+  const onPickRequested = useCallback(() => require('storeActions', () => setActionPanel({ store: null })), [require])
   const [loadedAt] = useState(() => new Date())
 
   // At most one Liveboard is on the page: a main-Liveboard tab, or the Region
@@ -263,8 +269,11 @@ export function Insights() {
     })
   }
 
-  const trigger = (event: HostEvent.AIHighlights | HostEvent.Schedule | HostEvent.Share | HostEvent.DownloadAsPdf) =>
+  // These open dialogs inside the dashboard: show a full screen of it first, so they're sized right.
+  const trigger = async (event: HostEvent.AIHighlights | HostEvent.Schedule | HostEvent.Share | HostEvent.DownloadAsPdf) => {
+    await prepareForDialog()
     embedRef.current?.trigger(event)
+  }
 
   return (
     <div className="insights">
@@ -289,28 +298,24 @@ export function Insights() {
             </button>
           )}
           {activeTab.regions && pickedStore && (
-            <button
-              type="button"
+            <GatedButton
+              feature="storeActions"
               className="btn-act"
-              onClick={() => setActionPanel({ store: pickedStore })}
+              onUnlocked={() => setActionPanel({ store: pickedStore })}
               title="Build an action plan for the store selected on the chart"
             >
               <span aria-hidden>⚡</span> Act on {shortStoreName(pickedStore.name)}
-            </button>
+            </GatedButton>
           )}
-          {SHOW_SCHEDULE_AND_SHARE && (
-            <>
-              <button type="button" className="btn-outline" onClick={() => trigger(HostEvent.Schedule)} disabled={!rendered}>
-                Schedule
-              </button>
-              <button type="button" className="btn-outline" onClick={() => trigger(HostEvent.Share)} disabled={!rendered}>
-                Share
-              </button>
-            </>
-          )}
-          <button type="button" className="btn-primary" onClick={() => trigger(HostEvent.DownloadAsPdf)} disabled={!rendered}>
+          <GatedButton feature="schedule" className="btn-outline" onUnlocked={() => trigger(HostEvent.Schedule)} disabled={!rendered}>
+            Schedule
+          </GatedButton>
+          <GatedButton feature="share" className="btn-outline" onUnlocked={() => trigger(HostEvent.Share)} disabled={!rendered}>
+            Share
+          </GatedButton>
+          <GatedButton feature="export" className="btn-primary" onUnlocked={() => trigger(HostEvent.DownloadAsPdf)} disabled={!rendered}>
             Download PDF
-          </button>
+          </GatedButton>
         </div>
       </section>
 
@@ -349,12 +354,13 @@ export function Insights() {
           {activeTab.tabId && (
             <FitWidth className="insights-embed">
               <LiveboardEmbed
-                key={activeTab.tabId}
+                // The menus follow the pricing plan, so a new plan re-creates the embed.
+                key={`${activeTab.tabId}:${policy.key}`}
                 ref={embedRef}
                 liveboardId={INSIGHTS_LIVEBOARD_ID}
                 activeTabId={activeTab.tabId}
                 visibleTabs={embeddedTabIds}
-                hiddenActions={HIDDEN_BRANDED_ACTIONS}
+                {...policy.props}
                 // The current Spotter chat UI for the charts' Shuttle (AskAi) button.
                 updatedSpotterChatPrompt
                 hideTabPanel
@@ -366,6 +372,7 @@ export function Insights() {
                 enable2ColumnLayout
                 onLiveboardRendered={onLiveboardRendered}
                 onFilterChanged={refreshChangedCount}
+                onDialogOpen={onEmbedDialogOpen}
               />
             </FitWidth>
           )}

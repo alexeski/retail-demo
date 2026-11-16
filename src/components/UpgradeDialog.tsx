@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '../auth'
-import { applyPlan, formatQuestions, PLANS, renewalDate, useAccount, useUsage, type Plan, type PlanId } from '../demoConfig'
+import {
+  applyPlan,
+  FEATURE_ORDER,
+  FEATURES,
+  formatQuestions,
+  PLANS,
+  planHasFeature,
+  planLabel,
+  renewalDate,
+  useAccount,
+  useUsage,
+  type FeatureId,
+  type Plan,
+  type PlanId,
+} from '../demoConfig'
 import './UpgradeDialog.css'
 
 // The upsell shown when Shuttle's question allowance runs out (metering is set
@@ -19,7 +33,8 @@ const ORDER: PlanId[] = ['growth', 'scale', 'enterprise']
 
 export type UpgradeOutcome = { kind: 'meeting'; when: Date; rep: string } | { kind: 'upgrade'; plan: Plan; available: number | null }
 
-export function UpgradeDialog({ onClose, onDone }: { onClose: () => void; onDone: (o: UpgradeOutcome) => void }) {
+/** `feature`: the locked feature that opened it (a pricing plan upsell); without it, the question limit's. */
+export function UpgradeDialog({ feature, onClose, onDone }: { feature?: FeatureId; onClose: () => void; onDone: (o: UpgradeOutcome) => void }) {
   const usage = useUsage()
   const account = useAccount()
   const current = PLANS[usage.plan]
@@ -58,6 +73,7 @@ export function UpgradeDialog({ onClose, onDone }: { onClose: () => void; onDone
         {step === 'plans' && (
           <PlansStep
             usage={usage}
+            feature={feature}
             current={current}
             target={target}
             cycle={cycle}
@@ -112,6 +128,7 @@ export function UpgradeDialog({ onClose, onDone }: { onClose: () => void; onDone
 
 function PlansStep({
   usage,
+  feature,
   current,
   target,
   cycle,
@@ -121,6 +138,7 @@ function PlansStep({
   onLater,
 }: {
   usage: ReturnType<typeof useUsage>
+  feature?: FeatureId
   current: Plan
   target?: Plan
   cycle: Cycle
@@ -133,31 +151,43 @@ function PlansStep({
   const renews = renewalDate()
   const daysLeft = Math.ceil((renews.getTime() - Date.now()) / 86_400_000)
   const atLimit = usage.used >= usage.total
+  const wanted = feature ? FEATURES[feature] : undefined
 
   return (
     <div className="up-body">
-      <span className="up-eyebrow">{atLimit ? 'Plan limit reached' : 'Upgrade your plan'}</span>
+      <span className="up-eyebrow">{wanted ? 'Not in your pricing plan' : atLimit ? 'Plan limit reached' : 'Upgrade your plan'}</span>
       <h2 className="up-title">
-        {atLimit
-          ? `You’ve used all ${formatQuestions(current.questions)} Shuttle questions on ${current.name} this month.`
-          : `Get more out of Shuttle with ${target?.name ?? 'Enterprise'}.`}
+        {wanted
+          ? `Unlock ${wanted.name} with the ${planLabel(wanted.plan)}.`
+          : atLimit
+            ? `You’ve used all ${formatQuestions(current.questions)} Shuttle questions on the ${planLabel(current)} this month.`
+            : `Get more out of Shuttle with the ${planLabel(target ?? PLANS.enterprise)}.`}
       </h2>
-      <p className="up-lede">
-        Your allowance renews on <strong>{day(renews, { month: 'long', day: 'numeric' })}</strong> ({daysLeft} days). Upgrade now to keep
-        the analysis going, or talk to {account.repName.split(' ')[0]} about the right plan for {account.company}.
-      </p>
+      {wanted ? (
+        <p className="up-lede">
+          {wanted.blurb} It’s included in the {planLabel(wanted.plan)} and above; {account.company} is on the {planLabel(current)}. Upgrade now,
+          or talk to {account.repName.split(' ')[0]} about the right fit.
+        </p>
+      ) : (
+        <p className="up-lede">
+          Your allowance renews on <strong>{day(renews, { month: 'long', day: 'numeric' })}</strong> ({daysLeft} days). Upgrade now to keep
+          the analysis going, or talk to {account.repName.split(' ')[0]} about the right plan for {account.company}.
+        </p>
+      )}
 
-      <div className="up-usage">
-        <div className="up-usage-bar" aria-hidden>
-          <span style={{ width: `${Math.min(100, (usage.used / Math.max(1, usage.total)) * 100)}%` }} />
+      {!wanted && (
+        <div className="up-usage">
+          <div className="up-usage-bar" aria-hidden>
+            <span style={{ width: `${Math.min(100, (usage.used / Math.max(1, usage.total)) * 100)}%` }} />
+          </div>
+          <div className="up-usage-meta">
+            <span>
+              <strong>{usage.used.toLocaleString('en-US')}</strong> / {formatQuestions(current.questions)} questions used
+            </span>
+            <span>Billing period {day(new Date(renews.getFullYear(), renews.getMonth() - 1, 1))} – {day(new Date(renews.getTime() - 86_400_000))}</span>
+          </div>
         </div>
-        <div className="up-usage-meta">
-          <span>
-            <strong>{usage.used.toLocaleString('en-US')}</strong> / {formatQuestions(current.questions)} questions used
-          </span>
-          <span>Billing period {day(new Date(renews.getFullYear(), renews.getMonth() - 1, 1))} – {day(new Date(renews.getTime() - 86_400_000))}</span>
-        </div>
-      </div>
+      )}
 
       <div className="up-cycle" role="radiogroup" aria-label="Billing cycle">
         {(['monthly', 'annual'] as Cycle[]).map((c) => (
@@ -172,11 +202,12 @@ function PlansStep({
         {ORDER.map((id) => {
           const p = PLANS[id]
           const isCurrent = id === current.id
-          const isTarget = id === target?.id
+          // A feature's pricing plan is the one to buy, even when it's sales-led (Enterprise).
+          const isTarget = id === (wanted?.plan ?? target?.id)
           const price = cycle === 'annual' ? p.annualMonthly : p.monthly
           return (
             <article key={id} className={['up-plan', isCurrent && 'is-current', isTarget && 'is-target'].filter(Boolean).join(' ')}>
-              {isTarget && <span className="up-badge">Recommended</span>}
+              {isTarget && !isCurrent && <span className="up-badge">{wanted ? 'Unlocks it' : 'Recommended'}</span>}
               {isCurrent && <span className="up-badge is-muted">Current plan</span>}
               <h3>{p.name}</h3>
               <p className="up-plan-tag">{p.tagline}</p>
@@ -194,6 +225,16 @@ function PlansStep({
                 {p.features.map((f) => (
                   <li key={f}>{f}</li>
                 ))}
+                {/* What the pricing plan unlocks in the dashboards: included, or locked until a higher plan. */}
+                {FEATURE_ORDER.map((f) => {
+                  const included = planHasFeature(id, f)
+                  return (
+                    <li key={f} className={['up-gate', !included && 'is-locked', f === feature && 'is-wanted'].filter(Boolean).join(' ')}>
+                      {FEATURES[f].name}
+                      {!included && <span className="up-gate-note">{PLANS[FEATURES[f].plan].name} +</span>}
+                    </li>
+                  )
+                })}
               </ul>
               {isCurrent ? (
                 <button type="button" className="up-btn is-ghost" disabled>
@@ -762,7 +803,7 @@ function PaidStep({ plan, receipt, used, onClose }: { plan: Plan; receipt: Recei
         ✓
       </span>
       <span className="up-eyebrow">Payment successful</span>
-      <h2 className="up-title">Welcome to {plan.name}.</h2>
+      <h2 className="up-title">Welcome to the {planLabel(plan)}.</h2>
       <p className="up-lede">
         Shuttle is ready: <strong>{available === null ? 'unlimited questions' : `${available.toLocaleString('en-US')} questions`}</strong> available
         now, {formatQuestions(plan.questions)} every month.

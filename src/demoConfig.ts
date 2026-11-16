@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 
 // Demo controls set on the unlinked /config page (see pages/Config.tsx): Shuttle
 // question metering, the plan and account rep the upgrade flow shows, and
@@ -95,7 +95,6 @@ export const PLANS: Record<PlanId, Plan> = {
     tagline: 'For multi-region retail operations',
     features: [
       '2,500 Shuttle questions / month',
-      'Store action plans & routing',
       'Priority compute for Shuttle',
       '50 editor seats · SSO',
       'Priority support, 4h response',
@@ -118,6 +117,74 @@ export const PLANS: Record<PlanId, Plan> = {
 }
 
 export const formatQuestions = (n: number | null) => (n === null ? 'Unlimited' : n.toLocaleString('en-US'))
+
+export const PLAN_ORDER: PlanId[] = ['growth', 'scale', 'enterprise']
+const planRank = (id: PlanId) => PLAN_ORDER.indexOf(id)
+
+/** A plan as it reads in a sentence: "Scale pricing plan". */
+export const planLabel = (plan: Plan | PlanId) => `${(typeof plan === 'string' ? PLANS[plan] : plan).name} pricing plan`
+
+// ---------------------------------------------------------------------------
+// Pricing plan features (gating)
+// ---------------------------------------------------------------------------
+
+/**
+ * Product features a pricing plan unlocks, beyond Shuttle's question allowance.
+ * Dashboards show a locked feature disabled (or with a lock, on Storeloom's own
+ * buttons) and open the upgrade flow when it's picked; src/actionPolicy.ts maps
+ * each one to the ThoughtSpot actions it controls.
+ */
+export type FeatureId = 'export' | 'share' | 'schedule' | 'storeActions' | 'sync' | 'spotiq'
+
+export const FEATURE_ORDER: FeatureId[] = ['export', 'share', 'schedule', 'storeActions', 'sync', 'spotiq']
+
+export const FEATURES: Record<FeatureId, { name: string; blurb: string; plan: PlanId }> = {
+  export: {
+    name: 'PNG, CSV, Excel & PDF downloads',
+    blurb: 'Download any chart, or the whole dashboard, as PNG, CSV, Excel or PDF.',
+    plan: 'scale',
+  },
+  share: {
+    name: 'Sharing',
+    blurb: 'Share dashboards and charts with your teams, or copy a link.',
+    plan: 'scale',
+  },
+  schedule: {
+    name: 'Scheduled delivery',
+    blurb: 'Email a dashboard to your teams every morning, week or month.',
+    plan: 'scale',
+  },
+  storeActions: {
+    name: 'Store action plans',
+    blurb: 'Turn an underperforming store into an action plan, and route it to the right people.',
+    plan: 'scale',
+  },
+  sync: {
+    name: 'Sync to Sheets & other apps',
+    blurb: 'Keep Google Sheets, Slack and Teams up to date with live results.',
+    plan: 'enterprise',
+  },
+  spotiq: {
+    name: 'SpotIQ analysis',
+    blurb: 'Let SpotIQ analyze any chart and surface the outliers, trends and drivers behind a result.',
+    plan: 'enterprise',
+  },
+}
+
+/** Whether the plan includes a feature; always true when gating is switched off on /config. */
+export const planHasFeature = (plan: PlanId, feature: FeatureId, gating = true) =>
+  !gating || planRank(plan) >= planRank(FEATURES[feature].plan)
+
+/** Gating on /config: off gives every plan every feature (the demo before pricing plans mattered). */
+export const gatingStore = persistedStore<{ enabled: boolean }>('storeloom.demo.gating', { enabled: true })
+export const useGating = () => useStore(gatingStore).enabled
+
+/** Whether the current plan includes a feature. Stable between renders until the plan or gating changes. */
+export function useFeatureAccess() {
+  const { plan } = useUsage()
+  const gating = useGating()
+  return useCallback((feature: FeatureId) => planHasFeature(plan, feature, gating), [plan, gating])
+}
 
 // ---------------------------------------------------------------------------
 // Shuttle usage (metering)

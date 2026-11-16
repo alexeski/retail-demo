@@ -1,0 +1,282 @@
+/* Pricing plan gating: lock icons, the "Unlock more" chip and the upgrade toast. */
+
+.gate-lock {
+  flex: none;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+
+/* One of Storeloom's own buttons for a feature the pricing plan doesn't include. */
+.btn-outline.is-locked,
+.btn-primary.is-locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-outline.is-locked {
+  background: var(--sand);
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.btn-outline.is-locked:hover {
+  background: var(--periwinkle);
+  color: var(--ink);
+}
+
+.btn-primary.is-locked {
+  background: var(--sand);
+  color: var(--ink);
+  box-shadow: 4px 4px 0 var(--muted-light);
+  border-style: dashed;
+}
+
+.gate-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 12px 14px 12px 16px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--accent);
+  font-size: 14px;
+  line-height: 1.35;
+  animation: gate-toast-in 0.25s ease-out;
+}
+
+.gate-toast button {
+  margin-left: 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@keyframes gate-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gate-toast {
+    animation: none;
+  }
+}
+
+/* A locked button's tip: shows the moment it's hovered or focused (the native title waits about a second). */
+.btn-outline.is-locked,
+.btn-primary.is-locked,
+.btn-act.is-locked {
+  position: relative;
+}
+
+.gate-tip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  z-index: 50;
+  width: 250px;
+  padding: 9px 11px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1.5px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--accent);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  pointer-events: none;
+}
+
+.gate-tip.is-left {
+  left: 0;
+}
+
+.gate-tip.is-right {
+  right: 0;
+}
+
+.gate-tip strong {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+
+button:hover > .gate-tip,
+button:focus-visible > .gate-tip {
+  display: block;
+}
+
+/* ---------- Pricing plan tag in the top bar, beside the avatar ---------- */
+.appbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.plan {
+  position: relative;
+}
+
+.plan-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.plan-tag:hover,
+.plan-tag[aria-expanded='true'] {
+  background: var(--periwinkle);
+}
+
+.plan-tag .gate-lock {
+  margin-right: 5px;
+}
+
+/* A hairline of Shuttle usage along the tag's foot. */
+.plan-meter {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  max-width: 100%;
+  background: var(--ink);
+}
+
+.plan-meter.is-full,
+.plan-usage-bar .is-full {
+  background: var(--accent);
+}
+
+.plan-card {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  width: min(300px, calc(100vw - 2 * var(--gutter)));
+  padding: 14px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.plan-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plan-card-head strong {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.plan-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.plan-usage-bar {
+  height: 6px;
+  background: var(--sand);
+}
+
+.plan-usage-bar span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.plan-sub {
+  color: var(--muted);
+}
+
+.plan-locked {
+  margin: -6px -14px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-locked button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 14px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.plan-locked button:hover {
+  background: var(--periwinkle);
+}
+
+.plan-locked button span {
+  flex: 1;
+}
+
+.plan-locked em {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.plan-compare {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  border-bottom: 1.5px solid var(--ink);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.plan-compare:hover {
+  color: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.plan-all {
+  margin: 0;
+  color: var(--muted);
+}
