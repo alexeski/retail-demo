@@ -908,3 +908,31 @@
     animation: none;
   }
 }
+
+/* Features a pricing plan unlocks in the dashboards: included, or locked until a higher plan. */
+.up-plan li.up-gate.is-locked {
+  color: var(--placeholder);
+}
+
+.up-plan li.up-gate.is-locked::before {
+  content: '–';
+  color: var(--placeholder);
+}
+
+.up-gate-note {
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* The feature that opened the dialog. */
+.up-plan li.up-gate.is-wanted {
+  margin: 0 -6px;
+  padding: 2px 6px;
+  background: var(--periwinkle);
+  color: var(--ink);
+  font-weight: 600;
+}

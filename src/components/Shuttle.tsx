@@ -11,7 +11,8 @@ import { SpotterTurn } from './SpotterTurn'
 import { StoreActionPanel } from './StoreActionPanel'
 import { StoreLeadsCard } from './StoreLeadsCard'
 import { UpgradeDialog, type UpgradeOutcome } from './UpgradeDialog'
-import { consumeQuestion, formatQuestions, limitReached, PLANS, usageStore, useUsage } from '../demoConfig'
+import { useUpgrade } from './UpgradeProvider'
+import { consumeQuestion, formatQuestions, limitReached, planLabel, PLANS, usageStore, useUsage } from '../demoConfig'
 import './Shuttle.css'
 
 /** Questions the retail sales data can answer. */
@@ -158,7 +159,9 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
     return []
   }
 
-  const actOn = (store: StoreSelection) => setAction({ store })
+  // Store action plans are a pricing plan feature: a locked plan opens the upgrade flow instead.
+  const { require } = useUpgrade()
+  const actOn = (store: StoreSelection) => require('storeActions', () => setAction({ store }))
 
   const ask = useCallback(
     async (raw: string, context?: AskContext) => {
@@ -524,7 +527,7 @@ export function ShuttleProvider({ children }: { children: ReactNode }) {
           onDone={(o: UpgradeOutcome) =>
             addNote(
               o.kind === 'upgrade'
-                ? `You’re on ${o.plan.name} now: ${o.available === null ? 'unlimited questions' : `${o.available.toLocaleString('en-US')} Shuttle questions`} available. Ask away.`
+                ? `You’re on the ${planLabel(o.plan)} now:${o.available === null ? 'unlimited questions' : `${o.available.toLocaleString('en-US')} Shuttle questions`} available. Ask away.`
                 : `Plan review booked with ${o.rep} on ${o.when.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${o.when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}. The invitation is in your inbox.`,
               'done',
             )

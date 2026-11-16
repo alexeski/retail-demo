@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { initials, useAuth } from '../auth'
 import { Brand } from './Brand'
+import { PlanBadge } from './PlanBadge'
 
 // Sections that exist in the design but aren't built yet.
 const UNBUILT_SECTIONS = ['Stores', 'Inventory', 'Orders', 'Customers']
@@ -50,6 +51,8 @@ export function AppBar() {
         </nav>
       </div>
       {user && (
+        <div className="appbar-right">
+        <PlanBadge />
         <div className="account" ref={menuRef}>
           <button
             type="button"
@@ -79,6 +82,7 @@ export function AppBar() {
               </button>
             </div>
           )}
+        </div>
         </div>
       )}
     </header>

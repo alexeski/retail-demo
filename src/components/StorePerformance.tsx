@@ -7,7 +7,9 @@ import { CountUp } from './CountUp'
 import { FitWidth } from './FitWidth'
 import { Sparkline } from './Sparkline'
 import { ALL_REGIONS, getRegionKpis, KPI_COLUMNS, REGIONS, type Region, type RegionKpis, type StoreKpis } from '../storePerformance'
-import { HIDDEN_BRANDED_ACTIONS, REGION_LIVEBOARD_ID } from '../thoughtspot'
+import { REGION_LIVEBOARD_ID } from '../thoughtspot'
+import { useActionPolicy } from '../actionPolicy'
+import { useUpgrade } from './UpgradeProvider'
 import './StorePerformance.css'
 
 /**
@@ -16,17 +18,19 @@ import './StorePerformance.css'
  *   including the Muze custom chart, which doesn't forward point clicks);
  * - a context-menu action on a clicked store (for charts that support it).
  */
-const STORE_CUSTOM_ACTIONS = [
+// Store action plans are a pricing plan feature: without it the names carry a
+// lock, and picking one opens the upgrade flow (see Insights).
+const storeCustomActions = (locked: boolean) => [
   {
     id: STORE_PICK_ACTION_ID,
-    name: '⚡ Act on a store',
+    name: locked ? '🔒 Act on a store' : '⚡ Act on a store',
     position: CustomActionsPosition.PRIMARY,
     target: CustomActionTarget.VIZ,
     metadataIds: { vizIds: [STORE_SCATTER_VIZ_ID] },
   },
   {
     id: STORE_ACTION_ID,
-    name: 'Build store action plan',
+    name: locked ? '🔒 Build store action plan' : 'Build store action plan',
     position: CustomActionsPosition.CONTEXTMENU,
     target: CustomActionTarget.VIZ,
     metadataIds: { vizIds: [STORE_SCATTER_VIZ_ID] },
@@ -68,6 +72,9 @@ export function StorePerformance({
   onStorePicked,
   onPickRequested,
 }: Props) {
+  const policy = useActionPolicy()
+  const storeActionsLocked = !useUpgrade().has('storeActions')
+  const customActions = useMemo(() => storeCustomActions(storeActionsLocked), [storeActionsLocked])
   // Stable handlers: the SDK re-creates the embed when a listener changes identity.
   const onVizPointClick = useCallback(
     (payload: unknown) => {
@@ -273,14 +280,15 @@ export function StorePerformance({
                 <div className="region-detail" ref={detailRef}>
                   <FitWidth className="insights-embed">
                     <LiveboardEmbed
-                      key={region}
+                      // The menus follow the pricing plan, so a new plan re-creates the embed.
+                      key={`${region}:${policy.key}`}
                       ref={embedRef}
                       liveboardId={REGION_LIVEBOARD_ID}
                       runtimeFilters={runtimeFilters}
-                      hiddenActions={HIDDEN_BRANDED_ACTIONS}
+                      {...policy.props}
                       // The current Spotter chat UI for the charts' Shuttle (AskAi) button.
                       updatedSpotterChatPrompt
-                      customActions={STORE_CUSTOM_ACTIONS}
+                      customActions={customActions}
                       hideTabPanel
                       // Kept on (and hidden with CSS, see thoughtspot.ts) so OpenFilter works.
                       hideLiveboardHeader={false}

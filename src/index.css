@@ -114,6 +114,9 @@ button {
   border-bottom: 2px solid var(--ink);
   background: var(--paper);
   flex-wrap: wrap;
+  /* Above the page's own sticky filter bar (10), below Shuttle's drawer (19+): the plan and account cards drop over the page. */
+  position: relative;
+  z-index: 15;
 }
 
 .appbar-left {

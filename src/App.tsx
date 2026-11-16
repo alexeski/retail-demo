@@ -4,6 +4,7 @@ import { AuthProvider, RequireAuth } from './auth'
 import { AppBar } from './components/AppBar'
 import { Backdrop } from './components/Backdrop'
 import { ShuttleProvider } from './components/Shuttle'
+import { UpgradeProvider } from './components/UpgradeProvider'
 import { DashboardView } from './pages/DashboardView'
 import { Dashboards } from './pages/Dashboards'
 import { Home } from './pages/Home'
@@ -19,10 +20,12 @@ import { useHotkeyListener } from './hotkeys'
 function AppShell() {
   return (
     <RequireAuth>
+      <UpgradeProvider>
       <ShuttleProvider>
         <AppBar />
         <Outlet />
       </ShuttleProvider>
+      </UpgradeProvider>
     </RequireAuth>
   )
 }
