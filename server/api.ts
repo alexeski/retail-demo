@@ -25,7 +25,28 @@ const PROXY_ALLOWLIST: { method: string; path: RegExp }[] = [
   { method: 'POST', path: /^\/metadata\/delete$/ },
   { method: 'POST', path: /^\/metadata\/tml\/export$/ },
   { method: 'POST', path: /^\/metadata\/tml\/import$/ },
+  // Spotter usage pools (src/spotterUsage.ts): a user's own standing, and the admin calls that provision them.
+  { method: 'GET', path: /^\/ai\/usage-data\/user$/ },
+  { method: 'POST', path: /^\/ai\/usage-data\/(search|update|delete)$/ },
 ]
+
+/** The usage-data calls that need cluster-level ADMINISTRATION. */
+const USAGE_ADMIN_PATH = /^\/ai\/usage-data\/(search|update|delete)$/
+
+let adminToken: { token: string; expiresAt: number } | undefined
+
+/**
+ * Token for the usage-data admin calls. A real product runs these from its
+ * backend with an admin's token, never from the browser: THOUGHTSPOT_ADMIN_USERNAME
+ * does that here. Without it the signed-in user's own token is used (which works
+ * when that user is a cluster administrator).
+ */
+async function usageAdminToken(sessionToken: string): Promise<string> {
+  const username = config().adminUsername
+  if (!username) return sessionToken
+  if (!adminToken || adminToken.expiresAt - Date.now() < 60_000) adminToken = await mintToken(username)
+  return adminToken.token
+}
 
 /** ThoughtSpot's Spotter MCP Server, for Dashboard Lab's ShuttleViz (src/tsMcp.ts). */
 const MCP_URL = 'https://agent.thoughtspot.app/token/mcp'
@@ -182,6 +203,7 @@ export function createApi() {
     res.on('close', () => upstreamAbort.abort())
 
     try {
+      const token = USAGE_ADMIN_PATH.test(req.path) ? await usageAdminToken(session.token) : session.token
       // req.url: the path with its query string (e.g. ?limit=50).
       const upstream = await fetch(`${config().host}/api/rest/2.0${req.url}`, {
         method: req.method,
@@ -189,7 +211,7 @@ export function createApi() {
           'Content-Type': 'application/json',
           Accept: req.get('accept') ?? 'application/json',
           'X-Requested-By': 'ThoughtSpot',
-          Authorization: `Bearer ${session.token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: req.method === 'GET' || req.method === 'DELETE' ? undefined : JSON.stringify(req.body ?? {}),
         signal: upstreamAbort.signal,

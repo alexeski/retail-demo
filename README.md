@@ -21,6 +21,16 @@ Shuttle's conversations are saved in ThoughtSpot: each is created with `enable_s
 
 This browser also keeps its copy of each chat (`src/shuttleHistory.ts`, the 30 most recent per user): what ThoughtSpot doesn't store (store leads, Shuttle's notes, where a question was asked), and a quicker reopen. A conversation without a copy here, or that went on elsewhere since, is read back from ThoughtSpot (`…/messages`, then `…/answers/{id}/details` for each chart, whose session IDs feed the same answer frames). Deleting one removes it from ThoughtSpot for good (`…/delete`). If ThoughtSpot's history can't be reached, the list falls back to this browser's copies.
 
+## Spotter usage limits demo (`/spotter-limits`)
+
+A presenter page, not in the nav: open the avatar menu and choose *Spotter usage limits demo*. It embeds ThoughtSpot's native Spotter (the new Spotter experience, with conversation history) and switches on **Spotter usage limits** (ThoughtSpot Cloud 26.11.0.cl, Visual Embed SDK 1.53+), so a customer can see how an embedder meters and sells questions. The Shuttle drawer elsewhere is unchanged.
+
+The presenter panel beside the embed drives the real usage-data REST APIs for the signed-in user: pick a pricing plan (it sets the user's pool), step through healthy / almost out / at the limit / upgrade / new billing cycle, change the embed's usage-limit options (also by clicking values in the code sample), read the Code samples (usage-limit specific parts highlighted) and the API log. The talk track is in [docs/spotter-demo-talk-track.md](docs/spotter-demo-talk-track.md).
+
+- The calls go through `/api/ts` (`src/spotterUsage.ts`). `search`, `update` and `delete` need cluster-level **ADMINISTRATION**: set `THOUGHTSPOT_ADMIN_USERNAME` so the server mints that user's token for them, or sign in as an administrator.
+- A cluster meters at **one scope** (the first pool created sets it); this page uses `USER`. Usage doesn't reset by itself and there is no admin UI.
+- While the page is open, the plan badge follows the real pool. Leaving the page puts the simulated plan and question count back as they were.
+
 ## Dashboard Lab (`/lab`)
 
 Signed-in users can build their own dashboards (Liveboards) on the Retail Sales model, the one the rest of the app uses (*Dashboard Lab · Beta* in the top bar). The model is fixed: Search hides its data-source picker, and ShuttleViz builds on that model only.

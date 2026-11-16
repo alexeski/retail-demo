@@ -10,6 +10,7 @@ export const SERVER_ENV_KEYS = [
   'THOUGHTSPOT_SECRET_KEY',
   'THOUGHTSPOT_ORG_ID',
   'THOUGHTSPOT_REGISTER_USERNAME',
+  'THOUGHTSPOT_ADMIN_USERNAME',
 ] as const
 
 /** A variable's value; blank (or a stray "undefined" string) counts as unset. */
@@ -29,5 +30,7 @@ export function config() {
     orgId: orgId !== undefined ? Number(orgId) : undefined,
     /** The user the "Register" (store code + PIN) sign-in signs in as, if any. */
     registerUsername: read('THOUGHTSPOT_REGISTER_USERNAME'),
+    /** A cluster administrator, used only to manage Spotter usage pools (the usage-data admin endpoints need ADMINISTRATION). Unset: the signed-in user's own token. */
+    adminUsername: read('THOUGHTSPOT_ADMIN_USERNAME'),
   }
 }

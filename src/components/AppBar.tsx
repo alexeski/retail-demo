@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { initials, useAuth } from '../auth'
 import { Brand } from './Brand'
 import { PlanBadge } from './PlanBadge'
@@ -12,6 +12,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 
 export function AppBar() {
   const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -69,6 +70,16 @@ export function AppBar() {
                 <strong>{user.displayName}</strong>
                 <span>{user.name}</span>
               </div>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false)
+                  navigate('/spotter-limits')
+                }}
+              >
+                Spotter usage limits demo
+              </button>
               <button
                 type="button"
                 role="menuitem"

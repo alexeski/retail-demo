@@ -12,6 +12,7 @@ import { Dashboards } from './pages/Dashboards'
 import { Insights } from './pages/Insights'
 import { LabBuilderRoute } from './pages/LabBuilder'
 import { Studio } from './pages/Studio'
+import { SpotterLimitsDemo } from './pages/SpotterLimitsDemo'
 import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
 import { Config } from './pages/Config'
@@ -56,6 +57,8 @@ export default function App() {
             <Route element={<AppShell />}>
               <Route path="/home" element={<Home />} />
               <Route path="/insights" element={<Insights />} />
+              {/* Presenter demo, not in the nav: reached from the account menu. Native Spotter with usage limits (src/pages/SpotterLimitsDemo.tsx). */}
+              <Route path="/spotter-limits" element={<SpotterLimitsDemo />} />
               {/* Dashboard Lab: build and browse dashboards, with ShuttleViz over the Spotter MCP Server (src/experience.tsx). */}
               <Route
                 path="/lab"

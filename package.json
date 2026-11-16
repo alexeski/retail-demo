@@ -14,7 +14,7 @@
     "docker:down": "docker compose down"
   },
   "dependencies": {
-    "@thoughtspot/visual-embed-sdk": "^1.53.0",
+    "@thoughtspot/visual-embed-sdk": "^1.54.1",
     "dompurify": "^3.4.16",
     "express": "5.2.1",
     "marked": "^18.1.0",

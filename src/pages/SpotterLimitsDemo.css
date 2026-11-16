@@ -1,0 +1,637 @@
+/* Shuttle page: the native Spotter embed, with the presenter panel beside it. */
+.spg {
+  padding: clamp(24px, 3vw, 40px) var(--gutter) 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.spg-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.spg-title {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 62ch;
+}
+
+.spg-h1 {
+  margin: 0;
+  font-size: clamp(32px, 4vw, 56px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.spg-title p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.spg-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--spg-panel, 33%);
+  gap: 20px;
+  align-items: start;
+}
+
+.spg.is-wide .spg-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.spg-frame {
+  min-width: 0;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  overflow: hidden;
+}
+
+.spg-frame iframe {
+  border: 0;
+  display: block;
+}
+
+.spg-starters {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ---------- Presenter panel ---------- */
+.spg-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.spg-tabs {
+  display: flex;
+  border-bottom: 1.5px solid var(--ink);
+  background: var(--sand);
+}
+
+.spg-tabs button {
+  flex: 1;
+  padding: 11px 6px;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.spg-tabs button + button {
+  border-left: 1px solid var(--muted-light);
+}
+
+.spg-tabs button.is-on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.spg-scroll {
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.spg-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spg-section h2 {
+  margin: 8px 0 0;
+}
+
+.spg-note {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.spg-error {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--bad-soft);
+  border-left: 3px solid var(--accent);
+  font-size: 12.5px;
+}
+
+.spg-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Live pool status */
+.spg-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--paper);
+  border: 1px solid var(--muted-light);
+}
+
+.spg-status.is-warn {
+  background: #fff3d6;
+}
+
+.spg-status.is-limit {
+  background: var(--bad-soft);
+  border-color: var(--accent);
+}
+
+.spg-status-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.spg-status strong {
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.spg-flags {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.spg-bar {
+  height: 6px;
+  background: var(--sand);
+}
+
+.spg-bar span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.spg-status.is-warn .spg-bar span,
+.spg-status.is-limit .spg-bar span {
+  background: var(--accent);
+}
+
+/* Plans, steps */
+.spg-plans {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.spg-plans button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  text-align: left;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  cursor: pointer;
+}
+
+.spg-plans button span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.spg-plans button.is-on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.spg-plans button.is-on span {
+  color: var(--muted-light);
+}
+
+.spg-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spg-steps button {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  cursor: pointer;
+}
+
+.spg-steps button:hover:not(:disabled) {
+  background: var(--periwinkle);
+}
+
+.spg-steps button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spg-steps b {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.spg-steps span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spg-steps em,
+.spg-switch em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Settings */
+.spg-switch {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sand);
+  cursor: pointer;
+}
+
+.spg-switch span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.spg-switch em {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  overflow-wrap: anywhere;
+}
+
+.spg-switch.is-disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.spg-switch input {
+  accent-color: var(--accent);
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.spg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.spg-field select,
+.spg-field input {
+  padding: 8px 10px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  font: inherit;
+  min-width: 0;
+}
+
+.spg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.spg-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Code and log */
+.spg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.spg-chips button {
+  padding: 5px 10px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.spg-chips button.is-on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.spg-codeblock {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.spg-codeblock figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--sand);
+  border: 1px solid var(--ink);
+  border-bottom: 0;
+}
+
+.spg-code {
+  margin: 0;
+  padding: 12px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.spg-call {
+  border: 1px solid var(--muted-light);
+  background: var(--paper);
+}
+
+.spg-call summary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.spg-call summary em {
+  margin-left: auto;
+  font-style: normal;
+  color: var(--muted);
+}
+
+.spg-path {
+  font-family: var(--font-mono);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.spg-ok {
+  color: var(--good);
+  font-family: var(--font-mono);
+}
+
+.spg-bad {
+  color: var(--accent-dark);
+  font-family: var(--font-mono);
+}
+
+.spg-events {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 1100px) {
+  .spg-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .spg-panel {
+    max-height: none !important;
+  }
+}
+
+.spg-chipsrow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.spg-chipsrow button {
+  flex: none;
+  max-width: 340px;
+  padding: 7px 12px;
+  border: 1px solid var(--ink);
+  background: var(--card);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spg-chipsrow button:hover {
+  background: var(--periwinkle);
+}
+
+/* The embed's wrapper must fill the frame, or the iframe collapses to 150px. */
+.spg-frame > div,
+.spg-frame .ts-embed-container {
+  height: 100%;
+  width: 100%;
+}
+
+.spg-frame iframe {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Resizable panel ---------- */
+.spg-panel {
+  position: relative;
+}
+
+.spg-resize {
+  position: absolute;
+  inset: 0 auto 0 -6px;
+  width: 12px;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.spg-resize::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 4px;
+  height: 44px;
+  margin-top: -22px;
+  background: var(--muted-light);
+}
+
+.spg-resize:hover::after {
+  background: var(--accent);
+}
+
+.spg-body.is-dragging {
+  user-select: none;
+}
+
+.spg-body.is-dragging iframe {
+  pointer-events: none;
+}
+
+.spg-sizes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--sand);
+}
+
+.spg-sizes .mono-label {
+  margin-right: auto;
+}
+
+.spg-sizes button {
+  padding: 3px 9px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.spg-sizes button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Code that belongs to the usage-limit feature. */
+.spg-code mark {
+  background: rgba(229, 80, 42, 0.32);
+  color: #ffe9df;
+  border-radius: 2px;
+  padding: 0 2px;
+  box-shadow: 0 0 0 1px rgba(229, 80, 42, 0.55);
+}
+
+.spg-legend {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.spg-legend mark {
+  background: rgba(229, 80, 42, 0.32);
+  padding: 0 4px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(229, 80, 42, 0.55);
+  color: var(--ink);
+}
+
+.spg-panel {
+  overflow: visible;
+}
+
+.spg-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Values in the embed sample that change the live embed. */
+.spg-ix {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0 2px;
+  border-bottom: 1px dotted var(--periwinkle);
+  cursor: pointer;
+}
+
+.spg-ix:hover {
+  background: var(--periwinkle);
+  color: var(--ink);
+}
+
+.spg-ix.is-usage {
+  background: rgba(229, 80, 42, 0.32);
+  color: #ffe9df;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(229, 80, 42, 0.55);
+  border-bottom-color: #ffe9df;
+}
+
+.spg-ix.is-usage:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.spg-chipsrow button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spg-chipsrow button:disabled:hover {
+  background: var(--card);
+}
+
+.spg-logbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.spg-clear {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.spg-call summary time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  flex: none;
+}
