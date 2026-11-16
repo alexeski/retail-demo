@@ -280,3 +280,15 @@ button:focus-visible > .gate-tip {
   margin: 0;
   color: var(--muted);
 }
+
+/* The tip lives inside its button. Download PDF's hover transform makes the button its own stacking
+   context, which would trap the tip's z-index below the page's sticky filter bar (10). Lift the button
+   itself while it's hovered or focused, and only then, so it never paints over the bar when scrolling. */
+.btn-outline.is-locked:hover,
+.btn-outline.is-locked:focus-visible,
+.btn-primary.is-locked:hover,
+.btn-primary.is-locked:focus-visible,
+.btn-act.is-locked:hover,
+.btn-act.is-locked:focus-visible {
+  z-index: 20;
+}
