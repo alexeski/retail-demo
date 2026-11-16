@@ -7,7 +7,10 @@ import { useShuttle } from '../components/Shuttle'
 import { EditableTitle } from '../components/EditableTitle'
 import { FitWidth } from '../components/FitWidth'
 import { cloneDashboard, formatEdited, getDashboard, renameDashboard, tileCount, type Dashboard } from '../dashboards'
-import { chartMenu, EDIT_CHART, PINNED_CHART_HIDDEN_ACTIONS, pickedChartAction } from '../chartActions'
+import { chartMenu, EDIT_CHART, pickedChartAction } from '../chartActions'
+import { useActionPolicy } from '../actionPolicy'
+import { onEmbedDialogOpen, prepareForDialog } from '../embedView'
+import { GatedButton } from '../components/UpgradeProvider'
 import { usePaths } from '../experience'
 import './Dashboards.css'
 
@@ -34,6 +37,7 @@ export function DashboardView() {
   const [cloning, setCloning] = useState(false)
   const [cloneError, setCloneError] = useState<string | null>(null)
   const embedRef = useEmbedRef<typeof LiveboardEmbed>()
+  const policy = useActionPolicy()
 
   useEffect(() => {
     let cancelled = false
@@ -138,7 +142,10 @@ export function DashboardView() {
           <button
             type="button"
             className="btn-outline btn-ai"
-            onClick={() => embedRef.current?.trigger(HostEvent.AIHighlights)}
+            onClick={async () => {
+              await prepareForDialog()
+              embedRef.current?.trigger(HostEvent.AIHighlights)
+            }}
             disabled={!rendered || !dashboard?.tiles}
             title="AI highlights for this dashboard"
           >
@@ -154,14 +161,17 @@ export function DashboardView() {
               </button>
             </>
           )}
-          <button
-            type="button"
+          <GatedButton
+            feature="export"
             className={owned ? 'btn-primary' : 'btn-outline'}
-            onClick={() => embedRef.current?.trigger(HostEvent.DownloadAsPdf)}
+            onUnlocked={async () => {
+              await prepareForDialog()
+              embedRef.current?.trigger(HostEvent.DownloadAsPdf)
+            }}
             disabled={!rendered || !dashboard?.tiles}
           >
             Download PDF
-          </button>
+          </GatedButton>
           {dashboard && !owned && (
             <button type="button" className="btn-primary" onClick={() => void clone()} disabled={cloning} title="Make your own copy and edit it in Studio">
               {cloning ? 'Cloning…' : '⧉ Clone & edit'}
@@ -196,10 +206,11 @@ export function DashboardView() {
             dashboard && (
               <FitWidth className="dash-embed">
                 <LiveboardEmbed
-                  key={id}
+                  // The menus follow the pricing plan, so a new plan re-creates the embed.
+                  key={`${id}:${policy.key}`}
                   ref={embedRef}
                   liveboardId={id}
-                  hiddenActions={PINNED_CHART_HIDDEN_ACTIONS}
+                  {...policy.props}
                   customActions={menu}
                   onCustomAction={onChartAction}
                   updatedSpotterChatPrompt
@@ -210,6 +221,7 @@ export function DashboardView() {
                   // Tiles two per row below 1024px, one below 630px.
                   enable2ColumnLayout
                   onLiveboardRendered={onRendered}
+                  onDialogOpen={onEmbedDialogOpen}
                 />
               </FitWidth>
             )
