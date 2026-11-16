@@ -10,6 +10,8 @@ export type TodayKpis = {
   lastWeek: DayFigures
   storesTrading: number
   storesTotal: number
+  /** Stores with no sales on "today", by their full name (as the data spells it). */
+  quietStores: string[]
   topStores: { name: string; sales: number }[]
 }
 
@@ -50,6 +52,8 @@ export async function getTodayKpis(onProgress?: (done: number, total: number) =>
   const lastWeek = toDay(daily[Math.min(7, daily.length - 1)])
 
   const stores = await step(searchData(`[Store Name] [Sales] [Transaction Date] = '${dayLiteral(today.date)}'`, 1000))
+  const trading = new Set(stores.filter(([, sales]) => Number(sales) > 0).map(([name]) => String(name)))
+  const quietStores = allStores.map(([name]) => String(name)).filter((name) => !trading.has(name)).sort()
   const ranked = stores
     .map(([name, sales]) => ({ name: shortStoreName(String(name)), sales: Number(sales) || 0 }))
     .sort((a, b) => b.sales - a.sales)
@@ -59,6 +63,7 @@ export async function getTodayKpis(onProgress?: (done: number, total: number) =>
     lastWeek,
     storesTrading: ranked.filter((s) => s.sales > 0).length,
     storesTotal: allStores.length,
+    quietStores,
     topStores: ranked.slice(0, 6),
   }
 }

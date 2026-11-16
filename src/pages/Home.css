@@ -150,6 +150,29 @@
   color: var(--accent-dark);
 }
 
+/* A KPI's call to action, e.g. "Investigate with Shuttle" under the quiet stores. */
+.kpi-action {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 7px 12px;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.kpi-action:hover,
+.kpi-action:focus-visible {
+  background: var(--periwinkle);
+}
+
 /* ---------- Work area ---------- */
 .work {
   padding: clamp(40px, 4vw, 64px) var(--gutter);

@@ -4,7 +4,7 @@ import { getAttentionAlerts, type AttentionAlert } from '../attention'
 import { firstName, useAuth } from '../auth'
 import { ActionsInMotion } from '../components/ActionsInMotion'
 import { CountUp } from '../components/CountUp'
-import { SHUTTLE_SUGGESTIONS, useShuttle } from '../components/Shuttle'
+import { SHUTTLE_SUGGESTIONS, useShuttle, type AskContext } from '../components/Shuttle'
 import { getTodayKpis, type TodayKpis } from '../homeKpis'
 import { shortStoreName } from '../storeActions'
 import './Home.css'
@@ -33,9 +33,41 @@ const arrow = (d: number) => (d >= 0 ? '▲' : '▼')
 /** Day buckets are UTC midnight, so read the weekday in UTC. */
 const weekday = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
 
-type KpiCard = { label: string; value?: number; format: (n: number) => string; suffix?: string; delta?: string; down?: boolean; alert?: boolean }
+type KpiCard = {
+  label: string
+  value?: number
+  format: (n: number) => string
+  suffix?: string
+  delta?: string
+  down?: boolean
+  alert?: boolean
+  /** A call to action under the figure, e.g. look into the stores behind it with Shuttle. */
+  action?: { label: string; onClick: () => void }
+}
 
-function kpiCards(k: TodayKpis | null): KpiCard[] {
+/** "Wed 4 Nov" for a UTC day bucket. */
+const dayLabel = (d: Date) => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+
+/**
+ * Hands the stores with no sales yet today to Shuttle. The store list rides in the
+ * context (not shown in the chat), so the question stays readable; Shuttle's answer
+ * then offers the stores it flags as leads to act on.
+ */
+function askAboutQuietStores(k: TodayKpis, ask: (q: string, context?: AskContext) => void) {
+  const n = k.quietStores.length
+  const day = dayLabel(k.today.date)
+  ask(`Why have ${n} store${n === 1 ? '' : 's'} made no sales yet today, and which are falling furthest below their usual trading?`, {
+    scope: `Stores with no sales · ${day}`,
+    tag: 'Stores trading',
+    preamble:
+      `Today is ${day}, the latest day in the Retail Sales data. These ${n} stores have no sales recorded on that day: ${k.quietStores.join('; ')}. ` +
+      `Compare their sales on recent days and on the same weekday in previous weeks, so we can tell stores that usually trade by now (possible outage, closure or till problem) from stores that are just quiet. ` +
+      // The answer's store names become the leads to act on, in the order they appear.
+      `Name the stores that need checking first, ranked by how far below their usual trading they are; give only a count for the stores that are usually quiet on this weekday, without naming them.`,
+  })
+}
+
+function kpiCards(k: TodayKpis | null, ask: (q: string, context?: AskContext) => void): KpiCard[] {
   if (!k) {
     return [
       { label: 'Net sales · today', format: money0 },
@@ -62,6 +94,7 @@ function kpiCards(k: TodayKpis | null): KpiCard[] {
       suffix: ` / ${int(k.storesTotal)}`,
       delta: quiet > 0 ? `${quiet} with no sales yet today` : 'All stores trading',
       alert: quiet > 0,
+      action: quiet > 0 ? { label: 'Investigate with Shuttle', onClick: () => askAboutQuietStores(k, ask) } : undefined,
     },
   ]
 }
@@ -125,7 +158,7 @@ export function Home() {
     ...FEED.map((f) => ({ ...f, key: f.t, mine: false })),
   ]
 
-  const cards = kpiCards(kpis)
+  const cards = kpiCards(kpis, ask)
   const topMax = kpis?.topStores[0]?.sales || 1
 
   return (
@@ -185,6 +218,12 @@ export function Home() {
                   {k.suffix && <span className="kpi-suffix">{k.suffix}</span>}
                 </span>
                 <span className={['kpi-delta', k.down && 'is-down', k.alert && 'is-alert'].filter(Boolean).join(' ')}>{k.delta}</span>
+                {k.action && (
+                  <button type="button" className="kpi-action" onClick={k.action.onClick}>
+                    <span className="shuttle-pill" aria-hidden />
+                    {k.action.label} <span aria-hidden>→</span>
+                  </button>
+                )}
               </>
             )}
           </div>
