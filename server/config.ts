@@ -11,6 +11,7 @@ export const SERVER_ENV_KEYS = [
   'THOUGHTSPOT_ORG_ID',
   'THOUGHTSPOT_REGISTER_USERNAME',
   'THOUGHTSPOT_ADMIN_USERNAME',
+  'THOUGHTSPOT_SPOTTER_DEMO_USERNAME',
 ] as const
 
 /** A variable's value; blank (or a stray "undefined" string) counts as unset. */
@@ -32,5 +33,7 @@ export function config() {
     registerUsername: read('THOUGHTSPOT_REGISTER_USERNAME'),
     /** A cluster administrator, used only to manage Spotter usage pools (the usage-data admin endpoints need ADMINISTRATION). Unset: the signed-in user's own token. */
     adminUsername: read('THOUGHTSPOT_ADMIN_USERNAME'),
+    /** The ThoughtSpot user the Spotter usage limits demo page always runs as, so a real user's allowance is never touched. */
+    spotterDemoUsername: read('THOUGHTSPOT_SPOTTER_DEMO_USERNAME') ?? 'spotter_monetization_TSE_do_not_delete',
   }
 }

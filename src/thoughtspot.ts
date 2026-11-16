@@ -1,4 +1,4 @@
-import { Action, AuthType, init, startAutoMCPFrameRenderer } from '@thoughtspot/visual-embed-sdk'
+import { Action, AuthType, init, resetCachedAuthToken, startAutoMCPFrameRenderer } from '@thoughtspot/visual-embed-sdk'
 
 // VITE_* values are inlined at build time (Docker build args in Coolify). `||`
 // rather than `??`: an unset Docker ARG arrives as an empty string.
@@ -188,9 +188,23 @@ export const WITH_LIVEBOARD_HEADER = {
   },
 }
 
+let embedPersona: 'spotter-demo' | undefined
+
+/**
+ * Runs the embeds as another ThoughtSpot user (the Spotter usage limits demo's test
+ * user) until set back to undefined. The SDK caches its token, so it is dropped here.
+ */
+export function setEmbedPersona(persona: 'spotter-demo' | undefined) {
+  if (embedPersona === persona) return
+  embedPersona = persona
+  resetCachedAuthToken()
+  // The SDK keeps the token it got at init: initialise again so it asks for the new user's.
+  if (started) runInit()
+}
+
 /** The signed-in user's trusted-auth token, from Storeloom's server (httpOnly session cookie). */
 async function getAuthToken(): Promise<string> {
-  const res = await fetch('/api/thoughtspot/token', { headers: { Accept: 'application/json' } })
+  const res = await fetch(`/api/thoughtspot/token${embedPersona ? `?as=${embedPersona}` : ''}`, { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error(`No ThoughtSpot token (${res.status})`)
   return ((await res.json()) as { token: string }).token
 }
@@ -206,6 +220,13 @@ let started = false
 export function initThoughtSpot() {
   if (started) return
   started = true
+  runInit()
+  // Shuttle's answer charts are iframes marked tsmcp=true: upgrade each one to an
+  // authenticated embed as it appears (they can't use the token on their own).
+  startAutoMCPFrameRenderer()
+}
+
+function runInit() {
   init({
     thoughtSpotHost: THOUGHTSPOT_HOST,
     authType: AuthType.TrustedAuthTokenCookieless,
@@ -241,7 +262,4 @@ export function initThoughtSpot() {
       },
     },
   })
-  // Shuttle's answer charts are iframes marked tsmcp=true: upgrade each one to an
-  // authenticated embed as it appears (they can't use the token on their own).
-  startAutoMCPFrameRenderer()
 }

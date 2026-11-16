@@ -4,7 +4,7 @@ import { SpotterEmbed, useEmbedRef } from '@thoughtspot/visual-embed-sdk/react'
 import { SHUTTLE_SUGGESTIONS } from '../components/Shuttle'
 import { useUpgrade } from '../components/UpgradeProvider'
 import { applyPlan, formatQuestions, PLANS, PLAN_ORDER, usageStore, useUsage, type PlanId } from '../demoConfig'
-import { RETAIL_MODEL_ID, THOUGHTSPOT_HOST } from '../thoughtspot'
+import { RETAIL_MODEL_ID, setEmbedPersona, THOUGHTSPOT_HOST } from '../thoughtspot'
 import { useFillHeight } from '../useFillHeight'
 import {
   currentUserId,
@@ -23,7 +23,7 @@ import './SpotterLimitsDemo.css'
 // (strings, icons and theme come from initThoughtSpot in src/thoughtspot.ts),
 // with its conversation history on and Spotter usage limits switched on. The
 // panel beside it is for the demo: it drives the real usage-limit APIs against
-// the signed-in user and shows the code behind each step.
+// the dedicated demo user and shows the code behind each step.
 
 type Counter = 'alwaysVisible' | 'visibleAfterWarning' | 'visibleAfterLimit' | 'alwaysHidden'
 type EmbedSettings = {
@@ -160,6 +160,8 @@ export function SpotterLimitsDemo() {
 
   useEffect(() => {
     let live = true
+    // The embed and every usage call run as the dedicated demo user; leaving the page puts the signed-in user back.
+    setEmbedPersona('spotter-demo')
     currentUserId()
       .then((id) => live && setUserId(id))
       .catch((err: Error) => live && setError(err.message))
@@ -168,6 +170,7 @@ export function SpotterLimitsDemo() {
     return () => {
       live = false
       clearInterval(timer)
+      setEmbedPersona(undefined)
     }
   }, [refreshStatus])
 
@@ -296,7 +299,6 @@ export function SpotterLimitsDemo() {
     <div className={panelOpen ? 'spg' : 'spg is-wide'}>
       <header className="spg-head">
         <div className="spg-title">
-          <span className="mono-label">Spotter usage limits demo · {PLANS[usage.plan].name} pricing plan</span>
           <h1 className="spg-h1">Ask anything about your stores.</h1>
           <p>
             Questions run on Storeloom’s retail data. Every plan includes a set number of questions a month; the counter in the question bar shows what is left.
@@ -632,7 +634,7 @@ await fetch(\`\${TS_HOST}/api/rest/2.0${HL('/ai/usage-data/update')}\`, {
     case 'monitor':
       return [
         {
-          lang: 'bash · the signed-in user (no admin needed)',
+          lang: 'bash · the demo user (no admin needed)',
           code: `curl '${api('user')}' \\
   -H 'Authorization: Bearer {USER_TOKEN}'
 

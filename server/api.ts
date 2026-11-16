@@ -48,6 +48,17 @@ async function usageAdminToken(sessionToken: string): Promise<string> {
   return adminToken.token
 }
 
+/** Request marker (header, or ?as=) for the Spotter usage limits demo page: it runs as a dedicated test user, not the signed-in one. */
+const DEMO_PERSONA = 'spotter-demo'
+
+let demoToken: { token: string; expiresAt: number } | undefined
+
+/** Token for the dedicated Spotter demo user (THOUGHTSPOT_SPOTTER_DEMO_USERNAME), cached until close to expiry. */
+async function spotterDemoToken(): Promise<{ token: string; expiresAt: number }> {
+  if (!demoToken || demoToken.expiresAt - Date.now() < 60_000) demoToken = await mintToken(config().spotterDemoUsername)
+  return demoToken
+}
+
 /** ThoughtSpot's Spotter MCP Server, for Dashboard Lab's ShuttleViz (src/tsMcp.ts). */
 const MCP_URL = 'https://agent.thoughtspot.app/token/mcp'
 /** Request headers passed through to the MCP server; it answers with mcp-session-id. */
@@ -142,10 +153,19 @@ export function createApi() {
   })
 
   // The Visual Embed SDK's getAuthToken (cookieless trusted auth).
-  api.get('/thoughtspot/token', (req: Request, res: Response) => {
+  api.get('/thoughtspot/token', async (req: Request, res: Response) => {
     noStore(res)
     const session = readSession(req)
     if (!session) return res.status(401).json({ error: 'signed-out' })
+    if (req.query.as === DEMO_PERSONA) {
+      try {
+        const t = await spotterDemoToken()
+        return res.json({ token: t.token, expiresAt: t.expiresAt })
+      } catch (err) {
+        console.error('Spotter demo user token failed', err)
+        return res.status(502).json({ error: 'demo-user-unavailable' })
+      }
+    }
     res.json({ token: session.token, expiresAt: session.expiresAt })
   })
 
@@ -203,7 +223,12 @@ export function createApi() {
     res.on('close', () => upstreamAbort.abort())
 
     try {
-      const token = USAGE_ADMIN_PATH.test(req.path) ? await usageAdminToken(session.token) : session.token
+      const asDemo = req.get('x-storeloom-as') === DEMO_PERSONA
+      const token = USAGE_ADMIN_PATH.test(req.path)
+        ? await usageAdminToken(session.token)
+        : asDemo
+          ? (await spotterDemoToken()).token
+          : session.token
       // req.url: the path with its query string (e.g. ?limit=50).
       const upstream = await fetch(`${config().host}/api/rest/2.0${req.url}`, {
         method: req.method,

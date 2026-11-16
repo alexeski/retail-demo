@@ -71,9 +71,12 @@ const explain = (status: number, data: unknown) => {
   return msg ? `${msg} (${status})` : `Request failed (${status})`
 }
 
+/** This page always runs as the dedicated demo user (server: THOUGHTSPOT_SPOTTER_DEMO_USERNAME), never the signed-in one. */
+const ASDEMO = { 'X-Storeloom-As': 'spotter-demo' }
+
 async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
   const started = performance.now()
-  const res = await tsFetch(path, { method, body: body === undefined ? undefined : JSON.stringify(body) })
+  const res = await tsFetch(path, { method, headers: ASDEMO, body: body === undefined ? undefined : JSON.stringify(body) })
   const data: unknown = await res.json().catch(() => null)
   const entry: ApiCall = { id: nextCall++, at: Date.now(), method, path: `/api/rest/2.0${path}`, body, status: res.status, ms: Math.round(performance.now() - started), response: data }
   listeners.forEach((fn) => fn(entry))
@@ -81,11 +84,11 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Pr
   return data as T
 }
 
-/** The signed-in user's GUID: the identifier of their USER pool. */
+/** The demo user's GUID: the identifier of their USER pool. */
 export async function currentUserId(): Promise<string> {
-  const res = await tsFetch('/auth/session/user')
+  const res = await tsFetch('/auth/session/user', { headers: ASDEMO })
   const u = (await res.json().catch(() => null)) as { id?: string } | null
-  if (!res.ok || !u?.id) throw new UsageApiError(res.status, 'Could not read the signed-in user.')
+  if (!res.ok || !u?.id) throw new UsageApiError(res.status, 'Could not read the Spotter demo user. Does it exist on the cluster? (THOUGHTSPOT_SPOTTER_DEMO_USERNAME)')
   return u.id
 }
 
