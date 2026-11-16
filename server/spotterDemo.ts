@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, randomUUID } from 'node:crypto'
+import { createHmac, randomUUID } from 'node:crypto'
 import { config } from './config.ts'
 import type { Session } from './session.ts'
 import { mintToken, type MintedToken } from './thoughtspot.ts'
@@ -8,15 +8,16 @@ import { mintToken, type MintedToken } from './thoughtspot.ts'
 // belongs to a user). Nothing here needs a database or a scheduler outside this
 // process: the cluster is the state.
 //
-// - Name:  spotter_monetization_TSE_tmp_<owner>_<random>, where <owner> is a short
-//   HMAC of the signed-in user's name (no email in the name, same person = same prefix).
+// - Name:  spotter_monetization_TSE_tmp_<owner>, where <owner> is a short HMAC of the
+//   signed-in user's name (no email in the name). One fixed name per person, so a
+//   person can never end up with two (an older `_<random>` suffix is still recognised).
 // - Reuse: coming back within the TTL finds the same user, so its pool is as it was.
 // - Sweep: users idle for the TTL are deleted (pool first), at server start and hourly.
 //   "Idle" is the later of creation and last use (a use touches the user).
 
 const PREFIX = 'spotter_monetization_TSE_tmp_'
 /** The whole name must match this, so no real user or the permanent test user can be picked up. */
-const NAME = /^spotter_monetization_TSE_tmp_([0-9a-f]{8})_[0-9a-f]{6}$/
+const NAME = /^spotter_monetization_TSE_tmp_([0-9a-f]{8})(_[0-9a-f]{6})?$/
 
 const ttlMs = () => config().spotterDemoTtlHours * 60 * 60 * 1000
 const TOUCH_EVERY_MS = 30 * 60 * 1000
@@ -82,11 +83,10 @@ async function touch(username: string, id: string) {
 }
 
 /** Creates the person's user, in the same groups as the permanent test user (that is what lets it use the retail model). */
-async function create(owner: string): Promise<TsUser> {
+async function create(name: string): Promise<TsUser> {
   const template = (await searchUsers(config().spotterDemoUsername)).find((u) => u.name === config().spotterDemoUsername)
   const groups = template?.user_groups?.map((g) => g.id) ?? []
   if (!groups.length) throw new Error(`Template user ${config().spotterDemoUsername} not found or has no groups`)
-  const name = `${PREFIX}${owner}_${randomBytes(3).toString('hex')}`
   const r = await admin<TsUser & { error?: unknown }>('POST', '/users/create', {
     name,
     display_name: 'Spotter monetization demo (TSE - temp)',
@@ -102,23 +102,37 @@ async function create(owner: string): Promise<TsUser> {
   return r.body
 }
 
-async function resolve(owner: string, session: Session): Promise<Demo> {
-  void session
+/** The person's existing user, if any: the fixed name first, else an older one with a random suffix (newest). */
+async function find(owner: string): Promise<TsUser | undefined> {
+  const mine = (await searchUsers(`${PREFIX}${owner}%`)).filter((u) => NAME.exec(u.name)?.[1] === owner)
+  return mine.find((u) => u.name === `${PREFIX}${owner}`) ?? mine.sort((a, b) => lastActive(b) - lastActive(a))[0]
+}
+
+async function resolve(owner: string): Promise<Demo> {
   try {
-    const now = Date.now()
-    const mine = (await searchUsers(`${PREFIX}${owner}_%`))
-      .filter((u) => NAME.exec(u.name)?.[1] === owner && now - lastActive(u) < ttlMs())
-      .sort((a, b) => lastActive(b) - lastActive(a))
-    const user = mine[0] ?? (await create(owner))
+    // An existing user is always reused, however old: the sweep, not this, retires idle ones.
+    let user = await find(owner)
+    if (!user) {
+      try {
+        user = await create(`${PREFIX}${owner}`)
+      } catch (err) {
+        // Created a moment ago by another request (or another server): use that one.
+        for (let i = 0; i < 5 && !user; i++) {
+          await new Promise((r) => setTimeout(r, 600))
+          user = await find(owner)
+        }
+        if (!user) throw err
+      }
+    }
     void touch(user.name, user.id).catch(() => undefined)
     const t: MintedToken = await mintToken(user.name)
-    return { username: user.name, token: t.token, expiresAt: t.expiresAt, touchedAt: now }
+    return { username: user.name, token: t.token, expiresAt: t.expiresAt, touchedAt: Date.now() }
   } catch (err) {
     // No admin, no template, cluster hiccup: the permanent test user still works for a single demo.
     console.error('Spotter demo: per-person user unavailable, using the shared test user.', err instanceof Error ? err.message : err)
     const t = await mintToken(config().spotterDemoUsername)
     // Short-lived in the cache, so the next visit tries the per-person user again.
-    return { username: t.username, token: t.token, expiresAt: Math.min(t.expiresAt, Date.now() + 2 * 60_000 + 60_000), touchedAt: Date.now() }
+    return { username: t.username, token: t.token, expiresAt: Math.min(t.expiresAt, Date.now() + 3 * 60_000), touchedAt: Date.now() }
   }
 }
 
@@ -135,7 +149,7 @@ export async function demoTokenFor(session: Session): Promise<{ token: string; e
   }
   let p = pending.get(owner)
   if (!p) {
-    p = resolve(owner, session)
+    p = resolve(owner)
       .then((d) => (cache.set(owner, d), d))
       .finally(() => pending.delete(owner))
     pending.set(owner, p)
