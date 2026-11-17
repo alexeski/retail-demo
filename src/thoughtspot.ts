@@ -245,8 +245,17 @@ function runInit() {
           Liveboards: 'dashboards',
           Liveboard: 'dashboard',
           ThoughtSpot: 'Storeloom',
+          // Spotter 3's greeting wrapped onto two lines: keep "Hi! I'm Shuttle" and let the line below say the rest.
         },
         stringIDs: {
+          // Spotter 3's greeting ("Hi! I'm Spotter, your AI data analyst") wrapped onto two lines.
+          'spotter.newChatPrompt.landingPage.title': 'Hi! I am Shuttle',
+          // Spotter usage limits: the banners and the Upgrade link in the question bar. IDs found with exposeTranslationIDs
+          // (open /spotter-limits?stringids); the usage-limit page doesn't list them.
+          // No apostrophes in these: the SDK HTML-escapes them and they show as &#39;.
+          'spotter.usageLimit.almostReachedMessage': 'You are nearly out of questions this month.',
+          'spotter.usageLimit.reachedMessage': 'You have used all your questions this month.',
+          'spotter.usageLimit.upgradePlan': 'See plans',
           // The chart Shuttle button's tooltip while ThoughtSpot still checks access
           // to the data (it shows even once the button works): say what it does.
           'permission.requestDataAccess': 'Ask Shuttle about this chart: why the numbers moved, and follow-up questions on its data.',

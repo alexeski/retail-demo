@@ -102,6 +102,8 @@
 }
 
 .spg-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 16px;
   display: flex;
@@ -634,4 +636,37 @@
   font-size: 11px;
   color: var(--muted);
   flex: none;
+}
+
+/* Links to the ThoughtSpot docs behind the demo, under the panel's tabs. */
+.spg-docs {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 9px 16px;
+  border-top: 1.5px solid var(--ink);
+  background: var(--sand);
+}
+
+.spg-docs a {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--muted-light);
+  text-underline-offset: 3px;
+}
+
+.spg-docs a::after {
+  content: ' ↗';
+  color: var(--muted);
+}
+
+.spg-docs a:hover,
+.spg-docs a:focus-visible {
+  text-decoration-color: var(--ink);
+  background: var(--periwinkle);
 }

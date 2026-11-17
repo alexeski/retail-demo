@@ -46,10 +46,23 @@ const COUNTER_MODES: { value: Counter; label: string; mode: SpotterUsageCounterD
 ]
 
 type Tab = 'scenario' | 'settings' | 'code' | 'log'
-type SnippetId = 'embed' | 'upgrade' | 'provision' | 'monitor' | 'reset' | 'unmeter'
+type SnippetId = 'embed' | 'wording' | 'upgrade' | 'provision' | 'monitor' | 'reset' | 'unmeter'
 
 /** The sidebar footer's "Best practices" link: a vendor doc link the app doesn't need. */
 const HIDDEN_SPOTTER_ACTIONS = [Action.SpotterDocs]
+
+/** `?stringids` shows ThoughtSpot's string IDs inside the embed, to find the ID of the limit banner's text. */
+const SHOW_STRING_IDS = new URLSearchParams(window.location.search).has('stringids')
+
+const DOCS_ROOT = 'https://developers.thoughtspot.com/docs'
+/** The ThoughtSpot developer docs behind this page, shown under the presenter panel. */
+const DOCS: { label: string; href: string; hint: string }[] = [
+  { label: 'Guide', href: `${DOCS_ROOT}/spotter-usage-limits`, hint: 'Manage Spotter usage limits: scopes, pools, banners, counter, upgrade flow' },
+  { label: 'Usage API', href: `${DOCS_ROOT}/spotter-usage-data-api`, hint: 'REST v2 endpoints under /ai/usage-data' },
+  { label: 'Embed config', href: `${DOCS_ROOT}/Interface_SpotterUsageLimitConfig`, hint: 'SpotterUsageLimitConfig: isEnabled, banners, upgrade button, counter mode' },
+  { label: 'Events', href: `${DOCS_ROOT}/Enumeration_EmbedEvent#_spotterusagelimitupgrade`, hint: 'EmbedEvent.SpotterUsageLimitUpgrade and SpotterResponseComplete' },
+  { label: 'Styling', href: `${DOCS_ROOT}/customize-spotter-embed`, hint: 'Customizing the Spotter embed: CSS variables, text strings, chat history sidebar' },
+]
 
 const PANEL_MIN = 0.25
 const PANEL_MAX = 0.7
@@ -166,13 +179,30 @@ export function SpotterLimitsDemo() {
       .then((id) => live && setUserId(id))
       .catch((err: Error) => live && setError(err.message))
     void refreshStatus()
-    const timer = setInterval(() => void refreshStatus(), 8000)
+    // No polling timer: the counter in the embed updates itself, and this page re-reads ThoughtSpot only when something
+    // changed (an answer finished, below) or when the tab comes back into view.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refreshStatus()
+    }
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       live = false
-      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+      clearTimeout(settleTimer.current)
       setEmbedPersona(undefined)
     }
   }, [refreshStatus])
+
+  /** A finished answer is when a question has been counted: re-read the user's usage once, a moment later (answers can arrive in a burst). */
+  const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const answered = useCallback(() => {
+    clearTimeout(settleTimer.current)
+    settleTimer.current = setTimeout(() => void refreshStatus(), 1200)
+  }, [refreshStatus])
+  const answeredRef = useRef(answered)
+  answeredRef.current = answered
+  /** Passed as the `onSpotterResponseComplete` prop, so it is registered when the embed is built (like the Upgrade listener). */
+  const responseListener = useCallback(() => answeredRef.current(), [])
 
   /** Makes the embed re-read the pool (the host's job after changing it out of band). */
   const refreshEmbed = useCallback(() => {
@@ -336,8 +366,10 @@ export function SpotterLimitsDemo() {
             // Spotter 3: the updated chat, and the 26.11 surface (which sends older clusters to the home page).
             {...(settings.spotter3 ? { updatedSpotterChatPrompt: true, spotterExperienceVersion: SpotterExperienceVersion.SPOTTER_2026_11 } : {})}
             hideSourceSelection
+            // ?stringids on the URL shows each text's string ID (<text[id]>), for the stringIDs overrides in src/thoughtspot.ts.
+            {...(SHOW_STRING_IDS ? { exposeTranslationIDs: true } : {})}
             hiddenActions={HIDDEN_SPOTTER_ACTIONS}
-            {...{ onSpotterUsageLimitUpgrade: upgradeListener }}
+            {...{ onSpotterUsageLimitUpgrade: upgradeListener, onSpotterResponseComplete: responseListener }}
             hideSampleQuestions
             spotterSidebarConfig={{ enablePastConversationsSidebar: settings.history, spotterSidebarTitle: 'Chat history', spotterSidebarDefaultExpanded: false }}
             spotterUsageLimitConfig={{
@@ -530,6 +562,15 @@ export function SpotterLimitsDemo() {
 
               {tab === 'log' && <ApiLog calls={calls} onClear={() => setCalls([])} />}
             </div>
+
+            <footer className="spg-docs" aria-label="Documentation">
+              <span className="mono-label">Docs</span>
+              {DOCS.map((d) => (
+                <a key={d.href} href={d.href} target="_blank" rel="noopener noreferrer" title={d.hint}>
+                  {d.label}
+                </a>
+              ))}
+            </footer>
           </aside>
         )}
       </div>
@@ -556,6 +597,7 @@ function Switch({ label, hint, checked, onChange, disabled }: { label: string; h
 
 const SNIPPETS: { id: SnippetId; label: string; blurb: string }[] = [
   { id: 'embed', label: 'Embed', blurb: 'Turn on usage limits in the embed and choose what end users see.' },
+  { id: 'wording', label: 'Wording', blurb: 'The banner and Upgrade text have string IDs you can override; the standard CSS variables carry your colors.' },
   { id: 'provision', label: 'Set a limit', blurb: 'From your backend: give a user, group or org a pool of questions.' },
   { id: 'monitor', label: 'Monitor', blurb: 'Read what a user has used and what is left.' },
   { id: 'upgrade', label: 'Upgrade', blurb: 'The Upgrade button emits an event; you run billing, then raise the limit and refresh.' },
@@ -649,6 +691,30 @@ await fetch(\`\${TS_HOST}/api/rest/2.0${HL('/ai/usage-data/update')}\`, {
   --data-raw '{"keys":[${HL(curlKey)}]}'   # {} returns all pools`,
         },
       ]
+    case 'wording':
+      return [
+        {
+          lang: 'ts · init() · the banner text is yours',
+          code: `init({
+  // ...
+  customizations: {
+    content: {
+      ${HL('stringIDs')}: {
+        ${HL("'spotter.usageLimit.almostReachedMessage'")}: 'You are nearly out of questions this month.',
+        ${HL("'spotter.usageLimit.reachedMessage'")}: 'You have used all your questions this month.',
+        ${HL("'spotter.usageLimit.upgradePlan'")}: 'See plans',   // the Upgrade link (avoid apostrophes: they come out HTML-escaped)
+      },
+    },
+    style: { customCSS: { variables: { '--ts-var-root-background': '#fffdf8' /* your colors */ } } },
+  },
+})`,
+        },
+        {
+          lang: 'tsx · find the ID of any text',
+          code: `// Renders every string as <text[id]> so you can copy the ID. For admins and developers only.
+<SpotterEmbed ${HL('exposeTranslationIDs')} ... />    // on this page: add ?stringids to the URL`,
+        },
+      ]
     case 'upgrade':
       return [
         {
@@ -660,6 +726,13 @@ await fetch(\`\${TS_HOST}/api/rest/2.0${HL('/ai/usage-data/update')}\`, {
 
   await fetch('/api/spotter/raise-limit', { method: 'POST' })  // your backend → ${HL('usage-data/update')}
   embed.trigger(${HL('HostEvent.SpotterRefreshUsageLimit')})            // the counter updates without a reload
+})`,
+        },
+        {
+          lang: 'ts · keep your own UI in sync, without polling',
+          code: `// The counter inside the embed updates itself. For your own UI, re-read once per answer:
+embed.on(${HL('EmbedEvent.SpotterResponseComplete')}, () => {
+  fetch('/api/spotter/usage')   // your backend → GET ${HL('/ai/usage-data/user')}
 })`,
         },
         {
